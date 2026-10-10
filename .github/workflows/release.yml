@@ -53,8 +53,9 @@ jobs:
         run: ls -la app/build/outputs/apk/release/
 
       - name: Publish GitHub Release with both APKs
-        uses: softprops/action-gh-release@v2
-        with:
-          files: app/build/outputs/apk/release/*.apk
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          test "$(ls app/build/outputs/apk/release/*.apk | wc -l)" -eq 2
+          gh release create "$GITHUB_REF_NAME" app/build/outputs/apk/release/*.apk \
+            --title "$GITHUB_REF_NAME" --generate-notes
