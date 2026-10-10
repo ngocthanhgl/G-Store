@@ -1,0 +1,33 @@
+name: catalog-scan
+
+# Daily GitHub APK catalog scan (24h). Results are committed to catalog/
+# and the Android app pulls catalog/apps.json on launch, so Home always
+# has a list. See tools/scan.py and docs/GITHUB_DISCOVERY.md for the
+# documented coverage limits — this is a sample, never "all of GitHub".
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run catalog scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/scan.py
+      - name: Commit catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add catalog/apps.json catalog/meta.json
+          git diff --cached --quiet && echo "catalog unchanged" || (
+            git commit -m "catalog: daily APK scan $(date -u +%F)" &&
+            git push
+          )
