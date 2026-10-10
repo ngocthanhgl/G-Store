@@ -201,3 +201,34 @@ built and verified. The lesson is recorded in §12.
   compression, re-verify claimed files with a directory/test listing before
   editing or reporting; DECISIONS records only executed results. The M7 §11
   correction above is the applied example.
+
+## 13. GitHub publication record (2026-10-10, all executed)
+
+- Repo: `ngocthanhgl/github-store-android` (public), branch `main`, tag
+  `v0.4.0` → GitHub Release v0.4.0 with `app-arm64-v8a-release.apk` +
+  `app-armeabi-v7a-release.apk` (ABI splits, no universal).
+- App icon from `github-store-android-icons` pack: adaptive
+  (mipmap-anydpi-v26 + monochrome themed), legacy PNGs mdpi–xxxhdpi
+  (square + round), `roundIcon` added to manifest. Two pack/project
+  conflicts resolved: stale placeholder `drawable/ic_launcher_foreground`
+  deleted (superseded by `drawable-v24`), duplicate
+  `color/ic_launcher_background` resolved in favor of project's identical
+  `colors.xml` value.
+- Signing: RSA-2048 `gstore` key, 30y validity, keystore lives ONLY in
+  `~/.gstore-signing/` (outside repo) + 4 GitHub Actions secrets
+  (`ANDROID_KEYSTORE_BASE64/PASSWORD/ALIAS/KEY_PASSWORD`); Gradle release
+  signing reads env and stays unsigned when absent. Published arm64 APK
+  verified: `apksigner verify` exit 0, cert SHA-256 matches local keystore.
+- CI (`ci.yml`: JDK Temurin 25, API 37, assemble+tests+lint) green;
+  `release.yml` (tag `v*` + manual dispatch) green. CI debugging lessons:
+  `android-actions/setup-android@v3` default `packages` includes the dead
+  `tools` package (pin `platform-tools`); runner `latest` cmdline-tools
+  symlink lags (pick newest versioned dir); platform spec must be exact
+  `platforms;android-37.0`; **`${{ runner.temp }}` does not exist** —
+  it fails workflow compilation with zero jobs (use `$RUNNER_TEMP` shell
+  var + `$GITHUB_ENV`). Release publishing uses preinstalled `gh` CLI,
+  no third-party action.
+- Machine access used: existing `~/.ssh/id_ed25519` registered as
+  `windows-gstore-push` (repo pushes over SSH per machine gitconfig);
+  a user-supplied PAT was used for API calls — rotate it after this
+  session since it appeared in chat.
