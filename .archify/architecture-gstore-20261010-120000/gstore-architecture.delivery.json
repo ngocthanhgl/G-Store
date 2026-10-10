@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "8522db27-f475-4977-9feb-ad9824b6fef8",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+  "output": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+  "specification": {
+    "sha256": "cd7194ba841a6915409b188e294cae95ffeafefb8b7a4b24438367ca6df5d8de",
+    "bytes": 2385
+  },
+  "artifact": {
+    "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+    "bytes": 759362
+  }
+}

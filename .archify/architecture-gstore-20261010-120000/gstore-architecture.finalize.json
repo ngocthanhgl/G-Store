@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-10T01:05:00.975Z",
+  "specification": {
+    "path": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+    "sha256": "cd7194ba841a6915409b188e294cae95ffeafefb8b7a4b24438367ca6df5d8de",
+    "bytes": 2385
+  },
+  "artifact": {
+    "path": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+    "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+    "bytes": 759362
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "C:\\Users\\material3\\AppData\\Local\\nodejs\\node.exe",
+        "C:\\Users\\material3\\.agents\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "cd7194ba841a6915409b188e294cae95ffeafefb8b7a4b24438367ca6df5d8de",
+          "bytes": 2385
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1558,
+      "command": [
+        "C:\\Users\\material3\\AppData\\Local\\nodejs\\node.exe",
+        "C:\\Users\\material3\\.agents\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "8522db27-f475-4977-9feb-ad9824b6fef8",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+        "output": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "specification": {
+          "sha256": "cd7194ba841a6915409b188e294cae95ffeafefb8b7a4b24438367ca6df5d8de",
+          "bytes": 2385
+        },
+        "artifact": {
+          "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+          "bytes": 759362
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 317,
+      "command": [
+        "C:\\Users\\material3\\AppData\\Local\\nodejs\\node.exe",
+        "C:\\Users\\material3\\.agents\\skills\\archify\\bin\\archify.mjs",
+        "check",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "artifact": {
+          "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+          "bytes": 759362
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.515151515151516,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1.336,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 76,
+            "minInteriorSegmentPx": 520,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 90,
+            "emptyTopRatio": 0.164,
+            "occupiedTop": 90,
+            "viewBoxTop": 0,
+            "canvasHeight": 548,
+            "typicalNodeHeight": 60,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "actualReaderWidth": 960,
+            "desiredReaderWidth": 960,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "ui-to-repo",
+              "from": "ui",
+              "to": "repo"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.515151515151516,
+            "semanticTextCount": 25
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "8522db27-f475-4977-9feb-ad9824b6fef8"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 596,
+      "command": [
+        "C:\\Users\\material3\\AppData\\Local\\nodejs\\node.exe",
+        "C:\\Users\\material3\\.agents\\skills\\archify\\bin\\archify.mjs",
+        "browser-check",
+        "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "8522db27-f475-4977-9feb-ad9824b6fef8",
+        "artifact": {
+          "path": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+          "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+          "bytes": 759362
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "gstore-architecture.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.finalize.json",
+    "summaryReceipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.finalize-summary.json",
+    "browserCheckReceipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-10T01:05:04.375Z",
+  "durationMs": 3400,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-10T01:04:36.727Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

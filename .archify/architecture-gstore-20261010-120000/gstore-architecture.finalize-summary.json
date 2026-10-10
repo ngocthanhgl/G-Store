@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\candidate.json",
+    "sha256": "cd7194ba841a6915409b188e294cae95ffeafefb8b7a4b24438367ca6df5d8de",
+    "bytes": 2385
+  },
+  "artifact": {
+    "path": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html",
+    "sha256": "5f5213aaf7eb42a7ea1f71d96afaac471a03ef5e7c6dffc1bdc3037e677c3190",
+    "bytes": 759362
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.finalize.json",
+    "summaryReceipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.finalize-summary.json",
+    "browserCheckReceipt": "E:\\G Store\\.archify\\architecture-gstore-20261010-120000\\gstore-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-10T01:04:36.727Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3400
+}

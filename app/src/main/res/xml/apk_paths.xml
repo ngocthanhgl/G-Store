@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App-specific APK storage only (flow C). Nothing outside filesDir/apks/
+     is ever shared, and no storage permission is needed for our own files. -->
+<paths>
+    <files-path name="apks" path="apks/" />
+</paths>
