@@ -33,11 +33,12 @@ jobs:
 
       - name: Install platform + build-tools 37
         run: |
-          # Use the newest cmdline-tools on PATH order — the preinstalled
-          # 12.0 snapshot predates API 37 and cannot see the package.
-          SDKMANAGER=$(ls "$ANDROID_SDK_ROOT/cmdline-tools/"*/bin/sdkmanager | sort -V | tail -1)
+          # Newest *versioned* cmdline-tools (the `latest` symlink lags) and
+          # the exact platform spec — major-only `android-37` resolves on
+          # new sdkmanager releases but not on the runner's snapshot.
+          SDKMANAGER=$(ls -d "$ANDROID_SDK_ROOT/cmdline-tools/"[0-9]*/bin/sdkmanager | sort -V | tail -1)
           yes | "$SDKMANAGER" --licenses > /dev/null
-          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

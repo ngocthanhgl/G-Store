@@ -27,15 +27,12 @@ jobs:
 
       - name: Install platform + build-tools 37
         run: |
-          SDKMANAGER=$(ls "$ANDROID_SDK_ROOT/cmdline-tools/"*/bin/sdkmanager | sort -V | tail -1)
-          echo "SDKMANAGER=$SDKMANAGER"
-          "$SDKMANAGER" --version
-          echo "--- installed platforms ---"
-          "$SDKMANAGER" --list_installed | grep -i "platform" || true
-          echo "--- remote API 35-37 platforms ---"
-          "$SDKMANAGER" --list | grep -E "platforms;android-3[567]" || true
+          # Newest *versioned* cmdline-tools (the `latest` symlink lags) and
+          # the exact platform spec — major-only `android-37` resolves on
+          # new sdkmanager releases but not on the runner's snapshot.
+          SDKMANAGER=$(ls -d "$ANDROID_SDK_ROOT/cmdline-tools/"[0-9]*/bin/sdkmanager | sort -V | tail -1)
           yes | "$SDKMANAGER" --licenses > /dev/null
-          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
