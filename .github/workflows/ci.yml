@@ -27,9 +27,13 @@ jobs:
 
       - name: Install platform + build-tools 37
         run: |
-          # Use the newest cmdline-tools on PATH order — the preinstalled
-          # 12.0 snapshot predates API 37 and cannot see the package.
           SDKMANAGER=$(ls "$ANDROID_SDK_ROOT/cmdline-tools/"*/bin/sdkmanager | sort -V | tail -1)
+          echo "SDKMANAGER=$SDKMANAGER"
+          "$SDKMANAGER" --version
+          echo "--- installed platforms ---"
+          "$SDKMANAGER" --list_installed | grep -i "platform" || true
+          echo "--- remote API 35-37 platforms ---"
+          "$SDKMANAGER" --list | grep -E "platforms;android-3[567]" || true
           yes | "$SDKMANAGER" --licenses > /dev/null
           "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;37.0.0"
 
