@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "scanned_at": "2026-10-10T06:53:00.452489+00:00",
+ "tool": "tools/scan.py",
+ "queries": [
+  "topic:android fork:false",
+  "android language:Kotlin fork:false stars:>100",
+  "android language:Java fork:false stars:>100"
+ ],
+ "candidates": 600,
+ "checked": 439,
+ "matches": 141,
+ "truncated": true,
+ "deadline_hit": true,
+ "complete": false,
+ "error": null,
+ "duration_s": 1320.5
+}
