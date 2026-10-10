@@ -15,6 +15,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -86,9 +90,15 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // Drag updates locally; DataStore writes once per gesture so a
+                    // write-storm can never jank or drop the final value.
+                    var radius by remember(appearance.cardRadiusDp) {
+                        mutableFloatStateOf(appearance.cardRadiusDp.toFloat())
+                    }
                     Slider(
-                        value = appearance.cardRadiusDp.toFloat(),
-                        onValueChange = { vm.setCardRadius(it.toInt()) },
+                        value = radius,
+                        onValueChange = { radius = it },
+                        onValueChangeFinished = { vm.setCardRadius(radius.toInt()) },
                         valueRange = 4f..20f,
                         steps = 15,
                     )

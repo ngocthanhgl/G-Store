@@ -27,6 +27,7 @@ data class AssetRow(
 
 data class DetailsUiState(
     val repo: Repository? = null,
+    val loadingRepo: Boolean = true,
     val releases: List<Release> = emptyList(),
     val selectedReleaseId: Long? = null,
     val assetRows: List<AssetRow> = emptyList(),
@@ -58,6 +59,7 @@ fun formatBytes(bytes: Long): String {
 
 class DetailsViewModel(
     private val repoId: Long,
+    private val fullName: String,
     private val catalog: CatalogRepository,
     private val prefs: PreferencesRepository,
 ) : ViewModel() {
@@ -65,12 +67,10 @@ class DetailsViewModel(
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch { load() }
         viewModelScope.launch {
-            val repo = catalog.getRepository(repoId)
-            _state.value = _state.value.copy(repo = repo)
-            if (repo != null) prefs.recordView(repo.fullName)
-        }
-        viewModelScope.launch {
+            // GitHub repository IDs are stable across search and sync
+            // (DATA_MODEL.md), so the passed id stays valid after on-demand sync.
             catalog.observeReleases(repoId).collectLatest { releases ->
                 val current = _state.value
                 val selected = current.selectedReleaseId
@@ -85,6 +85,26 @@ class DetailsViewModel(
                 _state.value = _state.value.copy(isFavorite = repoId in ids)
             }
         }
+    }
+
+    /**
+     * Load the repo from cache, syncing on demand when opened from a
+     * network-only result (search/discover) that was never persisted.
+     * Previously this left repo null and the screen spun forever.
+     */
+    private suspend fun load() {
+        _state.value = _state.value.copy(loadingRepo = true, notice = null)
+        var repo = catalog.getRepository(repoId)
+        if (repo == null && fullName.isNotBlank()) {
+            _state.value = _state.value.copy(syncing = true)
+            when (val result = catalog.sync(fullName)) {
+                is Outcome.Ok -> repo = catalog.getByFullName(fullName)
+                is Outcome.Err -> _state.value = _state.value.copy(notice = result.failure)
+            }
+            _state.value = _state.value.copy(syncing = false)
+        }
+        _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+        if (repo != null) prefs.recordView(repo.fullName)
     }
 
     fun selectRelease(releaseId: Long) {
@@ -112,7 +132,11 @@ class DetailsViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val repo = _state.value.repo ?: return@launch
+            val repo = _state.value.repo
+            if (repo == null) {
+                load()
+                return@launch
+            }
             _state.value = _state.value.copy(syncing = true, notice = null)
             when (val result = catalog.sync(repo.fullName)) {
                 is Outcome.Ok -> Unit

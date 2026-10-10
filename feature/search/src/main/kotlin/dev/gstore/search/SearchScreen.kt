@@ -34,7 +34,7 @@ import dev.gstore.ui.RepoCard
 @Composable
 fun SearchScreen(
     vm: SearchViewModel,
-    onOpenRepo: (Long) -> Unit,
+    onOpenRepo: (Repository) -> Unit,
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
@@ -109,7 +109,7 @@ fun SearchScreen(
                         repo = repo,
                         isFavorite = repo.id in state.favoriteIds,
                         apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
-                        onOpen = { onOpenRepo(repo.id) },
+                        onOpen = { onOpenRepo(repo) },
                         onToggleFavorite = { vm.toggleFavorite(repo) },
                         cardRadiusDp = cardRadiusDp,
                         compact = compact,
@@ -123,7 +123,7 @@ fun SearchScreen(
                                 repo = repo,
                                 isFavorite = repo.id in state.favoriteIds,
                                 apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
-                                onOpen = { onOpenRepo(repo.id) },
+                                onOpen = { onOpenRepo(repo) },
                                 onToggleFavorite = { vm.toggleFavorite(repo) },
                                 modifier = Modifier.weight(1f),
                                 cardRadiusDp = cardRadiusDp,
@@ -151,7 +151,7 @@ fun SearchScreen(
                     NetworkRow(
                         repo = repo,
                         onAdd = { vm.addRepository(repo.fullName) },
-                        onOpen = { onOpenRepo(repo.id) },
+                        onOpen = { onOpenRepo(repo) },
                     )
                 }
             }

@@ -1,10 +1,13 @@
 package dev.gstore.datastore
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -12,7 +15,9 @@ import dev.gstore.model.HomeSection
 import dev.gstore.model.SectionConfig
 import dev.gstore.model.TrendingWeights
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 private val Context.store by preferencesDataStore(name = "gstore_prefs")
 
@@ -47,7 +52,19 @@ class PreferencesRepository(private val context: Context) {
         val W_FORKS = floatPreferencesKey("w_forks")
         val W_RELEASES = floatPreferencesKey("w_releases")
         val W_DOWNLOADS = floatPreferencesKey("w_downloads")
+        val CATALOG_ETAG = stringPreferencesKey("catalog_etag")
+        val CATALOG_IMPORTED_AT = longPreferencesKey("catalog_imported_at")
     }
+
+    /**
+     * A corrupt or unreadable prefs file must never wedge the UI at defaults
+     * forever (the classic “settings don’t stick” report): fall back to empty
+     * prefs so every flow keeps emitting, and later writes re-create the file.
+     */
+    private fun resilientData(): Flow<Preferences> =
+        context.store.data.catch { e ->
+            if (e is IOException) emit(emptyPreferences()) else throw e
+        }
 
     companion object {
         val DEFAULT_ORDER = listOf(
@@ -61,7 +78,7 @@ class PreferencesRepository(private val context: Context) {
         const val HISTORY_MAX = 20
     }
 
-    val appearance: Flow<AppearanceSettings> = context.store.data.map { p ->
+    val appearance: Flow<AppearanceSettings> = resilientData().map { p ->
         AppearanceSettings(
             theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "SYSTEM") }
                 .getOrDefault(ThemeMode.SYSTEM),
@@ -111,7 +128,7 @@ class PreferencesRepository(private val context: Context) {
      * Home-section visibility/order (PRODUCT_SPEC §3). Section config is a user
      * preference, not catalog data — hence DataStore, not Room (see DECISIONS.md).
      */
-    val sectionConfigs: Flow<List<SectionConfig>> = context.store.data.map { p ->
+    val sectionConfigs: Flow<List<SectionConfig>> = resilientData().map { p ->
         val order = (p[Keys.SECTION_ORDER]?.split(",")?.mapNotNull {
             runCatching { HomeSection.valueOf(it) }.getOrNull()
         }?.takeIf { it.isNotEmpty() } ?: DEFAULT_ORDER)
@@ -141,7 +158,7 @@ class PreferencesRepository(private val context: Context) {
     }
 
     /** Recently viewed repos, newest first, bounded (Continue Browsing input). */
-    val viewHistory: Flow<List<String>> = context.store.data.map { p ->
+    val viewHistory: Flow<List<String>> = resilientData().map { p ->
         (p[Keys.HISTORY] ?: emptySet())
             .mapNotNull { entry ->
                 val sep = entry.lastIndexOf('|')
@@ -167,7 +184,7 @@ class PreferencesRepository(private val context: Context) {
         }
     }
 
-    val trendingWeights: Flow<TrendingWeights> = context.store.data.map { p ->
+    val trendingWeights: Flow<TrendingWeights> = resilientData().map { p ->
         val defaults = TrendingWeights()
         TrendingWeights(
             stars = (p[Keys.W_STARS] ?: defaults.stars.toFloat()).toDouble(),
@@ -183,6 +200,21 @@ class PreferencesRepository(private val context: Context) {
             p[Keys.W_FORKS] = weights.forks.toFloat()
             p[Keys.W_RELEASES] = weights.releases30d.toFloat()
             p[Keys.W_DOWNLOADS] = weights.downloads30d.toFloat()
+        }
+    }
+
+    /**
+     * Scanner-catalog freshness (flow A). The ETag makes repeat pulls cheap
+     * (304 → no import); imported-at drives the 24h stale check on Home.
+     */
+    val catalogEtag: Flow<String?> = resilientData().map { p -> p[Keys.CATALOG_ETAG] }
+
+    val catalogImportedAt: Flow<Long?> = resilientData().map { p -> p[Keys.CATALOG_IMPORTED_AT] }
+
+    suspend fun setCatalogState(etag: String?, importedAt: Long) {
+        context.store.edit { p ->
+            if (etag == null) p.remove(Keys.CATALOG_ETAG) else p[Keys.CATALOG_ETAG] = etag
+            p[Keys.CATALOG_IMPORTED_AT] = importedAt
         }
     }
 }

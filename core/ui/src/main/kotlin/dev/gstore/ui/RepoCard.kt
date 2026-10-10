@@ -1,6 +1,5 @@
 package dev.gstore.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,9 +27,11 @@ import dev.gstore.model.Repository
 enum class ApkBadge { HAS_APK, NO_APK, UNKNOWN }
 
 private val TouchTarget = 48.dp
+private val MonogramSize = 44.dp
 
 /**
- * Shared repository card (home, search, favorites).
+ * Shared repository card (home, search, favorites) — DESIGN.md "Tonal Shelf":
+ * monogram tile, title, ledger row, one 48dp favorite action.
  * Touch target >= 48dp; contentDescription on every action (UI_UX_SPEC §6).
  * Radius/density come from persisted appearance (M7) — never hardcoded here.
  */
@@ -46,21 +47,20 @@ fun RepoCard(
     compact: Boolean = false,
 ) {
     Card(
+        onClick = onOpen,
         modifier = modifier.fillMaxWidth(),
         shape = dev.gstore.designsystem.cardShapeFor(cardRadiusDp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onOpen)
                 .padding(if (compact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Monogram — no image pipeline yet (M4); remote avatars arrive with Coil at M5.
             Surface(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(MonogramSize),
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                color = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 androidx.compose.foundation.layout.Box(
                     contentAlignment = Alignment.Center,
@@ -68,7 +68,7 @@ fun RepoCard(
                     Text(
                         text = repo.owner.take(1).uppercase(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
@@ -80,7 +80,7 @@ fun RepoCard(
             ) {
                 Text(
                     text = repo.fullName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -106,15 +106,28 @@ fun RepoCard(
                     )
                     Text(
                         text = formatCount(repo.stars),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "· ${formatCount(repo.forks)} forks",
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (repo.archived) {
-                        Badge("Archived")
+                        Badge(
+                            text = "Archived",
+                            container = MaterialTheme.colorScheme.errorContainer,
+                            content = MaterialTheme.colorScheme.onErrorContainer,
+                        )
                     }
                     when (apkBadge) {
-                        ApkBadge.HAS_APK -> Badge("APK")
-                        ApkBadge.NO_APK -> Badge("No APK")
+                        ApkBadge.HAS_APK -> Badge(
+                            text = "APK",
+                            container = MaterialTheme.colorScheme.primaryContainer,
+                            content = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                        ApkBadge.NO_APK -> Badge(text = "No APK")
                         ApkBadge.UNKNOWN -> Unit
                     }
                 }
@@ -134,16 +147,21 @@ fun RepoCard(
     }
 }
 
-/** Static status badge — deliberately not clickable. */
+/** Static status badge — deliberately not clickable. Tonal per DESIGN.md. */
 @Composable
-private fun Badge(text: String) {
+private fun Badge(
+    text: String,
+    container: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    content: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = container,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
+            color = content,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
     }

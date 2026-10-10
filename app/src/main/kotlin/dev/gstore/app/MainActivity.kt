@@ -88,7 +88,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object Favorites
 @Serializable data object Settings
 @Serializable data object ThemeEditor
-@Serializable data class Details(val repoId: Long)
+@Serializable data class Details(val repoId: Long, val fullName: String = "")
 @Serializable data class Readme(val owner: String, val name: String)
 
 private data class TopDestination(
@@ -137,7 +137,7 @@ private fun GStoreShell(container: AppContainer) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val snackbar = remember { SnackbarHostState() }
-    val onOpenRepo: (Long) -> Unit = { nav.navigate(Details(it)) }
+    val onOpenRepo: (Repository) -> Unit = { nav.navigate(Details(it.id, it.fullName)) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = maxWidth >= 600.dp
         if (expanded) {
@@ -203,7 +203,7 @@ private fun Content(
     nav: androidx.navigation.NavHostController,
     container: AppContainer,
     snackbar: SnackbarHostState,
-    onOpenRepo: (Long) -> Unit,
+    onOpenRepo: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -217,7 +217,7 @@ private fun Content(
     NavHost(navController = nav, startDestination = Home, modifier = modifier) {
         composable<Home> {
             val vm: HomeViewModel = viewModel(
-                factory = vmFactory { HomeViewModel(container.catalog, container.preferences) },
+                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient) },
             )
             HomeScreen(
                 vm = vm,
@@ -343,9 +343,9 @@ private fun Content(
         composable<Details> { backStack ->
             val route = backStack.toRoute<Details>()
             val vm: DetailsViewModel = viewModel(
-                key = "details-${route.repoId}",
+                key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, container.catalog, container.preferences)
+                    DetailsViewModel(route.repoId, route.fullName, container.catalog, container.preferences)
                 },
             )
             val state by vm.state.collectAsState()

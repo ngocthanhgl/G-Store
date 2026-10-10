@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +73,29 @@ fun DetailsScreen(
     val repo = state.repo
     if (repo == null) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            if (state.loadingRepo || state.syncing) {
+                CircularProgressIndicator()
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        "Could not load this repository.",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        state.notice ?: "It may have been removed or renamed on GitHub.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onBack) { Text("Back") }
+                        Button(onClick = onRefresh) { Text("Retry") }
+                    }
+                }
+            }
         }
         return
     }
@@ -140,7 +163,7 @@ private fun TopBar(
 private fun Header(repo: Repository) {
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.tertiaryContainer,
             shape = MaterialTheme.shapes.medium,
             modifier = Modifier.size(56.dp),
         ) {
@@ -148,6 +171,7 @@ private fun Header(repo: Repository) {
                 Text(
                     repo.fullName.firstOrNull()?.uppercase() ?: "?",
                     style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
         }
@@ -156,21 +180,31 @@ private fun Header(repo: Repository) {
             val description = repo.description
             if (description != null) Text(description, style = MaterialTheme.typography.bodyMedium)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(repo.stars.toString(), style = MaterialTheme.typography.labelLarge)
+                    Text(formatCount(repo.stars), style = MaterialTheme.typography.labelLarge)
                 }
-                Text("Forks ${repo.forks}", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    "· ${formatCount(repo.forks)} forks",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (repo.archived) {
-                    Text(
-                        "Archived",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                    ) {
+                        Text(
+                            "Archived",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
             val meta = buildList {
@@ -182,6 +216,12 @@ private fun Header(repo: Repository) {
             }
         }
     }
+}
+
+private fun formatCount(n: Int): String = when {
+    n >= 1_000_000 -> "%.1fM".format(n / 1_000_000.0)
+    n >= 1_000 -> "%.1fk".format(n / 1_000.0)
+    else -> n.toString()
 }
 
 @Composable
@@ -210,7 +250,7 @@ private fun ActionsRow(repo: Repository, onOpenReadme: () -> Unit) {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text(text, style = MaterialTheme.typography.titleLarge)
 }
 
 @Composable
@@ -225,10 +265,15 @@ private fun ReleasePicker(
     }
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(releases, key = { it.id }) { release ->
+            val selected = release.id == selectedId
             FilterChip(
-                selected = release.id == selectedId,
+                selected = selected,
                 onClick = { onSelect(release.id) },
-                label = { Text((if (release.prerelease) "◌ " else "") + release.tag) },
+                label = { Text(release.tag + if (release.prerelease) " · pre" else "") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
             )
         }
     }

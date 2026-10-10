@@ -8,10 +8,15 @@ import dev.gstore.database.FavoriteEntity
 import dev.gstore.database.GStoreDatabase
 import dev.gstore.database.ReleaseDao
 import dev.gstore.database.RepositoryDao
+import dev.gstore.database.AssetEntity
+import dev.gstore.database.ReleaseEntity
+import dev.gstore.database.RepositoryEntity
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
+import dev.gstore.network.CatalogClient
+import dev.gstore.network.CatalogEntry
 import dev.gstore.network.GitHubException
 import dev.gstore.network.GitHubService
 import dev.gstore.network.toDomain as dtoToDomain
@@ -36,6 +41,9 @@ class CatalogRepository(
         repos.observeAll().map { list -> list.map { it.toDomain() } }
 
     suspend fun getRepository(id: Long): Repository? = repos.getById(id)?.toDomain()
+
+    suspend fun getByFullName(fullName: String): Repository? =
+        repos.getByFullName(fullName)?.toDomain()
 
     fun searchLocal(query: String): Flow<List<Repository>> =
         repos.searchLocal(query).map { list -> list.map { it.toDomain() } }
@@ -88,6 +96,75 @@ class CatalogRepository(
 
     suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
 
+    /**
+     * Merge scanner-catalog entries into Room (flow A entry point for the bot).
+     * Repo metadata is always refreshed, but a FRESH fully-synced row is never
+     * downgraded to STALE, and release history is only ever added to — the
+     * single catalog release never replaces what a full sync already stored.
+     * Returns the number of entries merged. Skips assets without a download URL.
+     */
+    suspend fun importCatalog(entries: List<CatalogEntry>, nowMillis: Long): Int {
+        var merged = 0
+        for (e in entries) {
+            if (e.schema != 1) continue
+            val r = e.repo
+            val existing = repos.getByFullName(r.full_name)
+            repos.upsert(
+                RepositoryEntity(
+                    id = r.id,
+                    fullName = r.full_name,
+                    owner = r.owner,
+                    avatarUrl = r.avatar_url,
+                    description = r.description,
+                    stars = r.stars,
+                    forks = r.forks,
+                    topicsJson = topicsJson(r.topics),
+                    archived = r.archived,
+                    defaultBranch = r.default_branch,
+                    updatedAt = r.updated_at,
+                    createdAt = r.created_at,
+                    license = r.license,
+                    lastSyncedAt = existing?.lastSyncedAt ?: 0L,
+                    syncState = if (existing?.syncState == "FRESH") "FRESH" else "STALE",
+                ),
+            )
+            val rel = e.release
+            releases.upsertAll(
+                listOf(
+                    ReleaseEntity(
+                        id = rel.id,
+                        repoId = r.id,
+                        tag = rel.tag,
+                        name = rel.name,
+                        notes = rel.notes,
+                        publishedAt = rel.published_at,
+                        htmlUrl = rel.html_url,
+                        prerelease = rel.prerelease,
+                    ),
+                ),
+            )
+            assets.upsertAll(
+                e.assets.mapNotNull { a ->
+                    val url = a.download_url
+                    if (url.isNullOrBlank()) return@mapNotNull null
+                    AssetEntity(
+                        id = a.id,
+                        releaseId = rel.id,
+                        filename = a.name,
+                        contentType = a.content_type,
+                        size = a.size,
+                        downloadUrl = url,
+                        digest = a.digest,
+                        downloadCount = a.download_count,
+                        eligibleApk = classifyAsset(a.name, a.content_type, a.size).eligible,
+                    )
+                },
+            )
+            merged++
+        }
+        return merged
+    }
+
     /** Seed search — mapped but NOT persisted until the user syncs a repo (M4). */
     suspend fun search(query: String): Outcome<List<Repository>> = try {
         when (val resp = api.searchRepos(query)) {
@@ -109,4 +186,16 @@ class CatalogRepository(
             )
         }
     }
+}
+
+/** Minimal JSON string-list encoder — decoded by Mappers' kotlinx parser. */
+private fun topicsJson(topics: List<String>): String = buildString {
+    append('[')
+    topics.take(20).forEachIndexed { i, t ->
+        if (i > 0) append(',')
+        append('"')
+        append(t.replace("\\", "\\\\").replace("\"", "\\\""))
+        append('"')
+    }
+    append(']')
 }

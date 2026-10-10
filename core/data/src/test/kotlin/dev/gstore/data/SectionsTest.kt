@@ -111,4 +111,25 @@ class SectionsTest {
         )
         assertEquals(1L, forkFirst.trending.first().repo.id)
     }
+
+    @Test fun `catalog sort honors every filter and nulls sort last`() {
+        val a = RepoSignals(
+            repo(1, stars = 100),
+            releases30d = 3,
+            firstEligibleReleaseAt = "2026-09-01T00:00:00Z",
+            latestReleaseAt = "2026-10-01T00:00:00Z",
+        )
+        val b = RepoSignals(
+            repo(2, stars = 9_000),
+            firstEligibleReleaseAt = "2026-10-05T00:00:00Z",
+            latestReleaseAt = "2026-10-06T00:00:00Z",
+        )
+        val c = RepoSignals(repo(3, stars = 500)) // no dates: never first
+        val all = listOf(a, b, c)
+        // b has no recent releases so its trending score loses to active a.
+        assertEquals(listOf(1L, 2L, 3L), sortedCatalog(all, CatalogFilter.TRENDING).map { it.repo.id })
+        assertEquals(listOf(2L, 3L, 1L), sortedCatalog(all, CatalogFilter.STARS).map { it.repo.id })
+        assertEquals(listOf(2L, 1L, 3L), sortedCatalog(all, CatalogFilter.NEW).map { it.repo.id })
+        assertEquals(listOf(2L, 1L, 3L), sortedCatalog(all, CatalogFilter.UPDATED).map { it.repo.id })
+    }
 }

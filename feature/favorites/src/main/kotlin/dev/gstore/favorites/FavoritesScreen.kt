@@ -16,12 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gstore.model.Repository
 import dev.gstore.ui.RepoCard
 
 @Composable
 fun FavoritesScreen(
     vm: FavoritesViewModel,
-    onOpenRepo: (Long) -> Unit,
+    onOpenRepo: (Repository) -> Unit,
     grid: Boolean = false,
     compact: Boolean = false,
     cardRadiusDp: Int = 12,
@@ -52,7 +53,7 @@ fun FavoritesScreen(
                         RepoCard(
                             repo = repo,
                             isFavorite = true,
-                            onOpen = { onOpenRepo(repo.id) },
+                            onOpen = { onOpenRepo(repo) },
                             onToggleFavorite = { vm.toggleFavorite(repo) },
                             cardRadiusDp = cardRadiusDp,
                             compact = compact,
@@ -65,7 +66,7 @@ fun FavoritesScreen(
                                 RepoCard(
                                     repo = repo,
                                     isFavorite = true,
-                                    onOpen = { onOpenRepo(repo.id) },
+                                    onOpen = { onOpenRepo(repo) },
                                     onToggleFavorite = { vm.toggleFavorite(repo) },
                                     modifier = Modifier.weight(1f),
                                     cardRadiusDp = cardRadiusDp,

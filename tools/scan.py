@@ -11,9 +11,11 @@ Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
   scanner combines a few high-recall repository-search queries, inspects
   recent releases per candidate, and records matches. Coverage is a
   documented sample, never "all of GitHub".
-- Budget: the automatic GITHUB_TOKEN allows ~1,000 REST requests/hour.
-  Search calls + one releases call per candidate must fit that budget,
-  so MAX_CHECK caps candidates per run (default 850).
+- Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
+  search calls + one releases call per candidate must fit comfortably, so
+  MAX_CHECK caps candidates per run (default 600). A 22-minute soft
+  deadline (SCAN_DEADLINE_S) stops new checks early; partial results are
+  always written and committed, flagged in meta.json.
 - Archived/disabled repos and drafts are excluded. Digest is usually
   null (GitHub rarely provides one) — the app treats it as UNAVAILABLE.
 
@@ -24,6 +26,7 @@ import json
 import os
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -31,8 +34,12 @@ from datetime import datetime, timezone
 
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "850"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "600"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
+# Soft deadline: the workflow kills the job at 30 min, which would discard
+# everything if files were only written at the end. Stop starting new repos
+# after DEADLINE_S and commit whatever we have (meta flags it as partial).
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(22 * 60)))
 PER_PAGE = 100
 RELEASES_PER_REPO = 5
 ENTRY_CAP = 1000
@@ -175,10 +182,17 @@ def main():
               file=sys.stderr)
         return 2
     started = time.time()
+    error = None
+    deadline_hit = False
     candidates = search_candidates()
     entries = []
     checked = 0
     for repo in candidates:
+        if time.time() - started > DEADLINE_S:
+            deadline_hit = True
+            print(f"deadline ({DEADLINE_S}s) hit after {checked} repos; "
+                  f"finalizing partial results", flush=True)
+            break
         checked += 1
         try:
             rel, assets = pick_apk_release(repo["full_name"])
@@ -191,6 +205,20 @@ def main():
                 break
         time.sleep(0.3)
     entries.sort(key=lambda e: e["repo"]["stars"], reverse=True)
+    try:
+        write_results(entries, candidates, checked, started,
+                      deadline_hit, error)
+    except Exception:
+        error = traceback.format_exc(limit=3)
+        print(f"write failed: {error}", flush=True)
+        return 1
+    print(f"done: {checked} checked, {len(entries)} with APK releases",
+          flush=True)
+    return 0
+
+
+def write_results(entries, candidates, checked, started,
+                  deadline_hit, error):
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "apps.json"), "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=1)
@@ -202,13 +230,14 @@ def main():
         "candidates": len(candidates),
         "checked": checked,
         "matches": len(entries),
-        "truncated": len(entries) >= ENTRY_CAP,
+        "truncated": len(entries) >= ENTRY_CAP or deadline_hit,
+        "deadline_hit": deadline_hit,
+        "complete": error is None and not deadline_hit,
+        "error": error,
         "duration_s": round(time.time() - started, 1),
     }
     with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
-    print(f"done: {checked} checked, {len(entries)} with APK releases", flush=True)
-    return 0
 
 
 if __name__ == "__main__":

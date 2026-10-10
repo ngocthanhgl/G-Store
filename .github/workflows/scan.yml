@@ -25,12 +25,15 @@ jobs:
       - name: Run catalog scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 tools/scan.py
+        # Never fail the job on a scan error: the script always writes
+        # partial results + meta.json, and the commit step must still run.
+        run: python3 tools/scan.py || echo "scan exited nonzero; committing partial results"
       - name: Commit catalog
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add catalog/apps.json catalog/meta.json
+          git add catalog/apps.json catalog/meta.json || true
           git diff --cached --quiet && echo "catalog unchanged" || (
             git commit -m "catalog: daily APK scan $(date -u +%F)" &&
             git push

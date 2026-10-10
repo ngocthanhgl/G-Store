@@ -20,6 +20,7 @@ No embedded credentials.
 
 | Section | Definition (testable) | Configurable |
 |---|---|---|
+| All apps (daily catalog) | Every scanner-catalog entry in Room, ordered by the selected filter: Trending (same formula as below) / Stars desc / New (first eligible release desc, nulls last) / Recently updated desc. First list item on Home; collapses to 5 with show-more. | filter (persisted in-session; sections below persist) |
 | New Apps | Eligible repos whose first eligible release was published within N days (default 30), sorted by first-seen publish date desc | hide/show |
 | Trending | Score = `w1*ln(1+stars) + w2*ln(1+forks) + w3*releases_30d + w4*ln(1+downloads_30d)` over repos with `releases_30d > 0`; weights in DataStore, defaults `w1=4, w2=2, w3=10, w4=1`. Revision note (M4): delta signals (`stars_7d`) need a signal-history table we do not keep yet; log-dampened totals approximate standing while windowed terms carry velocity. Delta upgrade is a tracked future, not a silent swap. | hide/show, weights (advanced) |
 | Famous | `stars >= 1000 AND eligible_release_count >= 3 AND age_days >= 365`, sorted by stars desc | hide/show |
@@ -40,6 +41,9 @@ formula; never present release download counts as install counts.
   categories.
 - Explicit user-added repository URLs (`owner/repo` or full URL) as a
   first-class discovery mechanism.
+- Daily scanner catalog (see GITHUB_DISCOVERY.md §6): `catalog/apps.json`
+  committed by `.github/workflows/scan.yml`, pulled on first launch and when
+  >24 h stale; FRESH local rows are never downgraded by it.
 - Favorites/bookmarks persisted offline. Repository attribution + link to source
   on every card. Badges for prerelease / archived / no-APK.
 

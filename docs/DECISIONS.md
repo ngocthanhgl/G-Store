@@ -232,3 +232,50 @@ built and verified. The lesson is recorded in §12.
   `windows-gstore-push` (repo pushes over SSH per machine gitconfig);
   a user-supplied PAT was used for API calls — rotate it after this
   session since it appeared in chat.
+
+## 14. Scanner catalog + bug fixes + redesign (post-M8, user request, verified by execution)
+
+- **Bug 1 — tap repo shows endless spinner (proven, fixed).** `DetailsScreen`
+  rendered an indeterminate spinner forever when `state.repo == null`, and the
+  VM only read Room — but search/discover results are network-only and never
+  persisted, so their ids always missed. Fix: `Details(repoId, fullName)`
+  route; VM `load()` serves cache first, else `sync(fullName)` then
+  `getByFullName`; null branch now shows spinner only while
+  `loadingRepo/syncing`, otherwise error + Back/Retry. All open-callbacks
+  widened `(Long)` → `(Repository)`. Verified: `:app:assembleDebug` green.
+- **Bug 2 — settings not saved (no code defect found; hardened).** Full audit:
+  single `PreferencesRepository` instance, correct setters/flows, theme honors
+  settings, no startup overwrite. Shipped: `.catch` resilience on all four
+  DataStore flows (a corrupt file can never wedge UI at defaults), new
+  `CATALOG_ETAG`/`CATALOG_IMPORTED_AT` keys, radius Slider writes once per
+  gesture (`onValueChangeFinished`). On-device persistence still unverified
+  (no emulator) — recorded as pending, not claimed.
+- **Scanner bot** (`tools/scan.py` + `.github/workflows/scan.yml`, daily
+  `0 2 * * *` + dispatch + push-paths trigger): stdlib-only, 3 seeds × 5
+  pages, `MAX_CHECK=600`. Post-review fix (uncommitted-catalog root cause):
+  the first version wrote files only at the end with no deadline, so a
+  30-min-timeout kill (or any late error, with the commit step skipped on
+  failure) produced zero catalog. Now: 22-min soft deadline with partial
+  results always written and committed (`if: always()` + scan step never
+  fails the job), meta.json carries `deadline_hit`/`complete`/`error`.
+  Commits `catalog/apps.json` + `catalog/meta.json`. Coverage limits
+  documented in GITHUB_DISCOVERY.md §6 (seed surface only, 24 h staleness,
+  user-added repos as escape hatch).
+- **App catalog pull** (`CatalogClient` + `importCatalog` + Home `CatalogBlock`
+  with Trending/Stars/New/Updated FilterChips): ETag GET, 2 MiB cap, import on
+  empty DB and >24 h staleness, FRESH rows never downgraded, history upsert-only.
+  New tests: `CatalogParseTest`, `CatalogImportTest`, `SectionsTest` sort case.
+- **Redesign via impeccable (actual workflow):** `context` launcher run
+  (NO_PRODUCT_MD / MANUAL_DETECTOR_REQUIRED; autonomy probe skipped per the
+  user's explicit no-questions order, substitution declared);
+  `craft-floor.md` read before edits; wrote `PRODUCT.md` + `DESIGN.md`
+  ("Tonal Shelf", Operate mode); reworked `RepoCard` (44dp tertiary monogram,
+  titleMedium, forks ledger, tonal APK/error badges, whole-card click),
+  shared `SectionHeader` (titleLarge + count pill + optional subline),
+  tonal selected FilterChips with leading check, `EmptyCatalog` icon,
+  Details hero (tertiary monogram, formatted counts, tonal Archived badge,
+  titleLarge sections, tonal release chips, `· pre` suffix replacing the
+  `◌` glyph). Detector `detect --json` on the three files: `[]` clean.
+- Icon lesson: `material-icons-core` has no `Apps` (nor Tune/HideSource/
+  arrows-beyond-core) — verify icon names against prior known-good set or the
+  build; `Add` substituted for the empty-state icon.

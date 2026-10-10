@@ -20,6 +20,7 @@ import dev.gstore.downloads.DownloadRepository
 import dev.gstore.downloads.SystemWorkEnqueuer
 import dev.gstore.installation.InstallerGateway
 import dev.gstore.installation.SystemInstallerGateway
+import dev.gstore.network.CatalogClient
 import dev.gstore.network.GitHubApi
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -86,6 +87,8 @@ class AppContainer(app: Application) {
     val preferences: PreferencesRepository by lazy { PreferencesRepository(app) }
     val github: GitHubApi by lazy { GitHubApi() }
     val catalog: CatalogRepository by lazy { CatalogRepository.create(github, database) }
+    /** Daily scanner catalog over the shared download client (flow A). */
+    val catalogClient: CatalogClient by lazy { CatalogClient(downloadHttp) }
     val readme: ReadmeRepository by lazy { ReadmeRepository(github, database.readmes()) }
     val downloadHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()

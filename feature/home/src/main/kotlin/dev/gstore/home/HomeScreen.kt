@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -24,12 +26,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -43,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gstore.data.CatalogFilter
 import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
@@ -75,7 +81,7 @@ private fun emptyOf(section: HomeSection): String = when (section) {
 @Composable
 fun HomeScreen(
     vm: HomeViewModel,
-    onOpenRepo: (Long) -> Unit,
+    onOpenRepo: (Repository) -> Unit,
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
@@ -104,6 +110,8 @@ fun HomeScreen(
                 onAdd = { showAdd = true },
                 onDiscover = { showDiscover = true },
                 discovering = state.discovering,
+                onSyncCatalog = { vm.syncCatalog() },
+                syncingCatalog = state.syncingCatalog,
             )
         } else {
             LazyColumn(
@@ -116,8 +124,23 @@ fun HomeScreen(
                         onCustomize = { showCustomize = true },
                     )
                 }
-                for (config in state.configs.filter { it.visible }) {
-                    item(key = config.section.name) {
+                item(key = "catalog") {
+                    CatalogBlock(
+                        items = state.catalog,
+                        filter = state.catalogFilter,
+                        onFilter = vm::setCatalogFilter,
+                        favorites = state.favoriteIds,
+                        syncing = state.syncingCatalog,
+                        grid = grid,
+                        compact = compact,
+                        cardRadiusDp = cardRadiusDp,
+                        reduceMotion = reduceMotion,
+                        onRefresh = { vm.syncCatalog() },
+                        onOpen = onOpenRepo,
+                        onToggleFavorite = vm::toggleFavorite,
+                    )
+                }
+                for (config in state.configs.filter { it.visible }) {                    item(key = config.section.name) {
                         when (config.section) {
                             HomeSection.BROWSING -> BrowsingBlock(
                                 repos = state.browsing,
@@ -221,6 +244,65 @@ private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
     }
 }
 
+/**
+ * Shared section header — DESIGN.md "Tonal Shelf": one titleLarge heading
+ * with a tonal count pill, never an eyebrow above it.
+ */
+@Composable
+private fun SectionHeader(
+    title: String,
+    countText: String?,
+    subline: String? = null,
+    syncing: Boolean,
+    onRefresh: () -> Unit,
+    refreshDescription: String,
+    onHide: (() -> Unit)?,
+    hideDescription: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            if (countText != null) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.padding(start = 8.dp),
+                ) {
+                    Text(
+                        text = countText,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+            if (syncing) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Filled.Refresh, contentDescription = refreshDescription)
+                }
+            }
+            if (onHide != null) {
+                IconButton(onClick = onHide) {
+                    Icon(Icons.Filled.Close, contentDescription = hideDescription)
+                }
+            }
+        }
+        if (subline != null) {
+            Text(
+                text = subline,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 @Composable
 private fun SectionBlock(
     config: SectionConfig,
@@ -233,7 +315,7 @@ private fun SectionBlock(
     reduceMotion: Boolean,
     onRefresh: () -> Unit,
     onHide: () -> Unit,
-    onOpen: (Long) -> Unit,
+    onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
     val section = config.section
@@ -254,26 +336,15 @@ private fun SectionBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(titleOf(section), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${items.size} ${if (items.size == 1) "app" else "apps"}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (syncing) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh ${titleOf(section)}")
-                }
-            }
-            IconButton(onClick = onHide) {
-                Icon(Icons.Filled.Close, contentDescription = "Hide ${titleOf(section)}")
-            }
-        }
+        SectionHeader(
+            title = titleOf(section),
+            countText = "${items.size}",
+            syncing = syncing,
+            onRefresh = onRefresh,
+            refreshDescription = "Refresh ${titleOf(section)}",
+            onHide = onHide,
+            hideDescription = "Hide ${titleOf(section)}",
+        )
         if (items.isEmpty()) {
             Text(
                 emptyOf(section),
@@ -291,7 +362,7 @@ private fun SectionBlock(
                         repo = signals.repo,
                         isFavorite = signals.repo.id in favorites,
                         apkBadge = apkBadgeOf(signals),
-                        onOpen = { onOpen(signals.repo.id) },
+                        onOpen = { onOpen(signals.repo) },
                         onToggleFavorite = { onToggleFavorite(signals.repo) },
                         cardRadiusDp = cardRadiusDp,
                         compact = compact,
@@ -318,7 +389,7 @@ private fun BrowsingBlock(
     reduceMotion: Boolean,
     onRefresh: () -> Unit,
     onHide: () -> Unit,
-    onOpen: (Long) -> Unit,
+    onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -336,21 +407,15 @@ private fun BrowsingBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Continue browsing",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            if (!syncing) {
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh Continue browsing")
-                }
-            }
-            IconButton(onClick = onHide) {
-                Icon(Icons.Filled.Close, contentDescription = "Hide Continue browsing")
-            }
-        }
+        SectionHeader(
+            title = "Continue browsing",
+            countText = null,
+            syncing = syncing,
+            onRefresh = onRefresh,
+            refreshDescription = "Refresh Continue browsing",
+            onHide = onHide,
+            hideDescription = "Hide Continue browsing",
+        )
         if (repos.isEmpty()) {
             Text(
                 emptyOf(HomeSection.BROWSING),
@@ -367,7 +432,7 @@ private fun BrowsingBlock(
                     RepoCard(
                         repo = repo,
                         isFavorite = repo.id in favorites,
-                        onOpen = { onOpen(repo.id) },
+                        onOpen = { onOpen(repo) },
                         onToggleFavorite = { onToggleFavorite(repo) },
                         cardRadiusDp = cardRadiusDp,
                         compact = compact,
@@ -384,13 +449,25 @@ private fun BrowsingBlock(
 }
 
 @Composable
-private fun EmptyCatalog(onAdd: () -> Unit, onDiscover: () -> Unit, discovering: Boolean) {
+private fun EmptyCatalog(
+    onAdd: () -> Unit,
+    onDiscover: () -> Unit,
+    discovering: Boolean,
+    onSyncCatalog: () -> Unit,
+    syncingCatalog: Boolean,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("No repositories yet", style = MaterialTheme.typography.titleMedium)
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text("No repositories yet", style = MaterialTheme.typography.titleLarge)
         Text(
             "Add a GitHub repository by owner and name, or discover Android projects. " +
                 "Nothing is fetched until you ask.",
@@ -402,11 +479,125 @@ private fun EmptyCatalog(onAdd: () -> Unit, onDiscover: () -> Unit, discovering:
             modifier = Modifier.padding(top = 16.dp),
         ) {
             Button(onClick = onAdd) { Text("Add repository") }
-            OutlinedButton(onClick = onDiscover, enabled = !discovering) {
-                Text(if (discovering) "Searching…" else "Discover")
+            OutlinedButton(onClick = onDiscover, enabled = !discovering) {                Text(if (discovering) "Searching…" else "Discover")
+            }
+        }
+        TextButton(onClick = onSyncCatalog, enabled = !syncingCatalog) {
+            Text(if (syncingCatalog) "Loading catalog…" else "Or load the daily app catalog")
+        }
+    }
+}
+
+/**
+ * The scanner-catalog list: every app GitHub-wide with an APK release,
+ * ordered by the selected filter. Sections below stay personalized views
+ * over the same data (PRODUCT_SPEC §3).
+ */
+@Composable
+private fun CatalogBlock(
+    items: List<RepoSignals>,
+    filter: CatalogFilter,
+    onFilter: (CatalogFilter) -> Unit,
+    favorites: Set<Long>,
+    syncing: Boolean,
+    grid: Boolean,
+    compact: Boolean,
+    cardRadiusDp: Int,
+    reduceMotion: Boolean,
+    onRefresh: () -> Unit,
+    onOpen: (Repository) -> Unit,
+    onToggleFavorite: (Repository) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val shown = if (expanded) items else items.take(COLLAPSED_COUNT)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .animateContentSize(
+                animationSpec = if (reduceMotion) {
+                    androidx.compose.animation.core.snap()
+                } else {
+                    androidx.compose.animation.core.spring()
+                },
+            ),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionHeader(
+            title = "All apps",
+            countText = "${items.size}",
+            subline = "Daily catalog · ${filterLabel(filter).lowercase()} first",
+            syncing = syncing,
+            onRefresh = onRefresh,
+            refreshDescription = "Refresh app catalog",
+            onHide = null,
+            hideDescription = "",
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+        ) {
+            CatalogFilter.entries.forEach { option ->
+                val selected = option == filter
+                FilterChip(
+                    selected = selected,
+                    onClick = { onFilter(option) },
+                    label = { Text(filterLabel(option)) },
+                    leadingIcon = if (selected) {
+                        {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+            }
+        }
+        if (items.isEmpty()) {
+            Text(
+                if (syncing) "Loading the daily catalog…" else "No catalog yet — pull to refresh.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            RepoRows(
+                grid = grid,
+                count = shown.size,
+                keyOf = { "catalog-${shown[it].repo.id}" },
+                card = { index ->
+                    val signals = shown[index]
+                    RepoCard(
+                        repo = signals.repo,
+                        isFavorite = signals.repo.id in favorites,
+                        apkBadge = apkBadgeOf(signals),
+                        onOpen = { onOpen(signals.repo) },
+                        onToggleFavorite = { onToggleFavorite(signals.repo) },
+                        cardRadiusDp = cardRadiusDp,
+                        compact = compact,
+                    )
+                },
+            )
+            if (items.size > COLLAPSED_COUNT) {
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "Show less" else "Show all ${items.size}")
+                }
             }
         }
     }
+}
+
+private fun filterLabel(filter: CatalogFilter): String = when (filter) {
+    CatalogFilter.TRENDING -> "Trending"
+    CatalogFilter.STARS -> "Top stars"
+    CatalogFilter.NEW -> "New"
+    CatalogFilter.UPDATED -> "Recently updated"
 }
 
 @Composable
@@ -445,7 +636,7 @@ private fun DiscoverDialog(
     favorites: Set<Long>,
     onSearch: () -> Unit,
     onAdd: (String) -> Unit,
-    onOpen: (Long) -> Unit,
+    onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -469,7 +660,7 @@ private fun DiscoverDialog(
                     RepoCard(
                         repo = repo,
                         isFavorite = repo.id in favorites,
-                        onOpen = { onOpen(repo.id) },
+                        onOpen = { onOpen(repo) },
                         onToggleFavorite = { onToggleFavorite(repo) },
                     )
                 }

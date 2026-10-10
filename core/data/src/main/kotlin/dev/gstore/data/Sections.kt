@@ -95,3 +95,21 @@ fun HomeSection.matches(signals: RepoSignals, now: Instant = Instant.now()): Boo
     HomeSection.RECOMMENDED -> isFamous(signals, now)
     HomeSection.BROWSING -> false // history-driven, never signal-derived
 }
+
+/** Home catalog ordering — the filter chips above "All apps". */
+enum class CatalogFilter { TRENDING, STARS, NEW, UPDATED }
+
+/**
+ * Whole-catalog sort for the filter chips. Pure over [RepoSignals];
+ * ISO-8601 strings sort chronologically, nulls (unknown) sort last.
+ */
+fun sortedCatalog(
+    signals: List<RepoSignals>,
+    filter: CatalogFilter,
+    weights: TrendingWeights = TrendingWeights(),
+): List<RepoSignals> = when (filter) {
+    CatalogFilter.TRENDING -> signals.sortedByDescending { trendingScore(it, weights) }
+    CatalogFilter.STARS -> signals.sortedByDescending { it.repo.stars }
+    CatalogFilter.NEW -> signals.sortedByDescending { it.firstEligibleReleaseAt ?: "" }
+    CatalogFilter.UPDATED -> signals.sortedByDescending { it.latestReleaseAt ?: "" }
+}
