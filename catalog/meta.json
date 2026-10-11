@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-10T06:53:00.452489+00:00",
+ "scanned_at": "2026-10-11T08:36:55.876135+00:00",
  "tool": "tools/scan.py",
  "queries": [
   "topic:android fork:false",
@@ -8,11 +8,11 @@
   "android language:Java fork:false stars:>100"
  ],
  "candidates": 600,
- "checked": 439,
- "matches": 141,
+ "checked": 397,
+ "matches": 131,
  "truncated": true,
  "deadline_hit": true,
  "complete": false,
  "error": null,
- "duration_s": 1320.5
+ "duration_s": 1320.0
 }
