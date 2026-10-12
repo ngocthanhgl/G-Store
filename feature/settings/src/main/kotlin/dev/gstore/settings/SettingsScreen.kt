@@ -46,6 +46,7 @@ private val ActionHeight = 48.dp
 fun SettingsScreen(
     appearance: AppearanceSettings,
     vm: SettingsViewModel,
+    appVersion: String,
     onOpenThemeEditor: () -> Unit,
 ) {
     LazyColumn(
@@ -162,7 +163,7 @@ fun SettingsScreen(
         item {
             SettingGroup("About") {
                 Text(
-                    "G Store shows GitHub-hosted APK releases. Stars and " +
+                    "G Store $appVersion — GitHub-hosted APK releases. Stars and " +
                         "download counts are popularity signals, never safety ratings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

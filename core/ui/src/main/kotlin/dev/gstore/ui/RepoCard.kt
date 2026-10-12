@@ -79,7 +79,9 @@ fun RepoCard(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        // List rows stay one line: a second line reads as
+                        // overflow, not information. Full text lives in Details.
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -107,7 +109,10 @@ fun RepoCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        // fill=true (default): the weight BOUNDS the text so the
+                        // ellipsis can engage. fill=false leaves intrinsic width
+                        // and overflows the card — the classic spill bug.
+                        modifier = Modifier.weight(1f),
                     )
                 }
                 // Badges get their own line so they never squeeze the ledger

@@ -423,6 +423,7 @@ private fun Content(
             SettingsScreen(
                 appearance = appearance,
                 vm = vm,
+                appVersion = BuildConfig.VERSION_NAME,
                 onOpenThemeEditor = { nav.navigate(ThemeEditor) },
             )
         }
