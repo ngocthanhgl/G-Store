@@ -28,16 +28,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAX_CHECK: 1200
           SCAN_DEADLINE_S: 2700 # 45 min soft deadline inside a 60 min job
-        # Never fail the job on a scan error: the script always writes
-        # partial results + meta.json, and the commit step must still run.
-        run: python3 tools/scan.py || echo "scan exited nonzero; committing partial results"
+        # The script always writes partial results + meta.json, even on
+        # failure — the commit step must still run. But a nonzero exit with
+        # NO catalog changes means nothing was written at all, which must be
+        # red, not silently green. (set +e: the exit code is captured into
+        # SCAN_EXIT instead of killing the step before the echo runs.)
+        run: |
+          set +e
+          python3 tools/scan.py
+          echo "SCAN_EXIT=$?" >> "$GITHUB_ENV"
+          exit 0
       - name: Commit catalog
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add catalog/apps.json catalog/meta.json || true
-          git diff --cached --quiet && echo "catalog unchanged" || (
+          if git diff --cached --quiet; then
+            echo "catalog unchanged"
+            if [ "${SCAN_EXIT:-0}" != "0" ]; then
+              echo "scan failed without writing any catalog output"
+              exit 1
+            fi
+          else
             git commit -m "catalog: daily APK scan $(date -u +%F)" &&
             git push
-          )
+          fi

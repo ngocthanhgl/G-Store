@@ -252,30 +252,40 @@ def main():
     for entry in previous.values():
         entry.setdefault("last_verified", today)
     carried = len(previous)
-    candidates = search_candidates(queries)
-    verified_today = 0
+    # The check phase must never kill the write: ANY unexpected failure
+    # (search fatal after retries, runner network blip) is recorded and we
+    # still commit the merged catalog with an error flag. A run that writes
+    # nothing AND fails is indistinguishable from success downstream.
+    candidates = []
     checked = 0
+    verified_today = 0
     checked_names = set()
-    for repo in candidates:
-        if time.time() - started > DEADLINE_S:
-            deadline_hit = True
-            print(f"deadline ({DEADLINE_S}s) hit after {checked} repos; "
-                  f"finalizing partial results", flush=True)
-            break
-        checked += 1
-        checked_names.add(repo["full_name"])
-        try:
-            rel, assets = pick_apk_release(repo["full_name"])
-        except Exception as e:  # one bad repo must not kill the run
-            print(f"skip {repo['full_name']}: {e}", flush=True)
-            continue
-        if rel is not None:
-            previous[repo["id"]] = to_entry(repo, rel, assets, today)
-            verified_today += 1
-        elif repo["id"] in previous:
-            # Re-checked and no longer ships an APK release — drop it.
-            del previous[repo["id"]]
-        time.sleep(0.3)
+    try:
+        candidates = search_candidates(queries)
+        for repo in candidates:
+            if time.time() - started > DEADLINE_S:
+                deadline_hit = True
+                print(f"deadline ({DEADLINE_S}s) hit after {checked} repos; "
+                      f"finalizing partial results", flush=True)
+                break
+            checked += 1
+            checked_names.add(repo["full_name"])
+            try:
+                rel, assets = pick_apk_release(repo["full_name"])
+            except Exception as e:  # one bad repo must not kill the run
+                print(f"skip {repo['full_name']}: {e}", flush=True)
+                continue
+            if rel is not None:
+                previous[repo["id"]] = to_entry(repo, rel, assets, today)
+                verified_today += 1
+            elif repo["id"] in previous:
+                # Re-checked and no longer ships an APK release — drop it.
+                del previous[repo["id"]]
+            time.sleep(0.3)
+    except Exception:
+        error = traceback.format_exc(limit=5)
+        print(f"check phase failed, committing merged catalog: {error}",
+              flush=True)
     # Drop entries unseen for STALE_DAYS (repos deleted, renamed, or rotated
     # out of every query surface).
     dropped_stale = 0
