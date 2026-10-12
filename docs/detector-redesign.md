@@ -30,6 +30,14 @@ SearchScreen, DownloadsScreen: `[]` clean. New known-good icons used:
 none beyond the set above (width/layout imports only). Overflow fixes are
 maxLines+ellipsis caps, no detector involvement.
 
+## Redesign round 2 (edge-to-edge, nav, settings, grid, bot v3)
+
+`detect --json` on GridCard, AdaptiveCard, SettingsScreen, MainActivity:
+`[]` clean. Lesson: `Icons.Filled.Palette` is NOT in material-icons-core
+(build error) — the settings actions shipped text-only instead of gambling
+a second icon name. Lint `NewApi` caught `layoutInDisplayCutoutMode`
+(API 28+, minSdk 26) — guarded with an SDK check.
+
 ## Fix applied from the build (not the detector)
 
 `Icons.Filled.Apps` is not in `material-icons-core` (compile error) —

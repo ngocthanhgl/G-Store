@@ -353,3 +353,36 @@ full-index claim.
   `:app:assembleDebug` green, impeccable detector `[]` on all 7 touched UI
   files, CI `success` on both pushed commits (polled via public Actions
   API), scanner `success` with committed catalog.
+
+## 16. Redesign round 2 (user order: settings, layouts, nav, edge-to-edge, buttons, bot v3)
+
+- **Edge-to-edge** (`MainActivity`): `enableEdgeToEdge()` + `LAYOUT_IN_
+  DISPLAY_CUTOUT_MODE_ALWAYS` (SDK-28-guarded, lint `NewApi` caught it),
+  `SystemBarContrast` follows the APP theme via `WindowInsetsControllerCompat`
+  (dark icons on light scrims and vice versa), Scaffold/expanded content
+  takes top+horizontal safe-drawing insets while the bottom bar/rail owns
+  the navigation-bar area, `imePadding` on Search.
+- **Navigation**: tonal `surfaceContainer` bar + rail, top divider on the
+  bar, monogram header on the rail, labels only on selection, custom
+  selected/unselected colors on both.
+- **Settings**: groups are now tonal cards with title + 16dp padding;
+  `ChoiceRow` chips use `FlowRow` (wrap instead of overflow); switch rows
+  capped; radius row baseline-aligned; Customize actions are equal 48dp
+  full-width outlined buttons (text-only — `Palette` is not in
+  material-icons-core, so no icon gamble).
+- **List/grid unification** (`core/ui AdaptiveCard.kt`): list = horizontal
+  `RepoCard`, grid = new vertical `GridCard` (56dp icon + favorite row,
+  fixed 2-line name/description slots, 1-line ledger, 1-line status slot —
+  every card in a row is the same height). Home sections, search, and
+  favorites all render through it; rails/dialogs stay list-style.
+- **Details buttons**: asset Download is full-width 48dp; Repository/README/
+  Share are equal-weight 48dp outlined buttons.
+- **Bot v3** (`tools/scan.py` + workflow): 10 rotating sets (day-of-year %
+  10) with star-tier splits for Kotlin/Java (`10..100`/`100..1000`/`>1000`,
+  beating the 1,000-result search cap), `archived:false` on every query,
+  new coverage (Godot/Unity/LÖVE/emulators, Kivy/Chaquopy/Python, C++ NDK,
+  comms/maps/finance/fitness domains), `SEARCH_PAGES=10`,
+  `RELEASES_PER_REPO=10`, `MAX_CHECK=8000`, 300-min soft deadline in a
+  360-min job, `ENTRY_CAP=8000`. "Miss no APK release" taken literally is
+  impossible (no enumerating endpoint — §3 stands); v3 is the closest
+  honest design and says so in GITHUB_DISCOVERY.md.

@@ -54,27 +54,37 @@ repo; the app pulls it on launch so Home always has a list.
 - Workflow: `.github/workflows/scan.yml` — cron `0 2 * * *` (daily) +
   `workflow_dispatch` + push trigger on `tools/scan.py` / `scan.yml` itself
   (so the first scan runs immediately after merge without waiting for cron).
-  `permissions: contents: write`; 60-min timeout; commits
+  `permissions: contents: write`; 360-min timeout; commits
   `catalog/apps.json` + `catalog/meta.json` only when bytes changed. The scan
-  step never fails the job and the commit step has `if: always()`, so partial
-  results are committed even when the run hits its soft deadline or an error.
-- Scanner: `tools/scan.py` (stdlib only, no deps). Seven rotating query
-  sets (day-of-year % 7) across languages (Kotlin/Java/Dart/C#/Rust/Go),
-  app domains (media, system, productivity, free-software ecosystem), and
-  star tiers (head + `stars:10..100` long tail); up to 8 pages × 100 per
-  query; dedupe, stars-desc, cap `MAX_CHECK=1200` candidates (fits the
-  GITHUB_TOKEN 5,000/hr budget with headroom). A 45-minute soft deadline
-  (`SCAN_DEADLINE_S=2700`) stops starting new repos in time for the 60-min
-  job timeout; meta.json flags `deadline_hit` / `complete` / `error`
-  honestly. Each run MERGES into the previous catalog (keyed by repo id):
-  re-checked entries refresh and stamp `last_verified`; repos re-checked
-  with no APK release are dropped; entries unseen for `STALE_DAYS=30` are
-  dropped; pre-`last_verified` entries were grandfathered with the merge
-  date. Cap `ENTRY_CAP=3000`.
-  Per repo: `releases?per_page=5`, first stable release with an APK asset wins,
-  else newest prerelease-with-APK (flagged `prerelease: true`); archived /
-  disabled / draft-only repos skipped. Rate-limit guard: sleeps until reset
-  when `X-RateLimit-Remaining < 60` or on 403/429 (honors `Retry-After`).
+  step records its exit code and the commit step has `if: always()`, so partial
+  results are committed even when the run hits its soft deadline or an error —
+  while a nonzero exit with zero catalog changes fails the job red.
+- Scanner: `tools/scan.py` (stdlib only, no deps). Ten rotating query
+  sets (day-of-year % 10) across languages (Kotlin/Java/Dart/C#/Python/C++/
+  Rust/Go/Scala), game engines (Godot/Unity/LÖVE/emulators), app domains
+  (media, system, productivity, comms, maps, finance, fitness, FOSS
+  ecosystem), and star tiers. Major languages are split into tiers
+  (`stars:10..100` / `100..1000` / `>1000`) because search pagination caps
+  at 1,000 results per query — one query can never cover a whole language.
+  Every query carries `archived:false` so dead repos never consume check
+  budget. Up to 10 pages × 100 per query; dedupe, stars-desc, cap
+  `MAX_CHECK=8000` candidates (~1,600 req/hr over a 5 h run, far under the
+  GITHUB_TOKEN 5,000/hr budget). A 300-minute soft deadline
+  (`SCAN_DEADLINE_S=18000`) stops starting new repos in time for the
+  360-min job timeout; meta.json flags `deadline_hit` / `complete` /
+  `error` honestly. Each run MERGES into the previous catalog (keyed by
+  repo id): re-checked entries refresh and stamp `last_verified`; repos
+  re-checked with no APK release are dropped; entries unseen for
+  `STALE_DAYS=30` are dropped; pre-`last_verified` entries were
+  grandfathered with the merge date. Cap `ENTRY_CAP=8000`.
+  Per repo: `releases?per_page=10`, first stable release with an APK asset
+  wins, else newest prerelease-with-APK (flagged `prerelease: true`);
+  archived / disabled / draft-only repos skipped. Rate-limit guard: sleeps
+  until reset when `X-RateLimit-Remaining < 60` or on 403/429 (honors
+  `Retry-After`). A check-phase guard means ANY unexpected failure still
+  writes the merged catalog with `error` recorded; the workflow fails red
+  only when the script exits nonzero with zero catalog changes (loud empty
+  runs are never silently green).
   Output capped (notes truncated 2,000 chars, ≤20 assets / entry) so the
   committed file stays small enough for a bounded client read.
 - Schema (`catalog/apps.json` array; `catalog/meta.json` run stamp): repo

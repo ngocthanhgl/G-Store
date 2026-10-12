@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -245,22 +246,35 @@ private fun formatCount(n: Int): String = when {
 private fun ActionsRow(repo: Repository, onOpenReadme: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    // Equal weights + shared 48dp height: Repository / README / Share always
+    // line up, whatever the label length.
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { uriHandler.openUri("https://github.com/${repo.fullName}") }) {
-            Text("Repository")
+        OutlinedButton(
+            onClick = { uriHandler.openUri("https://github.com/${repo.fullName}") },
+            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+        ) {
+            Text("Repository", maxLines = 1)
         }
-        OutlinedButton(onClick = onOpenReadme) { Text("README") }
-        OutlinedButton(onClick = {
-            context.startActivity(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, "https://github.com/${repo.fullName}")
-                },
-            )
-        }) {
+        OutlinedButton(
+            onClick = onOpenReadme,
+            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+        ) {
+            Text("README", maxLines = 1)
+        }
+        OutlinedButton(
+            onClick = {
+                context.startActivity(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "https://github.com/${repo.fullName}")
+                    },
+                )
+            },
+            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+        ) {
             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Share")
+            Text("Share", maxLines = 1)
         }
     }
 }
@@ -369,7 +383,14 @@ private fun AssetCard(row: AssetRow, onDownload: (ReleaseAsset) -> Unit) {
             KindLine(row)
             ChecksumLine(asset)
             if (row.eligibility.eligible) {
-                Button(onClick = { onDownload(asset) }) { Text("Download") }
+                // Full-width 48dp action: every asset card ends on the same
+                // aligned button, never a floating small one.
+                Button(
+                    onClick = { onDownload(asset) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Text("Download", maxLines = 1)
+                }
             }
         }
     }

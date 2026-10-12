@@ -59,6 +59,7 @@ import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
 import dev.gstore.model.SectionConfig
+import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
 import dev.gstore.ui.RailCard
@@ -262,6 +263,11 @@ private fun itemsOf(section: HomeSection, state: HomeUiState): List<RepoSignals>
 private fun apkBadgeOf(signals: RepoSignals): ApkBadge =
     if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.NO_APK
 
+/**
+ * List/grid adaptive card lives in core:ui ([AdaptiveCard]) so home, search,
+ * and favorites share one shape contract.
+ */
+
 @Composable
 private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
     Row(
@@ -396,10 +402,11 @@ private fun SectionBlock(
                 keyOf = { "repo-${shown[it].repo.id}" },
                 card = { index ->
                     val signals = shown[index]
-                    RepoCard(
+                    AdaptiveCard(
                         repo = signals.repo,
                         isFavorite = signals.repo.id in favorites,
                         apkBadge = apkBadgeOf(signals),
+                        grid = grid,
                         onOpen = { onOpen(signals.repo) },
                         onToggleFavorite = { onToggleFavorite(signals.repo) },
                         cardRadiusDp = cardRadiusDp,
@@ -467,9 +474,10 @@ private fun BrowsingBlock(
                 keyOf = { "browse-${shown[it].id}" },
                 card = { index ->
                     val repo = shown[index]
-                    RepoCard(
+                    AdaptiveCard(
                         repo = repo,
                         isFavorite = repo.id in favorites,
+                        grid = grid,
                         onOpen = { onOpen(repo) },
                         onToggleFavorite = { onToggleFavorite(repo) },
                         cardRadiusDp = cardRadiusDp,
@@ -633,10 +641,11 @@ private fun CatalogBlock(
                 keyOf = { "catalog-${shown[it].repo.id}" },
                 card = { index ->
                     val signals = shown[index]
-                    RepoCard(
+                    AdaptiveCard(
                         repo = signals.repo,
                         isFavorite = signals.repo.id in favorites,
                         apkBadge = apkBadgeOf(signals),
+                        grid = grid,
                         onOpen = { onOpen(signals.repo) },
                         onToggleFavorite = { onToggleFavorite(signals.repo) },
                         cardRadiusDp = cardRadiusDp,

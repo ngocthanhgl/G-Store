@@ -1,13 +1,23 @@
 package dev.gstore.app
 
+import android.app.Activity
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Favorite
@@ -17,17 +27,21 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +52,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -108,15 +124,46 @@ private val DESTINATIONS = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge-to-edge: content draws behind the status bar, display cutout,
+        // and navigation bar; screens pad with safe-drawing insets below.
+        enableEdgeToEdge()
+        // Cutout mode exists only on API 28+; older devices letterbox by default.
+        if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
         val container = (application as GStoreApp).container
         setContent {
             // Restore persisted appearance before first frame (flow E).
             val appearance by container.preferences.appearance.collectAsState(
                 initial = AppearanceSettings(),
             )
+            val darkTheme = when (appearance.theme) {
+                dev.gstore.datastore.ThemeMode.LIGHT -> false
+                dev.gstore.datastore.ThemeMode.DARK -> true
+                dev.gstore.datastore.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
             GStoreTheme(settings = appearance) {
+                SystemBarContrast(darkTheme)
                 GStoreShell(container)
             }
+        }
+    }
+}
+
+/**
+ * Status/navigation icon contrast follows the APP theme (not the system
+ * one): dark icons on light scrims, light icons on dark scrims. Bars stay
+ * transparent so content shows through edge-to-edge.
+ */
+@Composable
+private fun SystemBarContrast(darkTheme: Boolean) {
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as Activity).window
+        WindowInsetsControllerCompat(window, view).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
         }
     }
 }
@@ -146,22 +193,55 @@ private fun GStoreShell(container: AppContainer) {
                     current = entry?.destination,
                     navigate = { nav.navigate(it) { popToRoot(nav) } },
                     )
-                Content(nav = nav, container = container, snackbar = snackbar, onOpenRepo = onOpenRepo, modifier = Modifier.weight(1f))
+                Content(
+                    nav = nav,
+                    container = container,
+                    snackbar = snackbar,
+                    onOpenRepo = onOpenRepo,
+                    modifier = Modifier
+                        .weight(1f)
+                        // Rail owns the full height; content takes top +
+                        // horizontal safe insets (status bar, cutout).
+                        .windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(
+                                WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
+                            ),
+                        ),
+                )
             }
         } else {
             Scaffold(
+                // Content takes top + horizontal safe insets; the bottom bar
+                // owns the navigation-bar area and pads itself.
+                contentWindowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
+                ),
                 bottomBar = {
-                    NavigationBar {
-                        DESTINATIONS.forEach { d ->
-                            val selected = entry?.destination?.hasRoute(d.route::class) == true
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = {
-                                    nav.navigate(d.route) { popToRoot(nav) }
-                                },
-                                icon = { Icon(d.icon, contentDescription = d.label) },
-                                label = { Text(d.label) },
-                            )
+                    Column {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        )
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ) {
+                            DESTINATIONS.forEach { d ->
+                                val selected = entry?.destination?.hasRoute(d.route::class) == true
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = {
+                                        nav.navigate(d.route) { popToRoot(nav) }
+                                    },
+                                    icon = { Icon(d.icon, contentDescription = d.label) },
+                                    label = { Text(d.label) },
+                                    alwaysShowLabel = false,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                )
+                            }
                         }
                     }
                 },
@@ -186,13 +266,29 @@ private fun Rail(
     current: androidx.navigation.NavDestination?,
     navigate: (Any) -> Unit,
 ) {
-    NavigationRail {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        header = {
+            dev.gstore.ui.AppIcon(
+                avatarUrl = null,
+                owner = "G Store",
+                size = 40.dp,
+            )
+        },
+    ) {
         DESTINATIONS.forEach { d ->
             NavigationRailItem(
                 selected = current?.hasRoute(d.route::class) == true,
                 onClick = { navigate(d.route) },
                 icon = { Icon(d.icon, contentDescription = d.label) },
                 label = { Text(d.label) },
+                alwaysShowLabel = false,
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             )
         }
     }

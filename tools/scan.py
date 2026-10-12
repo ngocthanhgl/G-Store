@@ -8,14 +8,16 @@ tab always has a list even before any on-device sync.
 
 Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
 - GitHub has NO endpoint enumerating every repo with APK releases. This
-  scanner rotates 7 query sets (one per day-of-week) across languages,
-  domains, and star tiers, and MERGES each run into the previous catalog
-  instead of replacing it — coverage accumulates day over day toward the
-  whole APK-bearing surface without ever claiming to be exhaustive.
+  scanner rotates 10 query sets (one per day) across languages, game
+  engines, app domains, and star tiers, and MERGES each run into the
+  previous catalog instead of replacing it — coverage accumulates over the
+  10-day cycle toward the whole APK-bearing surface without ever claiming
+  to be exhaustive.
 - Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
   search calls + one releases call per candidate must fit comfortably, so
-  MAX_CHECK caps candidates per run (default 1200). A 45-minute soft
-  deadline (SCAN_DEADLINE_S) stops new checks early; partial results are
+  MAX_CHECK caps candidates per run (default 8000, ~1,600 req/hr over a
+  5-hour run). A 300-minute soft deadline (SCAN_DEADLINE_S) stops starting
+  new repos in time for the 360-min job timeout; partial results are
   always written and committed, flagged in meta.json.
 - Entries carry last_verified (ISO date). Entries unseen for STALE_DAYS
   (default 30) are dropped; a repo re-checked with no APK release is
@@ -37,65 +39,87 @@ from datetime import date, datetime, timezone
 
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "1200"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
-# Soft deadline: the workflow kills the job at 60 min, which would discard
+# Soft deadline: the workflow kills the job at 360 min, which would discard
 # everything if files were only written at the end. Stop starting new repos
 # after DEADLINE_S and commit whatever we have (meta flags it as partial).
-DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(45 * 60)))
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(300 * 60)))
 PER_PAGE = 100
-SEARCH_PAGES = 8  # GitHub caps search pagination at 1,000 results
-RELEASES_PER_REPO = 5
-ENTRY_CAP = 3000
+SEARCH_PAGES = 10  # GitHub caps search pagination at 1,000 results
+RELEASES_PER_REPO = 10
+ENTRY_CAP = 8000
 NOTES_CAP = 2000
 ASSETS_CAP = 20
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
-# Seven query sets — one runs per day (day-of-year % 7), covering languages,
-# app domains, and star tiers. Each set is budgeted for ~8 pages x 100 repos;
-# MAX_CHECK caps how many candidates get release-checked per run.
+# Ten query sets — one runs per day (day-of-year % 10). Every query carries
+# archived:false so dead repos never consume check budget. Major languages
+# are split into star tiers (10..100 / 100..1000 / >1000) because search
+# pagination caps at 1,000 results per query — one query can never cover a
+# whole language. Mobile stacks covered: Kotlin, Java, Dart/Flutter,
+# C#/Xamarin-MAUI, JavaScript/TypeScript, Python (Kivy/BeeWare/Chaquopy),
+# C++ NDK, Rust, Go, Scala, Godot, Unity, LÖVE.
 QUERY_SETS = [
-    [  # Day 0 — Android core, popular head
-        "topic:android fork:false",
-        "android language:Kotlin fork:false stars:>100",
-        "android language:Java fork:false stars:>100",
+    [  # Day 0 — Android headliners
+        "topic:android archived:false fork:false",
+        "android language:Kotlin archived:false fork:false stars:>1000",
+        "android language:Java archived:false fork:false stars:>1000",
     ],
-    [  # Day 1 — cross-platform stacks
-        "topic:flutter fork:false",
-        "topic:react-native fork:false",
-        "android language:Dart fork:false stars:>50",
-        "android language:C# fork:false stars:>50",
+    [  # Day 1 — Kotlin/Java long tail (tier splits beat the 1k cap)
+        "android language:Kotlin archived:false fork:false stars:10..100",
+        "android language:Kotlin archived:false fork:false stars:100..1000",
+        "android language:Java archived:false fork:false stars:10..100",
+        "android language:Java archived:false fork:false stars:100..1000",
     ],
-    [  # Day 2 — media domain
-        "android music player fork:false",
-        "android video player fork:false",
-        "youtube android fork:false",
-        "android camera fork:false",
+    [  # Day 2 — cross-platform stacks
+        "topic:flutter archived:false fork:false",
+        "topic:react-native archived:false fork:false",
+        "android language:Dart archived:false fork:false stars:>50",
+        "android language:C# archived:false fork:false stars:>50",
     ],
-    [  # Day 3 — system domain
-        "android file manager fork:false",
-        "android launcher fork:false",
-        "android keyboard fork:false",
-        "android vpn fork:false",
+    [  # Day 3 — media domain
+        "android music player archived:false fork:false",
+        "android video player archived:false fork:false",
+        "youtube android archived:false fork:false",
+        "android camera archived:false fork:false",
     ],
-    [  # Day 4 — productivity domain
-        "android notes todo fork:false",
-        "android rss reader fork:false",
-        "android weather fork:false",
-        "android password manager fork:false",
+    [  # Day 4 — system domain
+        "android file manager archived:false fork:false",
+        "android launcher archived:false fork:false",
+        "android keyboard archived:false fork:false",
+        "android vpn archived:false fork:false",
     ],
-    [  # Day 5 — free-software ecosystem
-        "topic:f-droid fork:false",
-        "android adblock fork:false",
-        "android firewall fork:false",
-        "android backup fork:false",
+    [  # Day 5 — productivity domain
+        "android notes todo archived:false fork:false",
+        "android rss reader archived:false fork:false",
+        "android weather archived:false fork:false",
+        "android password manager archived:false fork:false",
     ],
-    [  # Day 6 — long tail and emerging stacks
-        "android language:Kotlin fork:false stars:10..100",
-        "android language:Rust fork:false",
-        "android language:Go fork:false",
-        "android game fork:false",
+    [  # Day 6 — free-software ecosystem
+        "topic:f-droid archived:false fork:false",
+        "android adblock archived:false fork:false",
+        "android firewall archived:false fork:false",
+        "android backup archived:false fork:false",
+    ],
+    [  # Day 7 — game engines and emulators
+        "godot android archived:false fork:false",
+        "unity android archived:false fork:false",
+        "android game archived:false fork:false",
+        "android emulator archived:false fork:false",
+    ],
+    [  # Day 8 — Python-mobile and native stacks
+        "kivy android archived:false fork:false",
+        "chaquopy android archived:false fork:false",
+        "android language:Python archived:false fork:false",
+        "android language:C++ archived:false fork:false",
+    ],
+    [  # Day 9 — comms, maps, and everyday domains
+        "android messenger archived:false fork:false",
+        "android maps navigation archived:false fork:false",
+        "android finance archived:false fork:false",
+        "android fitness archived:false fork:false",
     ],
 ]
 

@@ -20,14 +20,14 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v5
       - name: Run catalog scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_CHECK: 1200
-          SCAN_DEADLINE_S: 2700 # 45 min soft deadline inside a 60 min job
+          MAX_CHECK: 8000
+          SCAN_DEADLINE_S: 18000 # 300 min soft deadline inside a 360 min job
         # The script always writes partial results + meta.json, even on
         # failure — the commit step must still run. But a nonzero exit with
         # NO catalog changes means nothing was written at all, which must be

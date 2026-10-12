@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,8 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
+import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
-import dev.gstore.ui.RepoCard
 
 @Composable
 fun SearchScreen(
@@ -50,7 +51,7 @@ fun SearchScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).imePadding()) {
         Text("Search", style = MaterialTheme.typography.headlineSmall)
         OutlinedTextField(
             value = state.query,
@@ -105,10 +106,11 @@ fun SearchScreen(
             }
             if (!grid) {
                 items(state.results, key = { it.id }) { repo ->
-                    RepoCard(
+                    AdaptiveCard(
                         repo = repo,
                         isFavorite = repo.id in state.favoriteIds,
                         apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
+                        grid = false,
                         onOpen = { onOpenRepo(repo) },
                         onToggleFavorite = { vm.toggleFavorite(repo) },
                         cardRadiusDp = cardRadiusDp,
@@ -119,10 +121,11 @@ fun SearchScreen(
                 items(state.results.chunked(2), key = { it.first().id }) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { repo ->
-                            RepoCard(
+                            AdaptiveCard(
                                 repo = repo,
                                 isFavorite = repo.id in state.favoriteIds,
                                 apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
+                                grid = true,
                                 onOpen = { onOpenRepo(repo) },
                                 onToggleFavorite = { vm.toggleFavorite(repo) },
                                 modifier = Modifier.weight(1f),

@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
-import dev.gstore.ui.RepoCard
+import dev.gstore.ui.AdaptiveCard
 
 @Composable
 fun FavoritesScreen(
@@ -50,9 +50,10 @@ fun FavoritesScreen(
             ) {
                 if (!grid) {
                     items(favorites, key = { it.id }) { repo ->
-                        RepoCard(
+                        AdaptiveCard(
                             repo = repo,
                             isFavorite = true,
+                            grid = false,
                             onOpen = { onOpenRepo(repo) },
                             onToggleFavorite = { vm.toggleFavorite(repo) },
                             cardRadiusDp = cardRadiusDp,
@@ -63,9 +64,10 @@ fun FavoritesScreen(
                     items(favorites.chunked(2), key = { it.first().id }) { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             row.forEach { repo ->
-                                RepoCard(
+                                AdaptiveCard(
                                     repo = repo,
                                     isFavorite = true,
+                                    grid = true,
                                     onOpen = { onOpenRepo(repo) },
                                     onToggleFavorite = { vm.toggleFavorite(repo) },
                                     modifier = Modifier.weight(1f),
