@@ -20,8 +20,10 @@ No embedded credentials.
 
 | Section | Definition (testable) | Configurable |
 |---|---|---|
-| All apps (daily catalog) | Every scanner-catalog entry in Room, ordered by the selected filter: Trending (same formula as below) / Stars desc / New (first eligible release desc, nulls last) / Recently updated desc. First list item on Home; collapses to 5 with show-more. | filter (persisted in-session; sections below persist) |
+| All apps (daily catalog) | Every scanner-catalog entry in Room, ordered by the selected filter: Trending (same formula as below) / Stars desc / New (first eligible release desc, nulls last) / Recently updated desc; narrowed by an optional category shelf. First list item on Home; collapses to 5 with show-more. | sort filter + category chips |
 | New Apps | Eligible repos whose first eligible release was published within N days (default 30), sorted by first-seen publish date desc | hide/show |
+| Top charts | Highest-starred apps, stars desc, top 10, numbered rank rows | hide/show |
+| Browse categories | One horizontal rail per category present in the catalog (top 8 by stars each); categories come from `categoryOf` over GitHub topics (see §4), uncategorized repos appear only in All apps | hide/show |
 | Trending | Score = `w1*ln(1+stars) + w2*ln(1+forks) + w3*releases_30d + w4*ln(1+downloads_30d)` over repos with `releases_30d > 0`; weights in DataStore, defaults `w1=4, w2=2, w3=10, w4=1`. Revision note (M4): delta signals (`stars_7d`) need a signal-history table we do not keep yet; log-dampened totals approximate standing while windowed terms carry velocity. Delta upgrade is a tracked future, not a silent swap. | hide/show, weights (advanced) |
 | Famous | `stars >= 1000 AND eligible_release_count >= 3 AND age_days >= 365`, sorted by stars desc | hide/show |
 | Recommended (optional) | Famous repos not yet favorited, stars desc — explicit, explainable basis | hide/show |
@@ -36,9 +38,13 @@ formula; never present release download counts as install counts.
 - Search across cached repo name, description, owner, topics; filters
   (has-APK, ABI, minSdk-known, prerelease-included, archived-hidden-by-default);
   sort by recently released / recently updated / popularity / relevance.
-- Category browsing only where defensible metadata exists (GitHub topics mapped
-  through a checked-in allowlist, e.g. `android`, `music-player`); never invent
-  categories.
+- Category browsing over GitHub topics through the checked-in keyword rules
+  in `categoryOf` (`core/data/Sections.kt`): Media, Privacy, Tools,
+  Personalization, Productivity, Social, Developer tools. Only domain
+  topics map — stack labels (`kotlin`, `mvvm`) are ignored and uncategorized
+  repos return null instead of a wrong shelf. Rules are ordered
+  specific-first and covered by `CategoriesTest`; never invent categories
+  outside the rules.
 - Explicit user-added repository URLs (`owner/repo` or full URL) as a
   first-class discovery mechanism.
 - Daily scanner catalog (see GITHUB_DISCOVERY.md §6): `catalog/apps.json`
@@ -49,7 +55,8 @@ formula; never present release download counts as install counts.
 
 ## 5. Details
 
-Repo name/owner/avatar/description, icon when a valid source exists (owner avatar
+Repo name/owner/avatar/description, owner avatar loaded with Coil
+(`AppIcon`: image over a monogram tile that stays as loading/error/empty
 fallback), stars/forks, latest eligible release + history, release notes,
 artifact list (filename, size, ABI/confidence, checksum state), compatibility
 notes, license when available, favorite/share, full README rendering.

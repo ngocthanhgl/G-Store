@@ -69,6 +69,8 @@ class PreferencesRepository(private val context: Context) {
     companion object {
         val DEFAULT_ORDER = listOf(
             HomeSection.NEW,
+            HomeSection.TOP_CHARTS,
+            HomeSection.CATEGORIES,
             HomeSection.TRENDING,
             HomeSection.FAMOUS,
             HomeSection.UPDATED,
@@ -76,6 +78,16 @@ class PreferencesRepository(private val context: Context) {
             HomeSection.BROWSING,
         )
         const val HISTORY_MAX = 20
+
+        /**
+         * Union of a stored order with the current default: sections added by
+         * later app versions appear (visible) instead of vanishing for
+         * existing installs that already persisted an order.
+         */
+        fun resolveOrder(stored: List<HomeSection>?): List<HomeSection> {
+            val base = stored?.takeIf { it.isNotEmpty() } ?: DEFAULT_ORDER
+            return base + (DEFAULT_ORDER - base.toSet())
+        }
     }
 
     val appearance: Flow<AppearanceSettings> = resilientData().map { p ->
@@ -129,9 +141,9 @@ class PreferencesRepository(private val context: Context) {
      * preference, not catalog data — hence DataStore, not Room (see DECISIONS.md).
      */
     val sectionConfigs: Flow<List<SectionConfig>> = resilientData().map { p ->
-        val order = (p[Keys.SECTION_ORDER]?.split(",")?.mapNotNull {
+        val order = resolveOrder(p[Keys.SECTION_ORDER]?.split(",")?.mapNotNull {
             runCatching { HomeSection.valueOf(it) }.getOrNull()
-        }?.takeIf { it.isNotEmpty() } ?: DEFAULT_ORDER)
+        })
         val hidden = p[Keys.SECTION_HIDDEN] ?: emptySet()
         order.mapIndexed { index, section ->
             SectionConfig(section, visible = section.name !in hidden, rank = index)
@@ -148,9 +160,9 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun moveSection(section: HomeSection, toRank: Int) {
         context.store.edit { p ->
-            val order = (p[Keys.SECTION_ORDER]?.split(",")?.mapNotNull {
+            val order = resolveOrder(p[Keys.SECTION_ORDER]?.split(",")?.mapNotNull {
                 runCatching { HomeSection.valueOf(it) }.getOrNull()
-            }?.takeIf { it.isNotEmpty() } ?: DEFAULT_ORDER).toMutableList()
+            }).toMutableList()
             order.remove(section)
             order.add(toRank.coerceIn(0, order.size), section)
             p[Keys.SECTION_ORDER] = order.joinToString(",") { it.name }

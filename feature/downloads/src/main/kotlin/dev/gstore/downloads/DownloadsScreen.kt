@@ -73,10 +73,17 @@ private fun SectionTitle(text: String) {
 private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(record.filename, style = MaterialTheme.typography.titleSmall)
+            Text(
+                record.filename,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 "${record.repoFullName} · ${record.releaseTag}",
                 style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             val fraction = if (record.bytesTotal > 0) {
                 (record.bytesDone.toFloat() / record.bytesTotal).coerceIn(0f, 1f)
@@ -109,10 +116,17 @@ private fun HistoryRow(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(record.filename, style = MaterialTheme.typography.titleSmall)
+            Text(
+                record.filename,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 "${record.repoFullName} · ${record.releaseTag}",
                 style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             when (record.status) {
                 "COMPLETED" -> {
@@ -121,7 +135,12 @@ private fun HistoryRow(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     record.packageName?.let {
-                        Text("Package $it${record.versionName?.let { v -> " · $v" } ?: ""}", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Package $it${record.versionName?.let { v -> " · $v" } ?: ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = onInstall) { Text("Install") }
@@ -133,6 +152,8 @@ private fun HistoryRow(
                         record.error ?: "Download failed",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
+                        maxLines = 3,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onRetry) { Text("Retry") }

@@ -27,7 +27,6 @@ import dev.gstore.model.Repository
 enum class ApkBadge { HAS_APK, NO_APK, UNKNOWN }
 
 private val TouchTarget = 48.dp
-private val MonogramSize = 44.dp
 
 /**
  * Shared repository card (home, search, favorites) — DESIGN.md "Tonal Shelf":
@@ -57,21 +56,11 @@ fun RepoCard(
                 .padding(if (compact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                modifier = Modifier.size(MonogramSize),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-            ) {
-                androidx.compose.foundation.layout.Box(
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = repo.owner.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
+            AppIcon(
+                avatarUrl = repo.avatarUrl,
+                owner = repo.owner,
+                size = 48.dp,
+            )
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -94,6 +83,8 @@ fun RepoCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                // Ledger row truncates as a unit: forks takes the remaining
+                // width and ellipsizes instead of pushing the card wider.
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -108,29 +99,40 @@ fun RepoCard(
                         text = formatCount(repo.stars),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                     Text(
                         text = "· ${formatCount(repo.forks)} forks",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (repo.archived) {
-                        Badge(
-                            text = "Archived",
-                            container = MaterialTheme.colorScheme.errorContainer,
-                            content = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    }
-                    when (apkBadge) {
-                        ApkBadge.HAS_APK -> Badge(
-                            text = "APK",
-                            container = MaterialTheme.colorScheme.primaryContainer,
-                            content = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                        ApkBadge.NO_APK -> Badge(text = "No APK")
-                        ApkBadge.UNKNOWN -> Unit
+                }
+                // Badges get their own line so they never squeeze the ledger
+                // off narrow cards; each badge truncates instead of wrapping.
+                val badgeRow = @Composable {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (repo.archived) {
+                            Badge(
+                                text = "Archived",
+                                container = MaterialTheme.colorScheme.errorContainer,
+                                content = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                        when (apkBadge) {
+                            ApkBadge.HAS_APK -> Badge(
+                                text = "APK",
+                                container = MaterialTheme.colorScheme.primaryContainer,
+                                content = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                            ApkBadge.NO_APK -> Badge(text = "No APK")
+                            ApkBadge.UNKNOWN -> Unit
+                        }
                     }
                 }
+                if (repo.archived || apkBadge != ApkBadge.UNKNOWN) badgeRow()
             }
             IconButton(
                 onClick = onToggleFavorite,
@@ -162,12 +164,10 @@ private fun Badge(
             text = text,
             style = MaterialTheme.typography.labelSmall,
             color = content,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
     }
 }
-
-private fun formatCount(n: Int): String = when {    n >= 1_000_000 -> "%.1fM".format(n / 1_000_000.0)
-    n >= 1_000 -> "%.1fk".format(n / 1_000.0)
-    else -> n.toString()
-}
+// formatCount lives in RailCard.kt — shared by both card styles.

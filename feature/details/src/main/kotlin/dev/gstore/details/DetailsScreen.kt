@@ -162,23 +162,28 @@ private fun TopBar(
 @Composable
 private fun Header(repo: Repository) {
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Surface(
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.size(56.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
+        dev.gstore.ui.AppIcon(
+            avatarUrl = repo.avatarUrl,
+            owner = repo.owner,
+            size = 56.dp,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+            Text(
+                repo.fullName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            val description = repo.description
+            if (description != null) {
                 Text(
-                    repo.fullName.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-            Text(repo.fullName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            val description = repo.description
-            if (description != null) Text(description, style = MaterialTheme.typography.bodyMedium)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -186,12 +191,19 @@ private fun Header(repo: Repository) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(formatCount(repo.stars), style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        formatCount(repo.stars),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                    )
                 }
                 Text(
                     "· ${formatCount(repo.forks)} forks",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 if (repo.archived) {
                     Surface(
@@ -212,7 +224,12 @@ private fun Header(repo: Repository) {
                 repo.updatedAt?.let { add("Updated ${it.take(10)}") }
             }
             if (meta.isNotEmpty()) {
-                Text(meta.joinToString(" · "), style = MaterialTheme.typography.labelMedium)
+                Text(
+                    meta.joinToString(" · "),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -269,7 +286,12 @@ private fun ReleasePicker(
             FilterChip(
                 selected = selected,
                 onClick = { onSelect(release.id) },
-                label = { Text(release.tag + if (release.prerelease) " · pre" else "") },
+                label = {
+                    Text(
+                        release.tag + if (release.prerelease) " · pre" else "",
+                        maxLines = 1,
+                    )
+                },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -285,7 +307,13 @@ private fun ReleaseNotes(release: Release) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(release.tag, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    release.tag,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
                 if (release.prerelease) {
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -299,7 +327,14 @@ private fun ReleaseNotes(release: Release) {
                 Text("Published ${it.take(10)}", style = MaterialTheme.typography.labelMedium)
             }
             val releaseName = release.name
-            if (releaseName != null) Text(releaseName, style = MaterialTheme.typography.bodyMedium)
+            if (releaseName != null) {
+                Text(
+                    releaseName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
             val notes = release.notes
             if (!notes.isNullOrBlank()) {
                 SelectionContainer {
@@ -318,7 +353,14 @@ private fun AssetCard(row: AssetRow, onDownload: (ReleaseAsset) -> Unit) {
     val asset = row.asset
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(asset.filename, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
+            // Monospace filenames don't wrap mid-token — cap at two lines.
+            Text(
+                asset.filename,
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 "${formatBytes(asset.size)} · ${asset.downloadCount} downloads",
                 style = MaterialTheme.typography.labelMedium,
@@ -391,13 +433,20 @@ private fun HistoryRow(release: Release, selected: Boolean, onSelect: (Long) -> 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(release.tag, fontWeight = if (selected) FontWeight.Bold else null)
+            Text(
+                release.tag,
+                fontWeight = if (selected) FontWeight.Bold else null,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 listOfNotNull(
                     release.publishedAt?.take(10),
                     if (release.prerelease) "prerelease" else null,
                 ).joinToString(" · ").ifEmpty { "undated" },
                 style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
         if (!selected) {

@@ -23,6 +23,13 @@ Result: `[]` — no findings on any of the three redesigned files.
   keeps spinner-while-loading vs error+retry split; empty catalog keeps icon +
   sentence + two actions.
 
+## Play-Store pass (Top charts, rails, icons, overflow audit)
+
+`detect --json` on RepoCard, RailCard, AppIcon, HomeScreen, DetailsScreen,
+SearchScreen, DownloadsScreen: `[]` clean. New known-good icons used:
+none beyond the set above (width/layout imports only). Overflow fixes are
+maxLines+ellipsis caps, no detector involvement.
+
 ## Fix applied from the build (not the detector)
 
 `Icons.Filled.Apps` is not in `material-icons-core` (compile error) —

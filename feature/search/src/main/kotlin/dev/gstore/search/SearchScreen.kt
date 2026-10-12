@@ -163,7 +163,12 @@ fun SearchScreen(
 private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(repo.fullName, style = MaterialTheme.typography.titleSmall)
+            Text(
+                repo.fullName,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 "★ ${repo.stars}",
                 style = MaterialTheme.typography.labelSmall,

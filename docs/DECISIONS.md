@@ -257,10 +257,18 @@ built and verified. The lesson is recorded in §12.
   30-min-timeout kill (or any late error, with the commit step skipped on
   failure) produced zero catalog. Now: 22-min soft deadline with partial
   results always written and committed (`if: always()` + scan step never
-  fails the job), meta.json carries `deadline_hit`/`complete`/`error`.
+  fails the job),   meta.json carries `deadline_hit`/`complete`/`error`.
   Commits `catalog/apps.json` + `catalog/meta.json`. Coverage limits
   documented in GITHUB_DISCOVERY.md §6 (seed surface only, 24 h staleness,
   user-added repos as escape hatch).
+  First production run verified (2026-10-10, bot commit on origin):
+  600 candidates, 439 checked before the 22-min deadline, 141 APK matches
+  (602 KB apps.json, top entry rustdesk/rustdesk 125k stars), meta shows
+  `deadline_hit: true, complete: false, error: null` — the partial-commit
+  design working as intended. All 141 entries carry full_name + tag
+  (PowerShell shape check). CI status after the final push is NOT verifiable
+  from this workstation (API token rotated, 401): local full suite is green
+  (93/93 tests, lint + assemble), confirm CI in the Actions tab.
 - **App catalog pull** (`CatalogClient` + `importCatalog` + Home `CatalogBlock`
   with Trending/Stars/New/Updated FilterChips): ETag GET, 2 MiB cap, import on
   empty DB and >24 h staleness, FRESH rows never downgraded, history upsert-only.
@@ -279,3 +287,54 @@ built and verified. The lesson is recorded in §12.
 - Icon lesson: `material-icons-core` has no `Apps` (nor Tune/HideSource/
   arrows-beyond-core) — verify icon names against prior known-good set or the
   build; `Add` substituted for the empty-state icon.
+
+## 15. Play-Store Home, bot v2, overflow audit (user 3-hour order)
+
+User ordered (verbatim intent): scanner must cover the whole APK-bearing
+surface (not just new APKs) with a 24 h refresh the app cross-references on
+launch; Play-Store-like Home with sections, app classification, and app/dev
+icons; leaner UI plus text-overflow/alignment fixes; everything fixed with
+agents at maximum; complete app + green CI on return. "Toàn bộ" taken
+literally is impossible (§3: no enumerating endpoint) — shipped the closest
+honest design: rotating accumulation (§6 update) rather than a false
+full-index claim.
+- **Bot v2** (`tools/scan.py`): 7 rotating query sets (day-of-year % 7:
+  Android head, cross-platform stacks, media/system/productivity domains,
+  f-droid ecosystem, long-tail tiers), ≤8 pages × 100 per query,
+  `MAX_CHECK=1200`, 45-min soft deadline in a 60-min job, merge-not-replace
+  keyed by repo id with `last_verified` stamps, immediate drop when a
+  re-check finds no APK release, 30-day stale drop, `ENTRY_CAP=3000`, meta
+  gains `query_set`/`verified_today`/`carried_over`/`dropped_stale`.
+  Pre-`last_verified` entries grandfathered. App parses with
+  `ignoreUnknownKeys`, so the additive field breaks nothing. No Python on
+  this host — syntax verified by careful re-read, real proof is the
+  push-triggered scan run's committed catalog.
+- **Categories** (`Sections.kt`): `AppCategory` (7 shelves) + ordered
+  specific-first `categoryOf` over domain topics (stack labels ignored,
+  null when uncategorized), `topCharts(limit 10)`, `categoriesPresent`,
+  `sortedCatalog(..., category?)` pre-filter, `computeSections.topCharts`,
+  `matches()` branches (`TOP_CHARTS` = stars ≥ 1000 refresh-scope approx,
+  documented; `CATEGORIES` = categorized). `CategoriesTest` 7/7.
+- **Home as Play Store**: `TopChartsBlock` (numbered rank rows with icon +
+  favorite), `CategoriesBlock` (one `LazyRow` rail of `RailCard`s per
+  present category, top 8 by stars), `CatalogBlock` gains a category chip
+  row (All + present shelves with counts) wired to `HomeViewModel`
+  `categoryFilter`. New `TOP_CHARTS`/`CATEGORIES` sections in `DEFAULT_ORDER`
+  (after NEW) with `resolveOrder` union so existing installs gain them
+  instead of losing them to a persisted order.
+- **Icons** (`core/ui AppIcon.kt`, coil-compose dep): owner avatar over a
+  monogram tile that doubles as loading/error/empty fallback — no blank
+  tiles, no state juggling. Used by `RepoCard` (48dp), `RailCard`/`TopCharts`
+  rows, Details hero (56dp).
+- **Overflow/alignment audit**: ledger rows take `weight(1f, fill=false)` +
+  ellipsis with badges moved to their own line (`RepoCard`); monospace
+  filenames capped 2 lines (AssetCard, downloads rows); release tags/names,
+  history rows, chip labels, meta/package/error lines all capped with
+  ellipsis; `NetworkRow` name capped. Badges truncate instead of wrapping.
+- Process notes: delegated two research subagents (topic mapping, UI audit)
+  — the first returned a generic repo audit instead of the mapping, so both
+  tracks were done directly (topic histogram via PowerShell + file reads);
+  subagents only for cleanly read-only briefs. `combine` arity watch held
+  (refreshState now exactly 5 flows). Fully-qualified
+  `androidx.compose.ui.text.style.TextOverflow` used in screens lacking the
+  import.

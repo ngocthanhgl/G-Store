@@ -91,6 +91,8 @@ enum class SyncState { FRESH, STALE, FAILED }
 /** Home section keys — visibility/order persisted per user (PRODUCT_SPEC §3). */
 enum class HomeSection {
     NEW,
+    TOP_CHARTS,
+    CATEGORIES,
     TRENDING,
     FAMOUS,
     UPDATED,

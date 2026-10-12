@@ -8,16 +8,19 @@ tab always has a list even before any on-device sync.
 
 Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
 - GitHub has NO endpoint enumerating every repo with APK releases. This
-  scanner combines a few high-recall repository-search queries, inspects
-  recent releases per candidate, and records matches. Coverage is a
-  documented sample, never "all of GitHub".
+  scanner rotates 7 query sets (one per day-of-week) across languages,
+  domains, and star tiers, and MERGES each run into the previous catalog
+  instead of replacing it — coverage accumulates day over day toward the
+  whole APK-bearing surface without ever claiming to be exhaustive.
 - Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
   search calls + one releases call per candidate must fit comfortably, so
-  MAX_CHECK caps candidates per run (default 600). A 22-minute soft
+  MAX_CHECK caps candidates per run (default 1200). A 45-minute soft
   deadline (SCAN_DEADLINE_S) stops new checks early; partial results are
   always written and committed, flagged in meta.json.
-- Archived/disabled repos and drafts are excluded. Digest is usually
-  null (GitHub rarely provides one) — the app treats it as UNAVAILABLE.
+- Entries carry last_verified (ISO date). Entries unseen for STALE_DAYS
+  (default 30) are dropped; a repo re-checked with no APK release is
+  dropped immediately. Archived/disabled repos and drafts are excluded.
+  Digest is usually null (GitHub rarely provides one).
 
 Stdlib only (urllib) so ubuntu-latest runners need no setup.
 Env: GITHUB_TOKEN (required), MAX_CHECK (default 850), OUT_DIR (default catalog).
@@ -30,26 +33,70 @@ import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "600"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "1200"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
-# Soft deadline: the workflow kills the job at 30 min, which would discard
+# Soft deadline: the workflow kills the job at 60 min, which would discard
 # everything if files were only written at the end. Stop starting new repos
 # after DEADLINE_S and commit whatever we have (meta flags it as partial).
-DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(22 * 60)))
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(45 * 60)))
 PER_PAGE = 100
+SEARCH_PAGES = 8  # GitHub caps search pagination at 1,000 results
 RELEASES_PER_REPO = 5
-ENTRY_CAP = 1000
+ENTRY_CAP = 3000
 NOTES_CAP = 2000
 ASSETS_CAP = 20
+# Entries not re-verified within this window are dropped as stale.
+STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
-QUERIES = [
-    "topic:android fork:false",
-    "android language:Kotlin fork:false stars:>100",
-    "android language:Java fork:false stars:>100",
+# Seven query sets — one runs per day (day-of-year % 7), covering languages,
+# app domains, and star tiers. Each set is budgeted for ~8 pages x 100 repos;
+# MAX_CHECK caps how many candidates get release-checked per run.
+QUERY_SETS = [
+    [  # Day 0 — Android core, popular head
+        "topic:android fork:false",
+        "android language:Kotlin fork:false stars:>100",
+        "android language:Java fork:false stars:>100",
+    ],
+    [  # Day 1 — cross-platform stacks
+        "topic:flutter fork:false",
+        "topic:react-native fork:false",
+        "android language:Dart fork:false stars:>50",
+        "android language:C# fork:false stars:>50",
+    ],
+    [  # Day 2 — media domain
+        "android music player fork:false",
+        "android video player fork:false",
+        "youtube android fork:false",
+        "android camera fork:false",
+    ],
+    [  # Day 3 — system domain
+        "android file manager fork:false",
+        "android launcher fork:false",
+        "android keyboard fork:false",
+        "android vpn fork:false",
+    ],
+    [  # Day 4 — productivity domain
+        "android notes todo fork:false",
+        "android rss reader fork:false",
+        "android weather fork:false",
+        "android password manager fork:false",
+    ],
+    [  # Day 5 — free-software ecosystem
+        "topic:f-droid fork:false",
+        "android adblock fork:false",
+        "android firewall fork:false",
+        "android backup fork:false",
+    ],
+    [  # Day 6 — long tail and emerging stacks
+        "android language:Kotlin fork:false stars:10..100",
+        "android language:Rust fork:false",
+        "android language:Go fork:false",
+        "android game fork:false",
+    ],
 ]
 
 HEADERS = {
@@ -94,10 +141,10 @@ def api_get(path):
     raise RuntimeError(f"GET {path} failed after retries")
 
 
-def search_candidates():
+def search_candidates(queries):
     seen = {}
-    for q in QUERIES:
-        for page in range(1, 6):  # GitHub caps search pagination at 1,000 results
+    for q in queries:
+        for page in range(1, SEARCH_PAGES + 1):
             params = urllib.parse.urlencode(
                 {"q": q, "sort": "stars", "order": "desc",
                  "per_page": PER_PAGE, "page": page}
@@ -134,11 +181,12 @@ def pick_apk_release(full_name):
     return None, []
 
 
-def to_entry(repo, rel, assets):
+def to_entry(repo, rel, assets, today):
     lic = repo.get("license") or {}
     spdx = lic.get("spdx_id")
     return {
         "schema": 1,
+        "last_verified": today,
         "repo": {
             "id": repo["id"],
             "full_name": repo["full_name"],
@@ -176,17 +224,38 @@ def to_entry(repo, rel, assets):
     }
 
 
+def load_previous():
+    """Previous catalog keyed by repo id; tolerant of a missing first run."""
+    path = os.path.join(OUT_DIR, "apps.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {e["repo"]["id"]: e for e in data if e.get("repo", {}).get("id")}
+
+
 def main():
     if not TOKEN:
         print("GITHUB_TOKEN is empty: 60 req/hr cannot cover a scan. Abort.",
               file=sys.stderr)
         return 2
     started = time.time()
+    today = date.today().isoformat()
+    set_index = date.today().toordinal() % len(QUERY_SETS)
+    queries = QUERY_SETS[set_index]
+    print(f"query set {set_index}: {queries}", flush=True)
     error = None
     deadline_hit = False
-    candidates = search_candidates()
-    entries = []
+    previous = load_previous()
+    # Grandfather entries written before last_verified existed.
+    for entry in previous.values():
+        entry.setdefault("last_verified", today)
+    carried = len(previous)
+    candidates = search_candidates(queries)
+    verified_today = 0
     checked = 0
+    checked_names = set()
     for repo in candidates:
         if time.time() - started > DEADLINE_S:
             deadline_hit = True
@@ -194,31 +263,50 @@ def main():
                   f"finalizing partial results", flush=True)
             break
         checked += 1
+        checked_names.add(repo["full_name"])
         try:
             rel, assets = pick_apk_release(repo["full_name"])
         except Exception as e:  # one bad repo must not kill the run
             print(f"skip {repo['full_name']}: {e}", flush=True)
             continue
         if rel is not None:
-            entries.append(to_entry(repo, rel, assets))
-            if len(entries) >= ENTRY_CAP:
-                break
+            previous[repo["id"]] = to_entry(repo, rel, assets, today)
+            verified_today += 1
+        elif repo["id"] in previous:
+            # Re-checked and no longer ships an APK release — drop it.
+            del previous[repo["id"]]
         time.sleep(0.3)
-    entries.sort(key=lambda e: e["repo"]["stars"], reverse=True)
+    # Drop entries unseen for STALE_DAYS (repos deleted, renamed, or rotated
+    # out of every query surface).
+    dropped_stale = 0
+    for repo_id, entry in list(previous.items()):
+        try:
+            age = (date.fromisoformat(today) -
+                   date.fromisoformat(entry.get("last_verified", today))).days
+        except ValueError:
+            age = 0
+        if age > STALE_DAYS:
+            del previous[repo_id]
+            dropped_stale += 1
+    entries = sorted(previous.values(),
+                     key=lambda e: e["repo"].get("stars", 0), reverse=True)
+    entries = entries[:ENTRY_CAP]
     try:
-        write_results(entries, candidates, checked, started,
-                      deadline_hit, error)
+        write_results(entries, candidates, checked, started, deadline_hit,
+                      error, set_index, queries, verified_today, carried,
+                      dropped_stale)
     except Exception:
         error = traceback.format_exc(limit=3)
         print(f"write failed: {error}", flush=True)
         return 1
-    print(f"done: {checked} checked, {len(entries)} with APK releases",
-          flush=True)
+    print(f"done: {checked} checked, {verified_today} verified today, "
+          f"{len(entries)} total entries", flush=True)
     return 0
 
 
 def write_results(entries, candidates, checked, started,
-                  deadline_hit, error):
+                  deadline_hit, error, set_index, queries,
+                  verified_today, carried, dropped_stale):
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "apps.json"), "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=1)
@@ -226,9 +314,13 @@ def write_results(entries, candidates, checked, started,
         "schema": 1,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "tool": "tools/scan.py",
-        "queries": QUERIES,
+        "query_set": set_index,
+        "queries": queries,
         "candidates": len(candidates),
         "checked": checked,
+        "verified_today": verified_today,
+        "carried_over": carried,
+        "dropped_stale": dropped_stale,
         "matches": len(entries),
         "truncated": len(entries) >= ENTRY_CAP or deadline_hit,
         "deadline_hit": deadline_hit,

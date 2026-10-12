@@ -2,8 +2,9 @@ name: catalog-scan
 
 # Daily GitHub APK catalog scan (24h). Results are committed to catalog/
 # and the Android app pulls catalog/apps.json on launch, so Home always
-# has a list. See tools/scan.py and docs/GITHUB_DISCOVERY.md for the
-# documented coverage limits — this is a sample, never "all of GitHub".
+# has a list. Each run scans one rotating query set and MERGES into the
+# previous catalog — coverage accumulates day over day. See tools/scan.py
+# and docs/GITHUB_DISCOVERY.md for the documented coverage limits.
 on:
   schedule:
     - cron: "0 2 * * *" # 02:00 UTC daily
@@ -19,12 +20,14 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - name: Run catalog scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_CHECK: 1200
+          SCAN_DEADLINE_S: 2700 # 45 min soft deadline inside a 60 min job
         # Never fail the job on a scan error: the script always writes
         # partial results + meta.json, and the commit step must still run.
         run: python3 tools/scan.py || echo "scan exited nonzero; committing partial results"

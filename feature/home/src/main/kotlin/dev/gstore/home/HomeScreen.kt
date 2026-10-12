@@ -8,15 +8,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -48,12 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
+import dev.gstore.data.categoryLabel
 import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
 import dev.gstore.model.SectionConfig
 import dev.gstore.ui.ApkBadge
+import dev.gstore.ui.AppIcon
+import dev.gstore.ui.RailCard
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
 
@@ -61,6 +69,8 @@ private const val COLLAPSED_COUNT = 5
 
 private fun titleOf(section: HomeSection): String = when (section) {
     HomeSection.NEW -> "New apps"
+    HomeSection.TOP_CHARTS -> "Top charts"
+    HomeSection.CATEGORIES -> "Browse categories"
     HomeSection.TRENDING -> "Trending"
     HomeSection.FAMOUS -> "Famous"
     HomeSection.UPDATED -> "Recently updated"
@@ -70,6 +80,8 @@ private fun titleOf(section: HomeSection): String = when (section) {
 
 private fun emptyOf(section: HomeSection): String = when (section) {
     HomeSection.NEW -> "No apps first released in the last 30 days yet."
+    HomeSection.TOP_CHARTS -> "Star data will appear here once the catalog loads."
+    HomeSection.CATEGORIES -> "No categorized apps yet — topics arrive with the catalog."
     HomeSection.TRENDING -> "No recent release activity yet — sync a repository to begin."
     HomeSection.FAMOUS -> "No established projects yet (1,000+ stars, 3+ APK releases, 1+ year)."
     HomeSection.UPDATED -> "Nothing released in the last 30 days."
@@ -129,6 +141,9 @@ fun HomeScreen(
                         items = state.catalog,
                         filter = state.catalogFilter,
                         onFilter = vm::setCatalogFilter,
+                        category = state.categoryFilter,
+                        onCategory = vm::setCategoryFilter,
+                        categories = state.categories,
                         favorites = state.favoriteIds,
                         syncing = state.syncingCatalog,
                         grid = grid,
@@ -154,6 +169,27 @@ fun HomeScreen(
                                 onHide = { vm.setSectionVisible(config.section, false) },
                                 onOpen = onOpenRepo,
                                 onToggleFavorite = vm::toggleFavorite,
+                            )
+                            HomeSection.TOP_CHARTS -> TopChartsBlock(
+                                items = state.sections.topCharts,
+                                favorites = state.favoriteIds,
+                                syncing = state.syncing,
+                                onRefresh = {
+                                    vm.refreshSection(
+                                        state.sections.topCharts.map { it.repo },
+                                    )
+                                },
+                                onHide = { vm.setSectionVisible(config.section, false) },
+                                onOpen = onOpenRepo,
+                                onToggleFavorite = vm::toggleFavorite,
+                            )
+                            HomeSection.CATEGORIES -> CategoriesBlock(
+                                signals = state.catalog,
+                                favorites = state.favoriteIds,
+                                grid = grid,
+                                compact = compact,
+                                onOpen = onOpenRepo,
+                                onHide = { vm.setSectionVisible(config.section, false) },
                             )
                             else -> SectionBlock(
                                 config = config,
@@ -214,6 +250,8 @@ fun HomeScreen(
 private fun itemsOf(section: HomeSection, state: HomeUiState): List<RepoSignals> =
     when (section) {
         HomeSection.NEW -> state.sections.new
+        HomeSection.TOP_CHARTS -> state.sections.topCharts
+        HomeSection.CATEGORIES -> emptyList() // rendered by CategoriesBlock
         HomeSection.TRENDING -> state.sections.trending
         HomeSection.FAMOUS -> state.sections.famous
         HomeSection.UPDATED -> state.sections.updated
@@ -498,6 +536,9 @@ private fun CatalogBlock(
     items: List<RepoSignals>,
     filter: CatalogFilter,
     onFilter: (CatalogFilter) -> Unit,
+    category: AppCategory?,
+    onCategory: (AppCategory?) -> Unit,
+    categories: List<Pair<AppCategory, Int>>,
     favorites: Set<Long>,
     syncing: Boolean,
     grid: Boolean,
@@ -560,6 +601,25 @@ private fun CatalogBlock(
                 )
             }
         }
+        if (categories.isNotEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                CategoryChip(
+                    label = "All categories",
+                    selected = category == null,
+                    onClick = { onCategory(null) },
+                )
+                categories.forEach { (option, count) ->
+                    CategoryChip(
+                        label = "${categoryLabel(option)} ($count)",
+                        selected = option == category,
+                        onClick = { onCategory(if (option == category) null else option) },
+                    )
+                }
+            }
+        }
         if (items.isEmpty()) {
             Text(
                 if (syncing) "Loading the daily catalog…" else "No catalog yet — pull to refresh.",
@@ -598,6 +658,174 @@ private fun filterLabel(filter: CatalogFilter): String = when (filter) {
     CatalogFilter.STARS -> "Top stars"
     CatalogFilter.NEW -> "New"
     CatalogFilter.UPDATED -> "Recently updated"
+}
+
+@Composable
+private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        } else null,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    )
+}
+
+/**
+ * Play-Store-style numbered chart: rank, icon, name, star ledger.
+ * Every text truncates — long owner/name pairs must never shift the rank.
+ */
+@Composable
+private fun TopChartsBlock(
+    items: List<RepoSignals>,
+    favorites: Set<Long>,
+    syncing: Boolean,
+    onRefresh: () -> Unit,
+    onHide: () -> Unit,
+    onOpen: (Repository) -> Unit,
+    onToggleFavorite: (Repository) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionHeader(
+            title = "Top charts",
+            countText = "${items.size}",
+            subline = "Most-starred apps",
+            syncing = syncing,
+            onRefresh = onRefresh,
+            refreshDescription = "Refresh Top charts",
+            onHide = onHide,
+            hideDescription = "Hide Top charts",
+        )
+        if (items.isEmpty()) {
+            Text(
+                emptyOf(HomeSection.TOP_CHARTS),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            items.forEachIndexed { index, signals ->
+                val repo = signals.repo
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${index + 1}",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(32.dp),
+                        maxLines = 1,
+                    )
+                    AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 48.dp)
+                    Column(
+                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = repo.fullName,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${formatStars(repo.stars)} stars",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    }
+                    androidx.compose.material3.IconButton(onClick = { onToggleFavorite(repo) }) {
+                        Icon(
+                            if (repo.id in favorites) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (repo.id in favorites) "Remove favorite" else "Add favorite",
+                            tint = if (repo.id in favorites) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatStars(stars: Int): String = when {
+    stars >= 1_000_000 -> "%.1fM".format(stars / 1_000_000.0)
+    stars >= 1_000 -> "%.1fk".format(stars / 1_000.0)
+    else -> stars.toString()
+}
+
+/**
+ * One horizontal shelf per category present in the catalog (Play-Store
+ * style rails). Tapping a rail card opens the app; the CatalogBlock chips
+ * above filter the whole list by the same category.
+ */
+@Composable
+private fun CategoriesBlock(
+    signals: List<RepoSignals>,
+    favorites: Set<Long>,
+    grid: Boolean,
+    compact: Boolean,
+    onOpen: (Repository) -> Unit,
+    onHide: () -> Unit,
+) {
+    val shelves = dev.gstore.data.categoriesPresent(signals)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SectionHeader(
+            title = "Browse categories",
+            countText = "${shelves.size}",
+            syncing = false,
+            onRefresh = { },
+            refreshDescription = "Refresh Browse categories",
+            onHide = onHide,
+            hideDescription = "Hide Browse categories",
+        )
+        if (shelves.isEmpty()) {
+            Text(
+                emptyOf(HomeSection.CATEGORIES),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            shelves.forEach { (category, count) ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "${dev.gstore.data.categoryLabel(category)} ($count)",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val top = signals
+                            .filter { dev.gstore.data.categoryOf(it.repo.topics) == category }
+                            .sortedByDescending { it.repo.stars }
+                            .take(8)
+                        items(top, key = { "shelf-${category.name}-${it.repo.id}" }) { item ->
+                            RailCard(
+                                repo = item.repo,
+                                onOpen = { onOpen(item.repo) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

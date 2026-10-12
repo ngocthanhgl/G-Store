@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.AppCategory
 import dev.gstore.data.HomeSections
+import dev.gstore.data.categoriesPresent
 import dev.gstore.data.computeSections
 import dev.gstore.data.sortedCatalog
 
@@ -35,6 +37,8 @@ data class HomeUiState(
     val browsing: List<Repository> = emptyList(),
     val catalog: List<RepoSignals> = emptyList(),
     val catalogFilter: CatalogFilter = CatalogFilter.TRENDING,
+    val categoryFilter: AppCategory? = null,
+    val categories: List<Pair<AppCategory, Int>> = emptyList(),
     val syncingCatalog: Boolean = false,
     val isEmpty: Boolean = true,
     val syncing: Boolean = false,
@@ -55,6 +59,7 @@ class HomeViewModel(
     private val discoverResults = MutableStateFlow<List<Repository>>(emptyList())
     private val discovering = MutableStateFlow(false)
     private val catalogFilter = MutableStateFlow(CatalogFilter.TRENDING)
+    private val categoryFilter = MutableStateFlow<AppCategory?>(null)
     private val syncingCatalog = MutableStateFlow(false)
     private var catalogAutoTried = false
 
@@ -88,11 +93,14 @@ class HomeViewModel(
         val syncing: Boolean,
         val banner: String?,
         val filter: CatalogFilter,
+        val category: AppCategory?,
         val syncingCatalog: Boolean,
     )
 
-    private val refreshState = combine(syncing, banner, catalogFilter, syncingCatalog) { s, b, f, cs ->
-        RefreshState(s, b, f, cs)
+    private val refreshState = combine(
+        syncing, banner, catalogFilter, categoryFilter, syncingCatalog,
+    ) { s, b, f, c, cs ->
+        RefreshState(s, b, f, c, cs)
     }
 
     val state: StateFlow<HomeUiState> = combine(
@@ -107,8 +115,10 @@ class HomeViewModel(
             configs = inputs.configs,
             favoriteIds = inputs.favorites,
             browsing = history,
-            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights),
+            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights, refresh.category),
             catalogFilter = refresh.filter,
+            categoryFilter = refresh.category,
+            categories = categoriesPresent(inputs.signals),
             syncingCatalog = refresh.syncingCatalog,
             isEmpty = inputs.signals.isEmpty(),
             syncing = refresh.syncing,
@@ -151,6 +161,10 @@ class HomeViewModel(
 
     fun setCatalogFilter(filter: CatalogFilter) {
         catalogFilter.value = filter
+    }
+
+    fun setCategoryFilter(category: AppCategory?) {
+        categoryFilter.value = category
     }
 
     /**
