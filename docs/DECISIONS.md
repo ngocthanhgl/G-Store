@@ -334,7 +334,22 @@ full-index claim.
 - Process notes: delegated two research subagents (topic mapping, UI audit)
   — the first returned a generic repo audit instead of the mapping, so both
   tracks were done directly (topic histogram via PowerShell + file reads);
-  subagents only for cleanly read-only briefs. `combine` arity watch held
+  subagents only for cleanly read-only briefs.   `combine` arity watch held
   (refreshState now exactly 5 flows). Fully-qualified
   `androidx.compose.ui.text.style.TextOverflow` used in screens lacking the
   import.
+- **Production proof (2026-10-12):** the first v2 run (`query_set` 1,
+  cross-platform day) checked 1200/1200 candidates in 43.75 min, verified
+  218 today, carried 131 over, dropped 0 stale — catalog grew 131 → 329
+  entries in one run, `complete: true, error: null`, all entries stamped
+  `last_verified`. The 02:12 first-v2 run committed nothing (success with no
+  output — the silent case); root cause unrecoverable from logs without
+  auth, most plausibly a check-phase exception before the end-of-run write.
+  Fixed structurally: check phase wrapped so ANY failure still writes the
+  merged catalog with `error` recorded, and the workflow fails red when the
+  script exits nonzero with zero catalog changes (`SCAN_EXIT` via `set +e`
+  + `$GITHUB_ENV`, since `bash -e` would kill the step before capture).
+- Verification totals for this session: 100/100 unit tests, lint 0 errors,
+  `:app:assembleDebug` green, impeccable detector `[]` on all 7 touched UI
+  files, CI `success` on both pushed commits (polled via public Actions
+  API), scanner `success` with committed catalog.
