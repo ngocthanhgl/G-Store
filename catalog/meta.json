@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-12T07:14:30.290398+00:00",
+ "scanned_at": "2026-10-12T08:54:50.072075+00:00",
  "tool": "tools/scan.py",
  "query_set": 1,
  "queries": [
@@ -18,6 +18,6 @@
  "truncated": false,
  "deadline_hit": false,
  "complete": false,
- "error": "Traceback (most recent call last):\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 288, in main\n    candidates = search_candidates(queries)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 176, in search_candidates\n    status, data, _ = api_get(\"/search/repositories?\" + params)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 149, in api_get\n    return resp.status, json.load(resp), resp.headers\n                        ^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n                 ^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 500, in read\n    s = self._safe_read(self.length)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nhttp.client.IncompleteRead: IncompleteRead(426166 bytes read, 134894 more expected)\n",
- "duration_s": 2640.4
+ "error": "Traceback (most recent call last):\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 288, in main\n    candidates = search_candidates(queries)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 176, in search_candidates\n    status, data, _ = api_get(\"/search/repositories?\" + params)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/github-store-android/github-store-android/tools/scan.py\", line 149, in api_get\n    return resp.status, json.load(resp), resp.headers\n                        ^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n                 ^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 500, in read\n    s = self._safe_read(self.length)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nhttp.client.IncompleteRead: IncompleteRead(432776 bytes read, 141438 more expected)\n",
+ "duration_s": 1308.4
 }
