@@ -1,18 +1,23 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-11T08:36:55.876135+00:00",
+ "scanned_at": "2026-10-12T03:20:15.246392+00:00",
  "tool": "tools/scan.py",
+ "query_set": 1,
  "queries": [
-  "topic:android fork:false",
-  "android language:Kotlin fork:false stars:>100",
-  "android language:Java fork:false stars:>100"
+  "topic:flutter fork:false",
+  "topic:react-native fork:false",
+  "android language:Dart fork:false stars:>50",
+  "android language:C# fork:false stars:>50"
  ],
- "candidates": 600,
- "checked": 397,
- "matches": 131,
- "truncated": true,
- "deadline_hit": true,
- "complete": false,
+ "candidates": 1200,
+ "checked": 1200,
+ "verified_today": 218,
+ "carried_over": 131,
+ "dropped_stale": 0,
+ "matches": 329,
+ "truncated": false,
+ "deadline_hit": false,
+ "complete": true,
  "error": null,
- "duration_s": 1320.0
+ "duration_s": 2625.8
 }
