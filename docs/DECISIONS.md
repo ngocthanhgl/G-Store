@@ -386,3 +386,19 @@ full-index claim.
   360-min job, `ENTRY_CAP=8000`. "Miss no APK release" taken literally is
   impossible (no enumerating endpoint — §3 stands); v3 is the closest
   honest design and says so in GITHUB_DISCOVERY.md.
+
+## 17. Release v0.5.0 (user asked "mày release apk mới chưa?")
+
+Bumped `versionCode 4→5`, `versionName 0.4.0→0.5.0`; local
+`:app:assembleRelease` green (unsigned splits 10.4 MB each); tagged
+`v0.5.0`, release workflow `success`, GitHub release published (not draft)
+with `app-arm64-v8a-release.apk` + `app-armeabi-v7a-release.apk` (~10.9 MB).
+Downloaded arm64 APK: `apksigner verify` exit 0, signer
+`CN=G Store Release` SHA-256 `9e1fc5cf…448939f` — same key as v0.4.0.
+Incidents while releasing: remote `main` rejected twice — first a bot
+catalog commit raced the push (merged), then a bogus TAG literally named
+`main` (pointing at c02a06b, origin unknown — likely an old typo) made
+every `main` ref ambiguous; deleted the tag locally AND remotely
+(`git push origin :refs/tags/main`), then merge+push clean. Lesson: treat
+`warning: refname is ambiguous` as a push-blocker and hunt the stray ref
+before retrying.
