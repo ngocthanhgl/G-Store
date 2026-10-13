@@ -465,3 +465,27 @@ before retrying.
   dropped — current Aurora source has no bar, code beats screenshots.
 - Verification for §19: 100/100 tests, lint clean, detector `[]` on all
   five touched UI files, `:app:assembleDebug` green.
+
+## 20. Screenshot-driven corrections (user sent device screenshots, v0.7.0)
+
+- **Release was on the right code.** The user's About screen read 0.7.0
+  and the binary verified versionCode 8 — "looks the same" because the
+  changes were structural (row internals) and avatars never loaded (next).
+- **Avatars never loaded: Coil 3 ships no network fetcher.** `coil-compose`
+  alone cannot fetch `https://` URLs; without `coil-network-okhttp` plus a
+  `SingletonImageLoader` wired to an OkHttp fetcher, every `AsyncImage`
+  silently fails and only fallbacks show. Fix: `coil-network-okhttp`
+  (same version pin) + `setSafe` in `GStoreApp.onCreate` reusing the
+  shared download client. This was the single most visible defect.
+- **Cuts per user order:** `:feature:favorites` module deleted (screen
+  merged into a Home Favorites section); `BROWSING` + `RECOMMENDED`
+  sections and the whole view-history pipeline (`viewHistory`,
+  `recordView`, HISTORY key) removed; `FAVORITES` section added
+  (favorited repos, stars first). Nav is now 4 tabs, so labels fit.
+- **Ledger deceit fixed:** the description squeezed beside popularity
+  always decayed into a dangling ellipsis — rows now show name / owner /
+  status-popularity only. `EmptyContent` gains an optional icon
+  (Downloads empty state uses it, centered). `weight(fill=false)` was
+  already replaced in §15-era fixes; confirmed no occurrences remain.
+- Verification for §20: 100/100 tests, lint clean, detector `[]` on five
+  files, assemble green (one online build to fetch the new Coil artifact).

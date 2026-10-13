@@ -12,8 +12,8 @@ android {
         applicationId = "dev.gstore.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 8
-        versionName = "0.7.0"
+        versionCode = 9
+        versionName = "0.8.0"
     }
 
     // Release signing comes from environment (CI secrets or a local
@@ -79,7 +79,6 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":feature:home"))
     implementation(project(":feature:search"))
-    implementation(project(":feature:favorites"))
     implementation(project(":feature:readme"))
     implementation(project(":feature:details"))
     implementation(project(":feature:downloads"))
@@ -98,5 +97,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.androidx.core)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation(libs.kotlinx.coroutines)
 }

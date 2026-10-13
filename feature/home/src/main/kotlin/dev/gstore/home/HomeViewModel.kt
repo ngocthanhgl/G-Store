@@ -34,7 +34,7 @@ data class HomeUiState(
     val sections: HomeSections = HomeSections(),
     val configs: List<SectionConfig> = emptyList(),
     val favoriteIds: Set<Long> = emptySet(),
-    val browsing: List<Repository> = emptyList(),
+    val favoriteRepos: List<Repository> = emptyList(),
     val catalog: List<RepoSignals> = emptyList(),
     val catalogFilter: CatalogFilter = CatalogFilter.TRENDING,
     val categoryFilter: AppCategory? = null,
@@ -63,13 +63,12 @@ class HomeViewModel(
     private val syncingCatalog = MutableStateFlow(false)
     private var catalogAutoTried = false
 
-    /** Continue Browsing: history order resolved against cached repos. */
-    private val browsing = combine(
-        prefs.viewHistory,
+    /** Favorites shelf: favorited repos, stars first, fully offline. */
+    private val favoriteRepos = combine(
+        catalog.observeFavoriteIds(),
         catalog.observeRepositories(),
-    ) { history, repos ->
-        val byName = repos.associateBy { it.fullName }
-        history.mapNotNull { byName[it] }
+    ) { favs, repos ->
+        repos.filter { it.id in favs }.sortedByDescending { it.stars }
     }
 
     /** Four section inputs combined separately — keeps each combine arity small. */
@@ -105,16 +104,16 @@ class HomeViewModel(
 
     val state: StateFlow<HomeUiState> = combine(
         sectionInputs,
-        browsing,
+        favoriteRepos,
         refreshState,
         discoverResults,
         discovering,
-    ) { inputs, history, refresh, discovered, isDiscovering ->
+    ) { inputs, favorites, refresh, discovered, isDiscovering ->
         HomeUiState(
             sections = computeSections(inputs.signals, inputs.favorites, inputs.weights),
             configs = inputs.configs,
             favoriteIds = inputs.favorites,
-            browsing = history,
+            favoriteRepos = favorites,
             catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights, refresh.category),
             catalogFilter = refresh.filter,
             categoryFilter = refresh.category,

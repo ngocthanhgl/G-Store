@@ -101,7 +101,7 @@ fun DetailsScreen(
         }
         return
     }
-    // Recommended fast path: the first eligible artifact of the selected
+    // Suggested fast path: the first eligible artifact of the selected
     // release gets a full-width bottom action; per-row buttons stay for
     // explicit ABI choice.
     val bestAsset = state.assetRows.firstOrNull { it.eligibility.eligible }?.asset

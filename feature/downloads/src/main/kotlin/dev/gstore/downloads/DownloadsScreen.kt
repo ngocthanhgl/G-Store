@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
@@ -37,7 +39,10 @@ fun DownloadsScreen(
     modifier: Modifier = Modifier,
 ) {
     if (state.active.isEmpty() && state.history.isEmpty()) {
-        EmptyContent("No downloads yet. Pick an APK on an app's details screen.")
+        EmptyContent(
+            message = "No downloads yet. Pick an APK on an app's details screen.",
+            icon = Icons.Filled.KeyboardArrowDown,
+        )
         return
     }
     LazyColumn(

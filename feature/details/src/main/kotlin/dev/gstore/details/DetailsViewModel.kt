@@ -7,7 +7,6 @@ import dev.gstore.data.CatalogRepository
 import dev.gstore.data.Eligibility
 import dev.gstore.data.artifactOf
 import dev.gstore.data.classifyAsset
-import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.model.ApkArtifact
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
@@ -61,7 +60,6 @@ class DetailsViewModel(
     private val repoId: Long,
     private val fullName: String,
     private val catalog: CatalogRepository,
-    private val prefs: PreferencesRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -104,7 +102,6 @@ class DetailsViewModel(
             _state.value = _state.value.copy(syncing = false)
         }
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
-        if (repo != null) prefs.recordView(repo.fullName)
     }
 
     fun selectRelease(releaseId: Long) {

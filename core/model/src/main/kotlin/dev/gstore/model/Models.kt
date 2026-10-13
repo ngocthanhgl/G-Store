@@ -93,11 +93,10 @@ enum class HomeSection {
     NEW,
     TOP_CHARTS,
     CATEGORIES,
+    FAVORITES,
     TRENDING,
     FAMOUS,
     UPDATED,
-    RECOMMENDED,
-    BROWSING,
 }
 
 data class SectionConfig(

@@ -62,7 +62,7 @@ data class HomeSections(
     val trending: List<RepoSignals> = emptyList(),
     val famous: List<RepoSignals> = emptyList(),
     val updated: List<RepoSignals> = emptyList(),
-    val recommended: List<RepoSignals> = emptyList(),
+    val favorites: List<RepoSignals> = emptyList(),
 )
 
 /**
@@ -153,8 +153,9 @@ fun computeSections(
         famous = famous.take(limit),
         updated = signals.filter { isRecentlyUpdated(it, now) }
             .sortedByDescending { parseInstant(it.latestReleaseAt) }.take(limit),
-        // Famous, not yet favorited — explicit, explainable recommendation basis.
-        recommended = famous.filter { it.repo.id !in favoriteIds }.take(10),
+        // Favorited repos, stars first — the bookmarks shelf.
+        favorites = signals.filter { it.repo.id in favoriteIds }
+            .sortedByDescending { it.repo.stars }.take(limit),
     )
 }
 
@@ -167,8 +168,7 @@ fun HomeSection.matches(signals: RepoSignals, now: Instant = Instant.now()): Boo
     HomeSection.TRENDING -> signals.releases30d > 0
     HomeSection.FAMOUS -> isFamous(signals, now)
     HomeSection.UPDATED -> isRecentlyUpdated(signals, now)
-    HomeSection.RECOMMENDED -> isFamous(signals, now)
-    HomeSection.BROWSING -> false // history-driven, never signal-derived
+    HomeSection.FAVORITES -> false // favorite-driven, never signal-derived
 }
 
 /** Home catalog ordering — the filter chips above "All apps". */

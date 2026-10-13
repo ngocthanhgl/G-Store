@@ -77,10 +77,9 @@ private fun ledgerOf(repo: Repository, apkBadge: ApkBadge): String {
         apkBadge == ApkBadge.NO_APK -> "No APK"
         else -> null
     }
+    // No description here: it never fits beside popularity and always
+    // degrades into a dangling ellipsis. Full text lives on Details.
     val popularity = "★ ${formatCount(repo.stars)} · ${formatCount(repo.forks)} forks"
-    // Description rides the tertiary line so the row stays three lines tall;
-    // the full text lives on the details screen.
-    val withDescription = repo.description?.let { "$popularity · $it" } ?: popularity
-    return if (status == null) withDescription else "$status · $withDescription"
+    return if (status == null) popularity else "$status · $popularity"
 }
 // formatCount lives in RailCard.kt — shared by both card styles.

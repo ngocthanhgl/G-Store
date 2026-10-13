@@ -75,22 +75,20 @@ private fun titleOf(section: HomeSection): String = when (section) {
     HomeSection.NEW -> "New apps"
     HomeSection.TOP_CHARTS -> "Top charts"
     HomeSection.CATEGORIES -> "Browse categories"
+    HomeSection.FAVORITES -> "Favorites"
     HomeSection.TRENDING -> "Trending"
     HomeSection.FAMOUS -> "Famous"
     HomeSection.UPDATED -> "Recently updated"
-    HomeSection.RECOMMENDED -> "Recommended"
-    HomeSection.BROWSING -> "Continue browsing"
 }
 
 private fun emptyOf(section: HomeSection): String = when (section) {
     HomeSection.NEW -> "No apps first released in the last 30 days yet."
     HomeSection.TOP_CHARTS -> "Star data will appear here once the catalog loads."
     HomeSection.CATEGORIES -> "No categorized apps yet — topics arrive with the catalog."
+    HomeSection.FAVORITES -> "Tap the heart on any repository. Favorites work fully offline."
     HomeSection.TRENDING -> "No recent release activity yet — sync a repository to begin."
     HomeSection.FAMOUS -> "No established projects yet (1,000+ stars, 3+ APK releases, 1+ year)."
     HomeSection.UPDATED -> "Nothing released in the last 30 days."
-    HomeSection.RECOMMENDED -> "Favorite the famous projects you like; the rest appear here."
-    HomeSection.BROWSING -> "Open a repository and it will wait for you here."
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,15 +159,15 @@ fun HomeScreen(
                 }
                 for (config in state.configs.filter { it.visible }) {                    item(key = config.section.name) {
                         when (config.section) {
-                            HomeSection.BROWSING -> BrowsingBlock(
-                                repos = state.browsing,
+                            HomeSection.FAVORITES -> FavoritesBlock(
+                                repos = state.favoriteRepos,
                                 favorites = state.favoriteIds,
                                 syncing = state.syncing,
                                 grid = grid,
                                 compact = compact,
                                 cardRadiusDp = cardRadiusDp,
                                 reduceMotion = reduceMotion,
-                                onRefresh = { vm.refreshSection(state.browsing) },
+                                onRefresh = { vm.refreshSection(state.favoriteRepos) },
                                 onHide = { vm.setSectionVisible(config.section, false) },
                                 onOpen = onOpenRepo,
                                 onToggleFavorite = vm::toggleFavorite,
@@ -258,11 +256,10 @@ private fun itemsOf(section: HomeSection, state: HomeUiState): List<RepoSignals>
         HomeSection.NEW -> state.sections.new
         HomeSection.TOP_CHARTS -> state.sections.topCharts
         HomeSection.CATEGORIES -> emptyList() // rendered by CategoriesBlock
+        HomeSection.FAVORITES -> emptyList() // rendered by FavoritesBlock
         HomeSection.TRENDING -> state.sections.trending
         HomeSection.FAMOUS -> state.sections.famous
         HomeSection.UPDATED -> state.sections.updated
-        HomeSection.RECOMMENDED -> state.sections.recommended
-        HomeSection.BROWSING -> emptyList() // rendered by BrowsingBlock
     }
 
 private fun apkBadgeOf(signals: RepoSignals): ApkBadge =
@@ -403,7 +400,7 @@ private fun SectionBlock(
 }
 
 @Composable
-private fun BrowsingBlock(
+private fun FavoritesBlock(
     repos: List<Repository>,
     favorites: Set<Long>,
     syncing: Boolean,
@@ -432,20 +429,20 @@ private fun BrowsingBlock(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AuroraSectionHeader(
-            title = "Continue browsing",
+            title = "Favorites",
             trailing = {
                 HeaderActions(
                     syncing = syncing,
                     onRefresh = onRefresh,
-                    refreshDescription = "Refresh Continue browsing",
+                    refreshDescription = "Refresh Favorites",
                     onHide = onHide,
-                    hideDescription = "Hide Continue browsing",
+                    hideDescription = "Hide Favorites",
                 )
             },
         )
         if (repos.isEmpty()) {
             Text(
-                emptyOf(HomeSection.BROWSING),
+                emptyOf(HomeSection.FAVORITES),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -453,7 +450,7 @@ private fun BrowsingBlock(
             RepoRows(
                 grid = grid,
                 count = shown.size,
-                keyOf = { "browse-${shown[it].id}" },
+                keyOf = { "fav-${shown[it].id}" },
                 card = { index ->
                     val repo = shown[index]
                     AdaptiveCard(

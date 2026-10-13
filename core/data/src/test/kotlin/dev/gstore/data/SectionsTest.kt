@@ -84,14 +84,15 @@ class SectionsTest {
         assertTrue(sections.trending.isEmpty())
     }
 
-    @Test fun `recommended is famous minus favorites`() {
-        val famous = RepoSignals(repo(7, stars = 9_000), eligibleReleaseCount = 5)
-        val sections = computeSections(listOf(famous), favoriteIds = emptySet(), now = now)
-        assertEquals(listOf(7L), sections.recommended.map { it.repo.id })
+    @Test fun `favorites shelf holds favorited repos stars-first`() {
+        val a = RepoSignals(repo(7, stars = 9_000))
+        val b = RepoSignals(repo(8, stars = 1_000))
+        val sections = computeSections(listOf(a, b), favoriteIds = setOf(8, 7), now = now)
+        assertEquals(listOf(7L, 8L), sections.favorites.map { it.repo.id })
         assertEquals(
             0,
-            computeSections(listOf(famous), favoriteIds = setOf(7), now = now)
-                .recommended.size,
+            computeSections(listOf(a, b), favoriteIds = emptySet(), now = now)
+                .favorites.size,
         )
     }
 

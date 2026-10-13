@@ -26,9 +26,8 @@ No embedded credentials.
 | Browse categories | One horizontal rail per category present in the catalog (top 8 by stars each); categories come from `categoryOf` over GitHub topics (see §4), uncategorized repos appear only in All apps | hide/show |
 | Trending | Score = `w1*ln(1+stars) + w2*ln(1+forks) + w3*releases_30d + w4*ln(1+downloads_30d)` over repos with `releases_30d > 0`; weights in DataStore, defaults `w1=4, w2=2, w3=10, w4=1`. Revision note (M4): delta signals (`stars_7d`) need a signal-history table we do not keep yet; log-dampened totals approximate standing while windowed terms carry velocity. Delta upgrade is a tracked future, not a silent swap. | hide/show, weights (advanced) |
 | Famous | `stars >= 1000 AND eligible_release_count >= 3 AND age_days >= 365`, sorted by stars desc | hide/show |
-| Recommended (optional) | Famous repos not yet favorited, stars desc — explicit, explainable basis | hide/show |
+| Favorites | Favorited repos, stars desc — the bookmarks shelf (replaces the old Recommended formula and the standalone Favorites screen) | hide/show |
 | Recently Updated | Repos ordered by latest release `published_at` desc (any kind, prereleases flagged) | hide/show |
-| Continue Browsing (optional) | Local view-history, most recent first; purely on-device | hide/show, clear |
 
 Section order is user-reorderable and persisted. Never label Trending without this
 formula; never present release download counts as install counts.

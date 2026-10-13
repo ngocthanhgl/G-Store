@@ -47,7 +47,6 @@ class PreferencesRepository(private val context: Context) {
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
         val SECTION_ORDER = stringPreferencesKey("section_order")
         val SECTION_HIDDEN = stringSetPreferencesKey("section_hidden")
-        val HISTORY = stringSetPreferencesKey("view_history")
         val W_STARS = floatPreferencesKey("w_stars")
         val W_FORKS = floatPreferencesKey("w_forks")
         val W_RELEASES = floatPreferencesKey("w_releases")
@@ -71,13 +70,11 @@ class PreferencesRepository(private val context: Context) {
             HomeSection.NEW,
             HomeSection.TOP_CHARTS,
             HomeSection.CATEGORIES,
+            HomeSection.FAVORITES,
             HomeSection.TRENDING,
             HomeSection.FAMOUS,
             HomeSection.UPDATED,
-            HomeSection.RECOMMENDED,
-            HomeSection.BROWSING,
         )
-        const val HISTORY_MAX = 20
 
         /**
          * Union of a stored order with the current default: sections added by
@@ -166,33 +163,6 @@ class PreferencesRepository(private val context: Context) {
             order.remove(section)
             order.add(toRank.coerceIn(0, order.size), section)
             p[Keys.SECTION_ORDER] = order.joinToString(",") { it.name }
-        }
-    }
-
-    /** Recently viewed repos, newest first, bounded (Continue Browsing input). */
-    val viewHistory: Flow<List<String>> = resilientData().map { p ->
-        (p[Keys.HISTORY] ?: emptySet())
-            .mapNotNull { entry ->
-                val sep = entry.lastIndexOf('|')
-                if (sep < 0) null else entry.substring(sep + 1).toLongOrNull()?.let { ts ->
-                    entry.substring(0, sep) to ts
-                }
-            }
-            .sortedByDescending { it.second }
-            .map { it.first }
-    }
-
-    suspend fun recordView(fullName: String, nowMillis: Long = System.currentTimeMillis()) {
-        context.store.edit { p ->
-            val kept = (p[Keys.HISTORY] ?: emptySet())
-                .filter { !it.startsWith("$fullName|") }
-                .toMutableSet()
-            kept.add("$fullName|$nowMillis")
-            val trimmed = kept.mapNotNull { entry ->
-                val sep = entry.lastIndexOf('|')
-                if (sep < 0) null else entry.substring(sep + 1).toLongOrNull()?.let { entry to it }
-            }.sortedByDescending { it.second }.take(HISTORY_MAX).map { it.first }.toSet()
-            p[Keys.HISTORY] = trimmed
         }
     }
 

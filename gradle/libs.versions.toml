@@ -49,6 +49,7 @@ commonmark-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", v
 commonmark-task-list = { module = "org.commonmark:commonmark-ext-task-list-items", version.ref = "commonmark" }
 commonmark-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil3" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
 

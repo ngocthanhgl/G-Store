@@ -8,6 +8,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.work.ListenableWorker
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import dev.gstore.database.GStoreDatabase
 import dev.gstore.database.MIGRATION_2_3
 import dev.gstore.datastore.PreferencesRepository
@@ -42,6 +45,15 @@ class GStoreApp : Application(), Configuration.Provider {
         super.onCreate()
         container = AppContainer(this)
         WorkManager.initialize(this, workManagerConfiguration)
+        // Coil 3 ships no network fetcher in coil-compose: without this,
+        // every AsyncImage silently fails and only fallbacks ever show.
+        SingletonImageLoader.setSafe { ctx ->
+            ImageLoader.Builder(ctx)
+                .components {
+                    add(OkHttpNetworkFetcherFactory(callFactory = { container.downloadHttp }))
+                }
+                .build()
+        }
         // Re-queue downloads interrupted by process death (flow C).
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             container.downloader.reconcile()

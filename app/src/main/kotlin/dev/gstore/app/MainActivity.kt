@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -77,8 +75,6 @@ import dev.gstore.database.DownloadRecord
 import dev.gstore.designsystem.GStoreTheme
 import dev.gstore.downloads.DownloadsScreen
 import dev.gstore.downloads.DownloadsViewModel
-import dev.gstore.favorites.FavoritesScreen
-import dev.gstore.favorites.FavoritesViewModel
 import dev.gstore.details.DetailsScreen
 import dev.gstore.details.DetailsViewModel
 import dev.gstore.home.HomeScreen
@@ -101,7 +97,6 @@ import kotlinx.serialization.Serializable
 @Serializable data object Home
 @Serializable data object Search
 @Serializable data object Downloads
-@Serializable data object Favorites
 @Serializable data object Settings
 @Serializable data object ThemeEditor
 @Serializable data class Details(val repoId: Long, val fullName: String = "")
@@ -117,7 +112,6 @@ private val DESTINATIONS = listOf(
     TopDestination(Home, "Home", Icons.Filled.Home),
     TopDestination(Search, "Search", Icons.Filled.Search),
     TopDestination(Downloads, "Downloads", Icons.Filled.KeyboardArrowDown),
-    TopDestination(Favorites, "Favorites", Icons.Filled.Favorite),
     TopDestination(Settings, "Settings", Icons.Filled.Settings),
 )
 
@@ -404,18 +398,6 @@ private fun Content(
                 )
             }
         }
-        composable<Favorites> {
-            val vm: FavoritesViewModel = viewModel(
-                factory = vmFactory { FavoritesViewModel(container.catalog) },
-            )
-            FavoritesScreen(
-                vm = vm,
-                onOpenRepo = onOpenRepo,
-                grid = grid,
-                compact = compact,
-                cardRadiusDp = appearance.cardRadiusDp,
-            )
-        }
         composable<Settings> {
             val vm: SettingsViewModel = viewModel(
                 factory = vmFactory { SettingsViewModel(container.preferences) },
@@ -442,7 +424,7 @@ private fun Content(
             val vm: DetailsViewModel = viewModel(
                 key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, route.fullName, container.catalog, container.preferences)
+                    DetailsViewModel(route.repoId, route.fullName, container.catalog)
                 },
             )
             val state by vm.state.collectAsState()
