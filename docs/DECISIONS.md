@@ -402,3 +402,40 @@ every `main` ref ambiguous; deleted the tag locally AND remotely
 (`git push origin :refs/tags/main`), then merge+push clean. Lesson: treat
 `warning: refname is ambiguous` as a push-blocker and hunt the stray ref
 before retrying.
+
+## 18. Aurora direction + bot failure diagnosis (user: UI xau, bot failed)
+
+- **Bot red runs diagnosed, not guessed.** `meta.json`'s error field gave
+  the exact traceback: `http.client.IncompleteRead` on a ~574 KB search
+  page — `json.load(resp)` streaming from the socket has no retry path
+  (only `HTTPError` was caught). Fix: read the body fully first, retry
+  `IncompleteRead`/`RemoteDisconnected`/`ConnectionError`/`TimeoutError`/
+  `socket.timeout` with 5xx-style backoff. The second red cause:
+  overlapping schedule+push runs racing `git push` (loser goes red) — fix:
+  `concurrency: { group: catalog-scan, cancel-in-progress: false }`.
+  The check-phase guard proved its worth: the failed run still committed
+  329 carried entries WITH the traceback in meta.
+- **Aurora study without touching GPL code.** AuroraStore is GPL-3.0, so
+  no source was read for reuse — only its 4 published F-Droid screenshots
+  (viewed as images): bare rows (48dp icon + name + package + version +
+  trailing check), bare rail tiles (big icon + 2-line name + size),
+  accent-bar headers with chevrons, details hero (big icon + green dev
+  name + divider stats + full-width bottom action), version in About.
+  All G Store UI below is original Compose implementing that language.
+- **What changed**: `AppIcon` squircle (~28%); `RepoCard` rewritten as a
+  bare row (name + accent owner + one text ledger, badges become ledger
+  words); `RailCard` debased to a bare 112dp tile; `SectionHeader` gains
+  the 4dp primary bar and a navigating chevron (charts open the
+  star-sorted catalog, shelf chevrons filter it); `DetailsScreen` hero
+  (72dp icon, name, accent owner, gray coordinates, divider stats,
+  license line) plus a 56dp bottom Download for the recommended artifact;
+  DESIGN.md amended (accent-bar ban lifted for headers only).
+- **Tooling lesson (load-bearing).** Middle-dot `·` (U+00B7) in file bytes
+  renders as `A`/`?` in PowerShell AND the read tool, while the bytes stay
+  valid UTF-8 — the file was never corrupt, only my view of it. Three
+  failed `edit` calls came from pasting display-mangled text into
+  oldString. Rules: never put non-ASCII in oldString (match ASCII spans
+  or splice by line number with explicit no-BOM UTF-8); verify string
+  bytes with `[int]` codepoint scans, not eyeballing; one import-block
+  rewrite silently ate `animateContentSize` — grep imports after every
+  import edit, because success is reported on fuzzy spans.

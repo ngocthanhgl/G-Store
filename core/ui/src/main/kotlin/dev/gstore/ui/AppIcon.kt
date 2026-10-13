@@ -3,6 +3,7 @@ package dev.gstore.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,7 +19,8 @@ import coil3.compose.AsyncImage
  * Repository / developer icon: the owner's GitHub avatar when a URL is known,
  * monogram tile underneath as loading/error/empty fallback. The image simply
  * covers the monogram when it loads — no state juggling, no blank tiles.
- * Decorative (the name is always adjacent text), so no content description.
+ * Squircle corners (~28% radius) in the store-shelf idiom; decorative (the
+ * name is always adjacent text), so no content description.
  */
 @Composable
 fun AppIcon(
@@ -30,7 +32,7 @@ fun AppIcon(
 ) {
     Surface(
         modifier = modifier.size(size),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(size * 0.28f),
         color = MaterialTheme.colorScheme.tertiaryContainer,
     ) {
         Box(contentAlignment = Alignment.Center) {

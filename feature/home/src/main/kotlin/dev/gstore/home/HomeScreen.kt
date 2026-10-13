@@ -1,12 +1,16 @@
 package dev.gstore.home
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
@@ -21,6 +25,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -51,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
@@ -181,6 +187,10 @@ fun HomeScreen(
                                     )
                                 },
                                 onHide = { vm.setSectionVisible(config.section, false) },
+                                onShowAll = {
+                                    vm.setCatalogFilter(CatalogFilter.STARS)
+                                    vm.setCategoryFilter(null)
+                                },
                                 onOpen = onOpenRepo,
                                 onToggleFavorite = vm::toggleFavorite,
                             )
@@ -191,6 +201,11 @@ fun HomeScreen(
                                 compact = compact,
                                 onOpen = onOpenRepo,
                                 onHide = { vm.setSectionVisible(config.section, false) },
+                                onRefresh = {
+                                    vm.refreshSection(state.catalog.map { it.repo })
+                                },
+                                syncing = state.syncing,
+                                onPickCategory = vm::setCategoryFilter,
                             )
                             else -> SectionBlock(
                                 config = config,
@@ -289,46 +304,48 @@ private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
 }
 
 /**
- * Shared section header — DESIGN.md "Tonal Shelf": one titleLarge heading
- * with a tonal count pill, never an eyebrow above it.
+ * Shared section header — store-shelf idiom: a 4dp accent bar, the title,
+ * then actions. The chevron jumps to the full list (never decorative):
+ * charts open the star-sorted catalog, a shelf filters it to that category.
  */
 @Composable
 private fun SectionHeader(
     title: String,
-    countText: String?,
     subline: String? = null,
     syncing: Boolean,
-    onRefresh: () -> Unit,
+    onRefresh: (() -> Unit)?,
     refreshDescription: String,
+    onMore: (() -> Unit)?,
+    moreDescription: String,
     onHide: (() -> Unit)?,
     hideDescription: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 24.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Spacer(Modifier.size(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            if (countText != null) {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.padding(start = 8.dp),
-                ) {
-                    Text(
-                        text = countText,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
-            }
-            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             if (syncing) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
+            } else if (onRefresh != null) {
                 IconButton(onClick = onRefresh) {
                     Icon(Icons.Filled.Refresh, contentDescription = refreshDescription)
+                }
+            }
+            if (onMore != null) {
+                IconButton(onClick = onMore) {
+                    Icon(Icons.Filled.KeyboardArrowRight, contentDescription = moreDescription)
                 }
             }
             if (onHide != null) {
@@ -342,6 +359,8 @@ private fun SectionHeader(
                 text = subline,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
     }
@@ -382,10 +401,12 @@ private fun SectionBlock(
     ) {
         SectionHeader(
             title = titleOf(section),
-            countText = "${items.size}",
+            subline = "${items.size} apps",
             syncing = syncing,
             onRefresh = onRefresh,
             refreshDescription = "Refresh ${titleOf(section)}",
+            onMore = null,
+            moreDescription = "",
             onHide = onHide,
             hideDescription = "Hide ${titleOf(section)}",
         )
@@ -454,10 +475,11 @@ private fun BrowsingBlock(
     ) {
         SectionHeader(
             title = "Continue browsing",
-            countText = null,
             syncing = syncing,
             onRefresh = onRefresh,
             refreshDescription = "Refresh Continue browsing",
+            onMore = null,
+            moreDescription = "",
             onHide = onHide,
             hideDescription = "Hide Continue browsing",
         )
@@ -574,11 +596,12 @@ private fun CatalogBlock(
     ) {
         SectionHeader(
             title = "All apps",
-            countText = "${items.size}",
-            subline = "Daily catalog · ${filterLabel(filter).lowercase()} first",
+            subline = "${items.size} in the daily catalog · ${filterLabel(filter).lowercase()} first",
             syncing = syncing,
             onRefresh = onRefresh,
             refreshDescription = "Refresh app catalog",
+            onMore = null,
+            moreDescription = "",
             onHide = null,
             hideDescription = "",
         )
@@ -703,6 +726,7 @@ private fun TopChartsBlock(
     syncing: Boolean,
     onRefresh: () -> Unit,
     onHide: () -> Unit,
+    onShowAll: () -> Unit,
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
@@ -712,11 +736,12 @@ private fun TopChartsBlock(
     ) {
         SectionHeader(
             title = "Top charts",
-            countText = "${items.size}",
             subline = "Most-starred apps",
             syncing = syncing,
             onRefresh = onRefresh,
             refreshDescription = "Refresh Top charts",
+            onMore = onShowAll,
+            moreDescription = "Show all top apps",
             onHide = onHide,
             hideDescription = "Hide Top charts",
         )
@@ -789,6 +814,9 @@ private fun CategoriesBlock(
     compact: Boolean,
     onOpen: (Repository) -> Unit,
     onHide: () -> Unit,
+    onRefresh: () -> Unit,
+    syncing: Boolean,
+    onPickCategory: (AppCategory) -> Unit,
 ) {
     val shelves = dev.gstore.data.categoriesPresent(signals)
     Column(
@@ -797,10 +825,12 @@ private fun CategoriesBlock(
     ) {
         SectionHeader(
             title = "Browse categories",
-            countText = "${shelves.size}",
-            syncing = false,
-            onRefresh = { },
+            subline = "${shelves.size} shelves",
+            syncing = syncing,
+            onRefresh = onRefresh,
             refreshDescription = "Refresh Browse categories",
+            onMore = null,
+            moreDescription = "",
             onHide = onHide,
             hideDescription = "Hide Browse categories",
         )
@@ -813,12 +843,21 @@ private fun CategoriesBlock(
         } else {
             shelves.forEach { (category, count) ->
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "${dev.gstore.data.categoryLabel(category)} ($count)",
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "${dev.gstore.data.categoryLabel(category)} ($count)",
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        IconButton(onClick = { onPickCategory(category) }) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowRight,
+                                contentDescription = "Show all ${dev.gstore.data.categoryLabel(category)}",
+                            )
+                        }
+                    }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val top = signals
                             .filter { dev.gstore.data.categoryOf(it.repo.topics) == category }

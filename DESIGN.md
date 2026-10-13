@@ -46,5 +46,18 @@ numbers set like a ledger. The catalog is the hero; chrome recedes.
 ## What this world refuses
 
 Gradient text, glassmorphism, kickers/eyebrows, section numbers, nested
-cards, colored border-left accents, hard offset shadows, sparklines-as-content,
+cards, hard offset shadows, sparklines-as-content,
 hero metrics, modals for non-blocking choices.
+
+## Aurora shelf direction (user-ordered evolution)
+
+Inspired by Aurora Store's layout language from its published screenshots
+(design cues only — Aurora is GPL-3.0, no code taken). This AMENDS the
+world: the old ban on colored left accents is lifted for one element, the
+4dp primary section bar with a chevron that always navigates somewhere.
+- **Bare rows, not cards**, in every list: squircle icon (~28% radius),
+  name, owner in the theme accent, one ledger line, one 48dp action.
+- **Bare rail tiles**: big icon, two-line name, one-line stars. No wrappers.
+- **Details hero**: 72dp icon, app name, accent owner, gray coordinates,
+  divider-separated stats, full-width bottom action for the recommended
+  artifact (per-row buttons stay for explicit ABI choice).

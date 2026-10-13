@@ -1,6 +1,7 @@
 package dev.gstore.details
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -100,7 +101,16 @@ fun DetailsScreen(
         }
         return
     }
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+    // Recommended fast path: the first eligible artifact of the selected
+    // release gets a full-width bottom action; per-row buttons stay for
+    // explicit ABI choice.
+    val bestAsset = state.assetRows.firstOrNull { it.eligibility.eligible }?.asset
+    val selectedTag = selectedRelease(state)?.tag
+    Column(modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp),
+    ) {
         item { TopBar(onBack, state.isFavorite, onToggleFavorite, state.syncing, onRefresh) }
         item { Spacer(Modifier.height(8.dp)) }
         item { Header(repo) }
@@ -130,6 +140,22 @@ fun DetailsScreen(
         items(state.releases, key = { it.id }) { release ->
             HistoryRow(release, selected = release.id == state.selectedReleaseId, onSelectRelease)
         }
+    }
+    if (bestAsset != null && selectedTag != null) {
+        Button(
+            onClick = { onDownload(bestAsset) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .heightIn(min = 56.dp),
+        ) {
+            Text(
+                "Download $selectedTag",
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+    }
     }
 }
 
@@ -162,17 +188,33 @@ private fun TopBar(
 
 @Composable
 private fun Header(repo: Repository) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Store hero: big squircle icon, app name, owner in the theme accent,
+    // full coordinates in gray — the Play-shelf reading order.
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         dev.gstore.ui.AppIcon(
             avatarUrl = repo.avatarUrl,
             owner = repo.owner,
-            size = 56.dp,
+            size = 72.dp,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+            Text(
+                repo.fullName.substringAfter('/'),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                repo.owner,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
             Text(
                 repo.fullName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
@@ -185,55 +227,81 @@ private fun Header(repo: Repository) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        formatCount(repo.stars),
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                    )
-                }
+            // Divider-separated stats in the store idiom: popularity and
+            // freshness at a glance, each cell truncating, never wrapping.
+            StatsRow(
+                stars = formatCount(repo.stars),
+                forks = "${formatCount(repo.forks)} forks",
+                updated = repo.updatedAt?.take(10),
+                archived = repo.archived,
+            )
+            repo.license?.let {
                 Text(
-                    "· ${formatCount(repo.forks)} forks",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (repo.archived) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.errorContainer,
-                    ) {
-                        Text(
-                            "Archived",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            }
-            val meta = buildList {
-                repo.license?.let { add("License $it") }
-                repo.updatedAt?.let { add("Updated ${it.take(10)}") }
-            }
-            if (meta.isNotEmpty()) {
-                Text(
-                    meta.joinToString(" · "),
+                    "License $it",
                     style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }
     }
+}
+
+/** Store stats row: cells divided by accent bars, replacing the old ledger. */
+@Composable
+private fun StatsRow(stars: String, forks: String, updated: String?, archived: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 4.dp),
+    ) {
+        StatCell(
+            text = "★ $stars",
+            modifier = Modifier.weight(1f),
+        )
+        StatDivider()
+        StatCell(
+            text = forks,
+            modifier = Modifier.weight(1f),
+        )
+        StatDivider()
+        StatCell(
+            text = when {
+                archived -> "Archived"
+                updated != null -> "Updated $updated"
+                else -> "Undated"
+            },
+            modifier = Modifier.weight(1f),
+            alert = archived,
+        )
+    }
+}
+
+@Composable
+private fun StatCell(
+    text: String,
+    modifier: Modifier = Modifier,
+    alert: Boolean = false,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (alert) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun StatDivider() {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .size(width = 1.dp, height = 16.dp)
+            .background(MaterialTheme.colorScheme.primary),
+    )
 }
 
 private fun formatCount(n: Int): String = when {

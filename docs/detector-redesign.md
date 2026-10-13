@@ -44,3 +44,10 @@ a second icon name. Lint `NewApi` caught `layoutInDisplayCutoutMode`
 substituted `Icons.Filled.Add` for the empty-state icon. Known-good icon set
 for this repo is now: Add, Check, Close, KeyboardArrowUp/Down, Refresh,
 Settings, Favorite/FavoriteBorder, Star, Share, ArrowBack.
+
+## Aurora direction (bare rows, rails, hero, bottom action)
+
+`detect --json` on RepoCard, RailCard, AppIcon, HomeScreen, DetailsScreen:
+`[]` clean. New known-good icon: KeyboardArrowRight (chevrons) — verified
+by successful compile. DESIGN.md amended (accent-bar ban lifted for section
+headers; chevrons must navigate, never decorate).
