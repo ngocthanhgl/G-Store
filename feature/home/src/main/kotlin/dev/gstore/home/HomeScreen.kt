@@ -1,12 +1,9 @@
 package dev.gstore.home
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +22,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -68,6 +64,7 @@ import dev.gstore.model.SectionConfig
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
+import dev.gstore.ui.AuroraSectionHeader
 import dev.gstore.ui.RailCard
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
@@ -180,13 +177,6 @@ fun HomeScreen(
                             HomeSection.TOP_CHARTS -> TopChartsBlock(
                                 items = state.sections.topCharts,
                                 favorites = state.favoriteIds,
-                                syncing = state.syncing,
-                                onRefresh = {
-                                    vm.refreshSection(
-                                        state.sections.topCharts.map { it.repo },
-                                    )
-                                },
-                                onHide = { vm.setSectionVisible(config.section, false) },
                                 onShowAll = {
                                     vm.setCatalogFilter(CatalogFilter.STARS)
                                     vm.setCategoryFilter(null)
@@ -304,64 +294,30 @@ private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
 }
 
 /**
- * Shared section header — store-shelf idiom: a 4dp accent bar, the title,
- * then actions. The chevron jumps to the full list (never decorative):
- * charts open the star-sorted catalog, a shelf filters it to that category.
+ * Small header actions shared by section headers: an optional refresh
+ * button (spinner while syncing) plus an optional hide button, rendered in
+ * AuroraSectionHeader's trailing slot.
  */
 @Composable
-private fun SectionHeader(
-    title: String,
-    subline: String? = null,
+private fun HeaderActions(
     syncing: Boolean,
     onRefresh: (() -> Unit)?,
     refreshDescription: String,
-    onMore: (() -> Unit)?,
-    moreDescription: String,
     onHide: (() -> Unit)?,
     hideDescription: String,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(width = 4.dp, height = 24.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-            Spacer(Modifier.size(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            if (syncing) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else if (onRefresh != null) {
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Filled.Refresh, contentDescription = refreshDescription)
-                }
-            }
-            if (onMore != null) {
-                IconButton(onClick = onMore) {
-                    Icon(Icons.Filled.KeyboardArrowRight, contentDescription = moreDescription)
-                }
-            }
-            if (onHide != null) {
-                IconButton(onClick = onHide) {
-                    Icon(Icons.Filled.Close, contentDescription = hideDescription)
-                }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (syncing) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else if (onRefresh != null) {
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Filled.Refresh, contentDescription = refreshDescription)
             }
         }
-        if (subline != null) {
-            Text(
-                text = subline,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
+        if (onHide != null) {
+            IconButton(onClick = onHide) {
+                Icon(Icons.Filled.Close, contentDescription = hideDescription)
+            }
         }
     }
 }
@@ -399,16 +355,18 @@ private fun SectionBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(
+        AuroraSectionHeader(
             title = titleOf(section),
-            subline = "${items.size} apps",
-            syncing = syncing,
-            onRefresh = onRefresh,
-            refreshDescription = "Refresh ${titleOf(section)}",
-            onMore = null,
-            moreDescription = "",
-            onHide = onHide,
-            hideDescription = "Hide ${titleOf(section)}",
+            subtitle = "${items.size} apps",
+            trailing = {
+                HeaderActions(
+                    syncing = syncing,
+                    onRefresh = onRefresh,
+                    refreshDescription = "Refresh ${titleOf(section)}",
+                    onHide = onHide,
+                    hideDescription = "Hide ${titleOf(section)}",
+                )
+            },
         )
         if (items.isEmpty()) {
             Text(
@@ -473,15 +431,17 @@ private fun BrowsingBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(
+        AuroraSectionHeader(
             title = "Continue browsing",
-            syncing = syncing,
-            onRefresh = onRefresh,
-            refreshDescription = "Refresh Continue browsing",
-            onMore = null,
-            moreDescription = "",
-            onHide = onHide,
-            hideDescription = "Hide Continue browsing",
+            trailing = {
+                HeaderActions(
+                    syncing = syncing,
+                    onRefresh = onRefresh,
+                    refreshDescription = "Refresh Continue browsing",
+                    onHide = onHide,
+                    hideDescription = "Hide Continue browsing",
+                )
+            },
         )
         if (repos.isEmpty()) {
             Text(
@@ -594,16 +554,18 @@ private fun CatalogBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(
+        AuroraSectionHeader(
             title = "All apps",
-            subline = "${items.size} in the daily catalog · ${filterLabel(filter).lowercase()} first",
-            syncing = syncing,
-            onRefresh = onRefresh,
-            refreshDescription = "Refresh app catalog",
-            onMore = null,
-            moreDescription = "",
-            onHide = null,
-            hideDescription = "",
+            subtitle = "${items.size} in the daily catalog · ${filterLabel(filter).lowercase()} first",
+            trailing = {
+                HeaderActions(
+                    syncing = syncing,
+                    onRefresh = onRefresh,
+                    refreshDescription = "Refresh app catalog",
+                    onHide = null,
+                    hideDescription = "",
+                )
+            },
         )
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -723,9 +685,6 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
 private fun TopChartsBlock(
     items: List<RepoSignals>,
     favorites: Set<Long>,
-    syncing: Boolean,
-    onRefresh: () -> Unit,
-    onHide: () -> Unit,
     onShowAll: () -> Unit,
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
@@ -734,16 +693,10 @@ private fun TopChartsBlock(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(
+        AuroraSectionHeader(
             title = "Top charts",
-            subline = "Most-starred apps",
-            syncing = syncing,
-            onRefresh = onRefresh,
-            refreshDescription = "Refresh Top charts",
-            onMore = onShowAll,
-            moreDescription = "Show all top apps",
-            onHide = onHide,
-            hideDescription = "Hide Top charts",
+            subtitle = "Most-starred apps",
+            onClick = onShowAll,
         )
         if (items.isEmpty()) {
             Text(
@@ -823,16 +776,18 @@ private fun CategoriesBlock(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SectionHeader(
+        AuroraSectionHeader(
             title = "Browse categories",
-            subline = "${shelves.size} shelves",
-            syncing = syncing,
-            onRefresh = onRefresh,
-            refreshDescription = "Refresh Browse categories",
-            onMore = null,
-            moreDescription = "",
-            onHide = onHide,
-            hideDescription = "Hide Browse categories",
+            subtitle = "${shelves.size} shelves",
+            trailing = {
+                HeaderActions(
+                    syncing = syncing,
+                    onRefresh = onRefresh,
+                    refreshDescription = "Refresh Browse categories",
+                    onHide = onHide,
+                    hideDescription = "Hide Browse categories",
+                )
+            },
         )
         if (shelves.isEmpty()) {
             Text(
@@ -843,21 +798,10 @@ private fun CategoriesBlock(
         } else {
             shelves.forEach { (category, count) ->
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "${dev.gstore.data.categoryLabel(category)} ($count)",
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        IconButton(onClick = { onPickCategory(category) }) {
-                            Icon(
-                                Icons.Filled.KeyboardArrowRight,
-                                contentDescription = "Show all ${dev.gstore.data.categoryLabel(category)}",
-                            )
-                        }
-                    }
+                    AuroraSectionHeader(
+                        title = "${dev.gstore.data.categoryLabel(category)} ($count)",
+                        onClick = { onPickCategory(category) },
+                    )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val top = signals
                             .filter { dev.gstore.data.categoryOf(it.repo.topics) == category }

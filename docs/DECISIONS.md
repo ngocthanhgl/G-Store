@@ -439,3 +439,29 @@ before retrying.
   bytes with `[int]` codepoint scans, not eyeballing; one import-block
   rewrite silently ate `animateContentSize` — grep imports after every
   import edit, because success is reported on fuzzy spans.
+
+## 19. Aurora port under GPL-3.0-or-later (user chose "Port code + GPL-3.0")
+
+- **Process correction first.** The user rightly called out that the GPL
+  call was made without asking. Asked explicitly; they chose porting under
+  GPL. `LICENSE` (= Aurora's `LICENSES/GPL-3.0-or-later.txt`, SHA-256
+  hash-matched on copy) is now the repo license; every ported/adapted file
+  carries `SPDX-License-Identifier: GPL-3.0-or-later` with Aurora OSS
+  attribution plus a plain-English adaptation note (what changed and why).
+- **What was ported (faithful, Compose-to-Compose):** `AuroraListItem`
+  (slot contract, 16dp/4dp rhythm, dimen values from Aurora's
+  `dimens.xml`); `AuroraSectionHeader` (titleMedium + subtitle + clickable
+  row + primary chevron); `AppListItem` rail tile (80dp, 1:1 artwork,
+  two-line label — `AppIcon` stands in for raw Coil since catalog entries
+  may lack URLs, `minLines=2` added so rail icons stay aligned);
+  `TopAppBar` pattern noted but not ported (our screens keep inline
+  titles — deliberate scope cut, recorded here). `RepoCard` is now a thin
+  mapping onto `AuroraListItem` (headline/bodyMedium + owner + ledger).
+  Aurora violet `#6C63FF` added as a first-class accent choice.
+- **Deliberate deviations (all documented):** texts truncate (Aurora wraps;
+  GitHub names/digests must never widen rows); section headers keep our
+  refresh/hide trailing actions (Aurora headers navigate only); no
+  `@Preview`s (no preview tooling dep); the screenshot-era accent bar was
+  dropped — current Aurora source has no bar, code beats screenshots.
+- Verification for §19: 100/100 tests, lint clean, detector `[]` on all
+  five touched UI files, `:app:assembleDebug` green.

@@ -17,6 +17,8 @@ data class AccentOption(val name: String, val argb: Int?)
 
 val ACCENT_OPTIONS = listOf(
     AccentOption("Automatic", null),
+    // Aurora violet: Aurora Store's brand accent (GPL-3.0-or-later, see LICENSE).
+    AccentOption("Aurora", 0xFF6C63FF.toInt()),
     AccentOption("Baseline", 0xFF6750A4.toInt()),
     AccentOption("Ocean", 0xFF0061A4.toInt()),
     AccentOption("Forest", 0xFF1B6B4A.toInt()),

@@ -49,15 +49,10 @@ Gradient text, glassmorphism, kickers/eyebrows, section numbers, nested
 cards, hard offset shadows, sparklines-as-content,
 hero metrics, modals for non-blocking choices.
 
-## Aurora shelf direction (user-ordered evolution)
+## Aurora port (GPL-3.0-or-later, see LICENSE and DECISIONS.md §19)
 
-Inspired by Aurora Store's layout language from its published screenshots
-(design cues only — Aurora is GPL-3.0, no code taken). This AMENDS the
-world: the old ban on colored left accents is lifted for one element, the
-4dp primary section bar with a chevron that always navigates somewhere.
-- **Bare rows, not cards**, in every list: squircle icon (~28% radius),
-  name, owner in the theme accent, one ledger line, one 48dp action.
-- **Bare rail tiles**: big icon, two-line name, one-line stars. No wrappers.
-- **Details hero**: 72dp icon, app name, accent owner, gray coordinates,
-  divider-separated stats, full-width bottom action for the recommended
-  artifact (per-row buttons stay for explicit ABI choice).
+Rows, rails, and section headers are ported from Aurora Store's Compose
+source (same contracts, rhythm, and chevron behavior) with documented
+deviations: truncating text, refresh/hide trailing actions, no previews.
+The prior accent-bar experiment is retired — current Aurora source has no
+bar, and code beats screenshots.

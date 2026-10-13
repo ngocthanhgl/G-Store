@@ -1,10 +1,10 @@
+// SPDX-FileCopyrightText: 2026 G Store contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Repository row built on Aurora Store's AuroraListItem contract (leading /
+// headline / supporting / tertiary / trailing, no card wrapper).
 package dev.gstore.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -12,12 +12,8 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 
@@ -27,10 +23,9 @@ enum class ApkBadge { HAS_APK, NO_APK, UNKNOWN }
 private val TouchTarget = 48.dp
 
 /**
- * Shared repository row (home, search, favorites) — store-shelf idiom: a
- * bare row, no card wrapper. Squircle icon, name, owner in the theme accent,
- * one ledger line, one 48dp favorite action. Every text is single-line with
- * ellipsis; the ledger is weight-bounded so truncation always engages.
+ * Shared repository row (home, search, favorites): squircle icon, short
+ * name, owner, one ledger line, one 48dp favorite action. Same shape in
+ * list and search; grid mode uses [GridCard] instead.
  * Touch target >= 48dp; contentDescription on every action (UI_UX_SPEC §6).
  */
 @Composable
@@ -44,52 +39,21 @@ fun RepoCard(
     cardRadiusDp: Int = 12,
     compact: Boolean = false,
 ) {
-    // cardRadiusDp/compact are kept for the AdaptiveCard contract; the bare
-    // row has no card shape and a fixed comfortable rhythm.
-    Surface(
+    AuroraListItem(
+        modifier = modifier,
+        headline = repo.fullName.substringAfter('/'),
+        supporting = repo.owner,
+        tertiary = ledgerOf(repo, apkBadge),
+        headlineStyle = MaterialTheme.typography.bodyMedium,
         onClick = onOpen,
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        leading = {
             AppIcon(
                 avatarUrl = repo.avatarUrl,
                 owner = repo.owner,
                 size = 56.dp,
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = repo.fullName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = repo.owner,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = ledgerOf(repo, apkBadge),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+        },
+        trailing = {
             IconButton(
                 onClick = onToggleFavorite,
                 modifier = Modifier.size(TouchTarget),
@@ -101,8 +65,8 @@ fun RepoCard(
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 /** One ledger line: status first, then popularity. Plain text, no chips. */
@@ -114,6 +78,9 @@ private fun ledgerOf(repo: Repository, apkBadge: ApkBadge): String {
         else -> null
     }
     val popularity = "★ ${formatCount(repo.stars)} · ${formatCount(repo.forks)} forks"
-    return if (status == null) popularity else "$status · $popularity"
+    // Description rides the tertiary line so the row stays three lines tall;
+    // the full text lives on the details screen.
+    val withDescription = repo.description?.let { "$popularity · $it" } ?: popularity
+    return if (status == null) withDescription else "$status · $withDescription"
 }
 // formatCount lives in RailCard.kt — shared by both card styles.

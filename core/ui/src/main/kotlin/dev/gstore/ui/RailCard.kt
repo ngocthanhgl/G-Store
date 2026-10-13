@@ -1,33 +1,31 @@
+// SPDX-FileCopyrightText: 2025 The Calyx Institute
+// SPDX-FileCopyrightText: 2026 G Store contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Adapted from Aurora Store's AppListItem
+// (app/src/main/java/com/aurora/store/compose/composable/app/AppListItem.kt):
+// 80dp tile, full-width 1:1 squircle artwork, two-line label. Changes for
+// G Store: resource dimens inlined (80dp tile, 12dp radius, 4dp rhythm),
+// AppIcon (avatar-over-monogram) instead of raw AsyncImage since catalog
+// entries may carry no URL, no @Preview.
 package dev.gstore.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 
-private val RailWidth = 112.dp
-
 /**
- * Bare shelf tile for horizontal category rails (store idiom): a large
- * squircle icon, two-line name, one-line star ledger — no card wrapper, no
- * elevation. Fixed width so rails align; every text truncates so a tile
- * never pushes its neighbors.
+ * Minimal app tile for horizontal rails: artwork plus display name.
  */
 @Composable
 fun RailCard(
@@ -37,42 +35,26 @@ fun RailCard(
 ) {
     Column(
         modifier = modifier
-            .width(RailWidth)
-            .clip(RoundedCornerShape(12.dp))
+            .width(80.dp)
             .clickable(onClick = onOpen)
-            .padding(4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(all = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
         AppIcon(
             avatarUrl = repo.avatarUrl,
             owner = repo.owner,
             size = 72.dp,
+            modifier = Modifier,
         )
         Text(
-            text = repo.fullName,
-            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier,
+            text = repo.fullName.substringAfter('/'),
+            style = MaterialTheme.typography.labelMedium,
             maxLines = 2,
             minLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Filled.Star,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = formatCount(repo.stars),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
