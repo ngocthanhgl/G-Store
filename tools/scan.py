@@ -27,8 +27,10 @@ Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
 Stdlib only (urllib) so ubuntu-latest runners need no setup.
 Env: GITHUB_TOKEN (required), MAX_CHECK (default 850), OUT_DIR (default catalog).
 """
+import http.client
 import json
 import os
+import socket
 import sys
 import time
 import traceback
@@ -36,7 +38,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
-
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
@@ -146,7 +147,12 @@ def api_get(path):
                     if wait > 0:
                         print(f"rate low ({remaining}), sleeping {wait}s", flush=True)
                         time.sleep(wait)
-                return resp.status, json.load(resp), resp.headers
+                # Read the body fully BEFORE parsing: a dropped connection
+                # mid-stream raises IncompleteRead, which must retry like a
+                # 5xx instead of killing the whole run (seen 2026-10-12 on a
+                # ~574 KB search page).
+                raw = resp.read()
+                return resp.status, json.loads(raw.decode("utf-8")), resp.headers
         except urllib.error.HTTPError as e:
             if e.code in (403, 429):
                 retry = e.headers.get("Retry-After")
@@ -160,6 +166,16 @@ def api_get(path):
                 return e.code, None, e.headers
             if 500 <= e.code < 600 and attempt < 3:
                 time.sleep(2 ** attempt)
+                continue
+            raise
+        except (http.client.IncompleteRead, http.client.RemoteDisconnected,
+                ConnectionError, TimeoutError, socket.timeout) as e:
+            # Transient transport failure — same backoff as a 5xx.
+            if attempt < 3:
+                wait = 2 ** attempt
+                print(f"transport error ({type(e).__name__}), retry in {wait}s",
+                      flush=True)
+                time.sleep(wait)
                 continue
             raise
     raise RuntimeError(f"GET {path} failed after retries")

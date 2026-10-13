@@ -17,6 +17,12 @@ on:
 permissions:
   contents: write
 
+# Overlapping runs race on `git push` and the loser goes red. Queue them:
+# a second run waits instead of pushing over the first one.
+concurrency:
+  group: catalog-scan
+  cancel-in-progress: false
+
 jobs:
   scan:
     runs-on: ubuntu-latest
