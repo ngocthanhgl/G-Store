@@ -33,8 +33,17 @@ class CategoriesTest {
         assertEquals(AppCategory.TOOLS, categoryOf(listOf("root", "magisk")))
         assertEquals(AppCategory.CUSTOMIZE, categoryOf(listOf("icon-pack")))
         assertEquals(AppCategory.PRODUCTIVITY, categoryOf(listOf("notes", "todo")))
-        assertEquals(AppCategory.SOCIAL, categoryOf(listOf("mastodon")))
+        assertEquals(AppCategory.PRODUCTIVITY, categoryOf(listOf("ai", "llm")))
         assertEquals(AppCategory.DEV, categoryOf(listOf("git", "self-hosted")))
+        assertEquals(AppCategory.GAMES, categoryOf(listOf("godot")))
+        assertEquals(AppCategory.GAMES, categoryOf(listOf("emulator")))
+        assertEquals(AppCategory.MEDIA, categoryOf(listOf("manga", "anime")))
+    }
+
+    @Test fun `retired social topics stay uncategorized`() {
+        // SOCIAL was dropped as a shelf: 9 repos cannot carry one, and a
+        // wrong shelf is worse than none. These surface in All apps only.
+        assertNull(categoryOf(listOf("mastodon", "matrix")))
     }
 
     @Test fun `tech-only topics never invent a category`() {

@@ -489,3 +489,36 @@ before retrying.
   already replaced in §15-era fixes; confirmed no occurrences remain.
 - Verification for §20: 100/100 tests, lint clean, detector `[]` on five
   files, assemble green (one online build to fetch the new Coil artifact).
+
+## 21. Aurora-true Home, Installed shelf, v0.9.0 (user order, build mode)
+
+- **Settings:** Customize group + ThemeEditor route/screen + dead VM code
+  (`setAccent`, `resetAll`, `ACCENT_OPTIONS`, accent tests) removed. Dynamic
+  color stays; unwritten accent prefs remain null (harmless).
+- **Details APK-only (minimal):** `apkReleaseIds` computed per release in
+  the VM (N local queries, stale results discarded); picker/history hide
+  0-APK releases; rows show filename + size + Download only (`AbiLine`,
+  `KindLine`, `ChecksumLine` deleted). Selection prefers APK releases.
+- **Edge-to-edge:** expanded Content was missing the bottom safe inset
+  (content slid under the nav bar) — fixed; gradient `EdgeScrim`s float
+  above all screens from the shell (one place, not seven). True blur
+  rejected (per-frame offscreen cost, API 31+).
+- **Installed shelf:** `QUERY_ALL_PACKAGES` (lint suppressed with
+  justification; matrix + Play-policy note updated) queries ONLY tracked
+  package names. DB v6 adds `versionCode` (+ explicit migration; worker,
+  repository, and test constructors updated). `InstalledAppsGateway` +
+  pure `resolveUpdateState` (codes compare reliably; tags are cosmetic) +
+  tests. VM refreshes PM state and re-syncs tracked repos for latest tags
+  (bounded, user-triggered). UI: Updates / Installed / Not-on-device /
+  Active / History with sort chips, real PM icons, Update/Install/Open
+  actions, pull-to-refresh. Nav tab renamed Installed (4 tabs fit).
+- **Home Aurora-true:** `Category` route + full shelf page (chevrons
+  navigate now); rails are 80dp tiles (4 visible on 360dp); categories
+  re-cut from real data (DROP SOCIAL@9, ADD GAMES, MEDIA/PRODUCTIVITY/TOOLS
+  expanded → ~77% coverage); category headers locked (no X/refresh,
+  excluded from Customize + guarded in VM); titles unified to titleLarge.
+- **Search:** tokenized AND-over-OR in-memory filter over name/owner/desc/
+  topics (`searchFilter` + tests); stars sort fixed (was relying on dead
+  DAO ordering).
+- Verification for §21: full suite green, lint clean (one new
+  tools:ignore with justification), detector `[]`, assemble green.

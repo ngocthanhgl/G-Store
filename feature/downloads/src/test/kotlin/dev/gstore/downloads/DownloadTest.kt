@@ -62,7 +62,8 @@ private fun record(assetId: Long = 1, status: String = "QUEUED") = DownloadRecor
     filename = "app.apk", url = "https://example.com/app.apk",
     expectedSize = 100, expectedDigest = null, status = status,
     bytesDone = 0, bytesTotal = 100, filePath = null, error = null,
-    verification = null, packageName = null, versionName = null, minSdk = null,
+    verification = null, packageName = null, versionName = null, versionCode = null,
+    minSdk = null,
     createdAt = 1, updatedAt = 1,
 )
 
@@ -150,5 +151,50 @@ class DownloadRepositoryTest {
         repeat(5) { dao.upsert(record(assetId = it.toLong(), status = "COMPLETED")) }
         dao.pruneFinished(keep = 2)
         assertEquals(2, dao.listByStatus("COMPLETED").size)
+    }
+}
+
+class InstalledStateTest {
+    @Test fun missingPackageIsNotInstalled() {
+        assertEquals(
+            UpdateState.NOT_INSTALLED,
+            resolveUpdateState(null, 10L, "v2", "v1", null),
+        )
+    }
+
+    @Test fun olderInstalledThanDownloadedIsReady() {
+        assertEquals(
+            UpdateState.READY_TO_INSTALL,
+            resolveUpdateState(9L, 10L, "v1", "v1", "1.0"),
+        )
+    }
+
+    @Test fun newerCatalogTagIsUpdateAvailable() {
+        assertEquals(
+            UpdateState.UPDATE_AVAILABLE,
+            resolveUpdateState(10L, 10L, "v2", "v1", "1.0"),
+        )
+    }
+
+    @Test fun installedMatchingLatestTagIsCurrent() {
+        // Sideloaded past our record: installed name already equals latest.
+        assertEquals(
+            UpdateState.UP_TO_DATE,
+            resolveUpdateState(10L, 9L, "v2", "v1", "v2"),
+        )
+    }
+
+    @Test fun sameEverywhereIsUpToDate() {
+        assertEquals(
+            UpdateState.UP_TO_DATE,
+            resolveUpdateState(10L, 10L, "v1", "v1", "1.0"),
+        )
+    }
+
+    @Test fun unknownLatestFallsBackToInstalled() {
+        assertEquals(
+            UpdateState.UP_TO_DATE,
+            resolveUpdateState(10L, null, null, "v1", "1.0"),
+        )
     }
 }

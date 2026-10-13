@@ -52,7 +52,11 @@ fun SearchScreen(
     }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).imePadding()) {
-        Text("Search", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Search",
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+        )
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::setQuery,

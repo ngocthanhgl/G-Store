@@ -107,6 +107,7 @@ class ApkDownloadWorker(
                     verification = verification.name,
                     packageName = manifest?.packageName,
                     versionName = manifest?.versionName,
+                    versionCode = manifest?.versionCode,
                     minSdk = manifest?.minSdk,
                     updatedAt = now(),
                 ),

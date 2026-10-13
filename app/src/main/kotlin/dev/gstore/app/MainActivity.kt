@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -70,13 +71,16 @@ import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.PreferencesRepository
+import dev.gstore.ui.EdgeScrim
 import dev.gstore.data.CatalogRepository
 import dev.gstore.database.DownloadRecord
 import dev.gstore.designsystem.GStoreTheme
 import dev.gstore.downloads.DownloadsScreen
 import dev.gstore.downloads.DownloadsViewModel
+import dev.gstore.downloads.SystemInstalledApps
 import dev.gstore.details.DetailsScreen
 import dev.gstore.details.DetailsViewModel
+import dev.gstore.home.CategoryScreen
 import dev.gstore.home.HomeScreen
 import dev.gstore.home.HomeViewModel
 import dev.gstore.installation.InstallerPermissionScreen
@@ -87,7 +91,6 @@ import dev.gstore.search.SearchScreen
 import dev.gstore.search.SearchViewModel
 import dev.gstore.settings.SettingsScreen
 import dev.gstore.settings.SettingsViewModel
-import dev.gstore.settings.ThemeEditorScreen
 import dev.gstore.ui.EmptyContent
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -98,7 +101,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object Search
 @Serializable data object Downloads
 @Serializable data object Settings
-@Serializable data object ThemeEditor
+@Serializable data class Category(val category: String)
 @Serializable data class Details(val repoId: Long, val fullName: String = "")
 @Serializable data class Readme(val owner: String, val name: String)
 
@@ -111,7 +114,7 @@ private data class TopDestination(
 private val DESTINATIONS = listOf(
     TopDestination(Home, "Home", Icons.Filled.Home),
     TopDestination(Search, "Search", Icons.Filled.Search),
-    TopDestination(Downloads, "Downloads", Icons.Filled.KeyboardArrowDown),
+    TopDestination(Downloads, "Installed", Icons.Filled.KeyboardArrowDown),
     TopDestination(Settings, "Settings", Icons.Filled.Settings),
 )
 
@@ -187,21 +190,23 @@ private fun GStoreShell(container: AppContainer) {
                     current = entry?.destination,
                     navigate = { nav.navigate(it) { popToRoot(nav) } },
                     )
-                Content(
-                    nav = nav,
-                    container = container,
-                    snackbar = snackbar,
-                    onOpenRepo = onOpenRepo,
-                    modifier = Modifier
+                // Scrims float above every screen: legibility zones behind
+                // the status and navigation bars (see EdgeScrim).
+                Box(
+                    Modifier
                         .weight(1f)
-                        // Rail owns the full height; content takes top +
-                        // horizontal safe insets (status bar, cutout).
-                        .windowInsetsPadding(
-                            WindowInsets.safeDrawing.only(
-                                WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
-                            ),
-                        ),
-                )
+                        .windowInsetsPadding(WindowInsets.safeDrawing),
+                ) {
+                    Content(
+                        nav = nav,
+                        container = container,
+                        snackbar = snackbar,
+                        onOpenRepo = onOpenRepo,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    EdgeScrim(top = true, modifier = Modifier.align(Alignment.TopCenter))
+                    EdgeScrim(top = false, modifier = Modifier.align(Alignment.BottomCenter))
+                }
             }
         } else {
             Scaffold(
@@ -241,7 +246,17 @@ private fun GStoreShell(container: AppContainer) {
                 },
                 snackbarHost = { SnackbarHost(snackbar) },
             ) { padding ->
-                Content(nav = nav, container = container, snackbar = snackbar, onOpenRepo = onOpenRepo, modifier = Modifier.padding(padding))
+                Box(Modifier.padding(padding)) {
+                    Content(
+                        nav = nav,
+                        container = container,
+                        snackbar = snackbar,
+                        onOpenRepo = onOpenRepo,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    EdgeScrim(top = true, modifier = Modifier.align(Alignment.TopCenter))
+                    EdgeScrim(top = false, modifier = Modifier.align(Alignment.BottomCenter))
+                }
             }
         }
     }
@@ -312,6 +327,7 @@ private fun Content(
             HomeScreen(
                 vm = vm,
                 onOpenRepo = onOpenRepo,
+                onOpenCategory = { nav.navigate(Category(it.name)) },
                 snackbar = snackbar,
                 grid = grid,
                 compact = compact,
@@ -334,7 +350,13 @@ private fun Content(
         }
         composable<Downloads> {
             val vm: DownloadsViewModel = viewModel(
-                factory = vmFactory { DownloadsViewModel(container.downloader) },
+                factory = vmFactory {
+                    DownloadsViewModel(
+                        container.downloader,
+                        SystemInstalledApps(container.app.packageManager),
+                        container.catalog,
+                    )
+                },
             )
             val dlState by vm.state.collectAsState()
             val context = LocalContext.current
@@ -395,6 +417,32 @@ private fun Content(
                             gateFor = record
                         }
                     },
+                    onBrowseRepo = { fullName ->
+                        // Details resolves id 0 via on-demand sync by fullName.
+                        val owner = fullName.substringBefore('/', fullName)
+                        onOpenRepo(
+                            Repository(
+                                id = 0,
+                                fullName = fullName,
+                                owner = owner,
+                                avatarUrl = null,
+                                description = null,
+                                stars = 0,
+                                forks = 0,
+                                updatedAt = null,
+                            ),
+                        )
+                    },
+                    onLaunch = { packageName ->
+                        val intent = context.packageManager
+                            .getLaunchIntentForPackage(packageName)
+                        if (intent != null) context.startActivity(intent)
+                        else scope.launch { snackbar.showSnackbar("No launcher entry") }
+                    },
+                    onRefreshInstalled = vm::refreshInstalled,
+                    onSort = vm::setSort,
+                    snackbar = snackbar,
+                    onDismissNotice = vm::dismissNotice,
                 )
             }
         }
@@ -406,18 +454,29 @@ private fun Content(
                 appearance = appearance,
                 vm = vm,
                 appVersion = BuildConfig.VERSION_NAME,
-                onOpenThemeEditor = { nav.navigate(ThemeEditor) },
             )
         }
-        composable<ThemeEditor> {
-            val vm: SettingsViewModel = viewModel(
-                factory = vmFactory { SettingsViewModel(container.preferences) },
-            )
-            ThemeEditorScreen(
-                appearance = appearance,
-                vm = vm,
-                onBack = { nav.popBackStack() },
-            )
+        composable<Category> { backStack ->
+            val route = backStack.toRoute<Category>()
+            val category = runCatching {
+                dev.gstore.data.AppCategory.valueOf(route.category)
+            }.getOrNull()
+            if (category == null) {
+                nav.popBackStack()
+            } else {
+                val vm: HomeViewModel = viewModel(
+                    factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient) },
+                )
+                CategoryScreen(
+                    category = category,
+                    vm = vm,
+                    onBack = { nav.popBackStack() },
+                    onOpenRepo = onOpenRepo,
+                    grid = grid,
+                    compact = compact,
+                    cardRadiusDp = appearance.cardRadiusDp,
+                )
+            }
         }
         composable<Details> { backStack ->
             val route = backStack.toRoute<Details>()

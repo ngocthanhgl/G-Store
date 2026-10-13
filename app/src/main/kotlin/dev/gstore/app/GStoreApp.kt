@@ -18,6 +18,7 @@ import dev.gstore.data.CatalogRepository
 import dev.gstore.data.ReadmeRepository
 import dev.gstore.database.MIGRATION_3_4
 import dev.gstore.database.MIGRATION_4_5
+import dev.gstore.database.MIGRATION_5_6
 import dev.gstore.downloads.ApkDownloadWorker
 import dev.gstore.downloads.DownloadRepository
 import dev.gstore.downloads.SystemWorkEnqueuer
@@ -88,11 +89,11 @@ private class GStoreWorkerFactory(
     }
 }
 
-class AppContainer(app: Application) {
+class AppContainer(val app: Application) {
     val database: GStoreDatabase by lazy {
         // Explicit migrations only — silent data loss is never acceptable (M4).
         Room.databaseBuilder(app, GStoreDatabase::class.java, "gstore.db")
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .fallbackToDestructiveMigration(false)
             .build()
     }

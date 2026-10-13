@@ -96,6 +96,7 @@ private fun emptyOf(section: HomeSection): String = when (section) {
 fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
+    onOpenCategory: (AppCategory) -> Unit,
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
@@ -184,16 +185,8 @@ fun HomeScreen(
                             )
                             HomeSection.CATEGORIES -> CategoriesBlock(
                                 signals = state.catalog,
-                                favorites = state.favoriteIds,
-                                grid = grid,
-                                compact = compact,
                                 onOpen = onOpenRepo,
-                                onHide = { vm.setSectionVisible(config.section, false) },
-                                onRefresh = {
-                                    vm.refreshSection(state.catalog.map { it.repo })
-                                },
-                                syncing = state.syncing,
-                                onPickCategory = vm::setCategoryFilter,
+                                onPickCategory = onOpenCategory,
                             )
                             else -> SectionBlock(
                                 config = config,
@@ -278,7 +271,8 @@ private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
     ) {
         Text(
             "Home",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onAdd) {
@@ -759,13 +753,7 @@ private fun formatStars(stars: Int): String = when {
 @Composable
 private fun CategoriesBlock(
     signals: List<RepoSignals>,
-    favorites: Set<Long>,
-    grid: Boolean,
-    compact: Boolean,
     onOpen: (Repository) -> Unit,
-    onHide: () -> Unit,
-    onRefresh: () -> Unit,
-    syncing: Boolean,
     onPickCategory: (AppCategory) -> Unit,
 ) {
     val shelves = dev.gstore.data.categoriesPresent(signals)
@@ -773,18 +761,10 @@ private fun CategoriesBlock(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Locked shelf: no hide, no refresh — categories are always browsable.
         AuroraSectionHeader(
             title = "Browse categories",
             subtitle = "${shelves.size} shelves",
-            trailing = {
-                HeaderActions(
-                    syncing = syncing,
-                    onRefresh = onRefresh,
-                    refreshDescription = "Refresh Browse categories",
-                    onHide = onHide,
-                    hideDescription = "Hide Browse categories",
-                )
-            },
         )
         if (shelves.isEmpty()) {
             Text(
@@ -900,7 +880,9 @@ private fun CustomizeDialog(
         title = { Text("Sections") },
         text = {
             Column {
-                configs.forEachIndexed { index, config ->
+                // Categories are locked: always browsable, never hiding.
+                val movable = configs.filter { it.section != HomeSection.CATEGORIES }
+                movable.forEachIndexed { index, config ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = config.visible,
@@ -918,7 +900,7 @@ private fun CustomizeDialog(
                         }
                         IconButton(
                             onClick = { onMove(config.section, index + 1) },
-                            enabled = index < configs.size - 1,
+                            enabled = index < movable.size - 1,
                         ) {
                             Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move down")
                         }

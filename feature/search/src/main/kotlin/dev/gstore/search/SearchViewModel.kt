@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.searchFilter
 import dev.gstore.model.Repository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,7 +12,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -36,12 +36,10 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
     private val searching = MutableStateFlow(false)
     private val banner = MutableStateFlow<String?>(null)
 
-    private val localMatches = query
-        .debounce(300)
-        .flatMapLatest { q ->
-            if (q.isBlank()) kotlinx.coroutines.flow.flowOf(emptyList())
-            else catalog.searchLocal(q.trim())
-        }
+    private val localMatches = combine(
+        query.debounce(300),
+        catalog.observeRepositories(),
+    ) { q, repos -> searchFilter(repos, q) }
 
     /** APK filter needs signal lookups — computed off the render path, capped. */
     private val apkIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -61,7 +59,7 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
     ) { matches, apk, s, only ->
         val filtered = if (only) matches.filter { it.id in apk } else matches
         val sorted = when (s) {
-            SortOrder.STARS -> filtered // DAO already orders by stars desc
+            SortOrder.STARS -> filtered.sortedByDescending { it.stars }
             SortOrder.UPDATED -> filtered.sortedByDescending { it.updatedAt ?: "" }
         }
         SearchList(sorted, apk, s, only)

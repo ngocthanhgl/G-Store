@@ -3,6 +3,7 @@ package dev.gstore.details
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
+import dev.gstore.data.AssetKind
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.Eligibility
 import dev.gstore.data.artifactOf
@@ -28,6 +29,8 @@ data class DetailsUiState(
     val repo: Repository? = null,
     val loadingRepo: Boolean = true,
     val releases: List<Release> = emptyList(),
+    /** Releases with at least one eligible APK — the only ones shown. */
+    val apkReleaseIds: Set<Long> = emptySet(),
     val selectedReleaseId: Long? = null,
     val assetRows: List<AssetRow> = emptyList(),
     val loadingAssets: Boolean = false,
@@ -76,6 +79,7 @@ class DetailsViewModel(
                 else selectDefaultRelease(releases)
                 _state.value = current.copy(releases = releases, selectedReleaseId = next)
                 if (next != null && next != current.selectedReleaseId) loadAssets(next)
+                scanApkReleases(releases)
             }
         }
         viewModelScope.launch {
@@ -102,6 +106,34 @@ class DetailsViewModel(
             _state.value = _state.value.copy(syncing = false)
         }
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+    }
+
+    /**
+     * APK-only scope: find releases shipping at least one eligible APK and
+     * prefer them for selection. Runs off the collector so a slow repo never
+     * blocks the release list; stale results are discarded when releases
+     * change underneath.
+     */
+    private fun scanApkReleases(releases: List<Release>) {
+        viewModelScope.launch {
+            val ids = releases.filter { rel ->
+                runCatching {
+                    catalog.allAssets(rel.id).any {
+                        val e = classifyAsset(it.filename, it.contentType, it.size)
+                        e.eligible && e.kind == AssetKind.APK
+                    }
+                }.getOrDefault(false)
+            }.map { it.id }.toSet()
+            val current = _state.value
+            if (current.releases != releases) return@launch // superseded
+            val selected = current.selectedReleaseId
+            val next = if (selected != null && selected in ids) selected
+            else releases.firstOrNull { it.id in ids }?.id
+            var updated = current.copy(apkReleaseIds = ids, selectedReleaseId = next)
+            if (next == null) updated = updated.copy(assetRows = emptyList(), loadingAssets = false)
+            _state.value = updated
+            if (next != null && next != selected) loadAssets(next)
+        }
     }
 
     fun selectRelease(releaseId: Long) {

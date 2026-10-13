@@ -234,6 +234,8 @@ data class DownloadRecord(
     /** Manifest facts once structurally validated, else null (never invented). */
     val packageName: String?,
     val versionName: String?,
+    /** Manifest versionCode once structurally validated, else null. */
+    val versionCode: Long?,
     val minSdk: Int?,
     val createdAt: Long,
     val updatedAt: Long,
@@ -330,6 +332,13 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/** v5 -> v6: manifest versionCode on download records (update checks). */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE download_records ADD COLUMN versionCode INTEGER")
+    }
+}
+
 @Database(
     entities = [
         FavoriteEntity::class,
@@ -340,7 +349,7 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         ReadmeEntity::class,
         DownloadRecord::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class GStoreDatabase : RoomDatabase() {

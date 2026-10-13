@@ -10,12 +10,14 @@ no static-final reflection; DCL of native libs requires read-only files.
 |---|---|---|---|---|---|
 | INTERNET | GitHub API + APK fetch | normal | install-time | No | offline-cached mode, banner |
 | REQUEST_INSTALL_PACKAGES | system installer handoff | normal-ish* | settings page per-source (API 26+) | Yes | explanatory gate, retry entry point |
+| QUERY_ALL_PACKAGES | Installed shelf: update checks query ONLY package names from our own download records (flow: PackageManager truth + catalog tags). Same justification as Aurora/F-Droid updaters; lint QueryAllPackagesPermission deliberately suppressed in manifest | signature-level** | install-time | No (Installed shelf degrades to download history) | shelf shows records without on-device state; no crash |
 | POST_NOTIFICATIONS (33+) | NOT implemented at M6 — progress is observed in-app from Room; no system notification is posted | — | — | — | n/a (no fallback needed) |
 | FOREGROUND_SERVICE_* | NOT needed — CoroutineWorker without a foreground service; no FGS permission declared | — | — | — | n/a |
 | ACCESS_NETWORK_STATE | NOT declared — WorkManager `NetworkType.CONNECTED` constraint used instead of manual connectivity inspection | — | — | — | n/a |
 
 *Google Play policy risk documented in SECURITY_MODEL.md; F-Droid/sideload path unaffected.
-Never requested: MANAGE_EXTERNAL_STORAGE, QUERY_ALL_PACKAGES, camera/mic/
+**QUERY_ALL_PACKAGES is Play-restricted: store listing would need a core-functionality declaration (Aurora precedent: update checking). Demo/sideload distribution unaffected.
+Never requested: MANAGE_EXTERNAL_STORAGE, camera/mic/
 contacts/location, accessibility, VPN, device-admin, BOOT_COMPLETED (WorkManager
 persistence covers restart-resume without it). Storage: app-specific internal +
 cache only; user export via system picker (MediaStore/SAF). APK share via

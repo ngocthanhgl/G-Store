@@ -50,8 +50,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AssetKind
-import dev.gstore.model.AbiConfidence
-import dev.gstore.model.AbiType
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
@@ -101,10 +99,14 @@ fun DetailsScreen(
         }
         return
     }
-    // Suggested fast path: the first eligible artifact of the selected
-    // release gets a full-width bottom action; per-row buttons stay for
-    // explicit ABI choice.
-    val bestAsset = state.assetRows.firstOrNull { it.eligibility.eligible }?.asset
+    // APK-only scope: releases and rows without an eligible APK are hidden.
+    // Before the scan finishes apkReleaseIds is empty and everything shows.
+    val apkReleases = if (state.apkReleaseIds.isEmpty()) state.releases
+    else state.releases.filter { it.id in state.apkReleaseIds }
+    val apkRows = state.assetRows.filter {
+        it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
+    }
+    val bestAsset = apkRows.firstOrNull()?.asset
     val selectedTag = selectedRelease(state)?.tag
     Column(modifier.fillMaxSize()) {
     LazyColumn(
@@ -117,19 +119,19 @@ fun DetailsScreen(
         item { Spacer(Modifier.height(12.dp)) }
         item { ActionsRow(repo, onOpenReadme) }
         item { Spacer(Modifier.height(16.dp)) }
-        item { SectionTitle("Releases (${state.releases.size})") }
-        item { ReleasePicker(state.releases, state.selectedReleaseId, onSelectRelease) }
+        item { SectionTitle("Releases (${apkReleases.size})") }
+        item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
         item { Spacer(Modifier.height(8.dp)) }
         selectedRelease(state)?.let { release ->
             item { ReleaseNotes(release) }
             item { Spacer(Modifier.height(12.dp)) }
-            item { SectionTitle("Artifacts (${state.assetRows.size})") }
+            item { SectionTitle("APK artifacts (${apkRows.size})") }
             if (state.loadingAssets) {
                 item { CircularProgressIndicator(Modifier.padding(8.dp)) }
-            } else if (state.assetRows.isEmpty()) {
-                item { Text("No downloadable artifacts on this release.") }
+            } else if (apkRows.isEmpty()) {
+                item { Text("No APK artifacts on this release.") }
             } else {
-                items(state.assetRows, key = { it.asset.id }) { row ->
+                items(apkRows, key = { it.asset.id }) { row ->
                     AssetCard(row, onDownload)
                     Spacer(Modifier.height(8.dp))
                 }
@@ -137,7 +139,7 @@ fun DetailsScreen(
         }
         item { Spacer(Modifier.height(16.dp)) }
         item { SectionTitle("Release history") }
-        items(state.releases, key = { it.id }) { release ->
+        items(apkReleases, key = { it.id }) { release ->
             HistoryRow(release, selected = release.id == state.selectedReleaseId, onSelectRelease)
         }
     }
@@ -444,74 +446,17 @@ private fun AssetCard(row: AssetRow, onDownload: (ReleaseAsset) -> Unit) {
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
-                "${formatBytes(asset.size)} · ${asset.downloadCount} downloads",
+                "${formatBytes(asset.size)}",
                 style = MaterialTheme.typography.labelMedium,
             )
-            AbiLine(row)
-            KindLine(row)
-            ChecksumLine(asset)
-            if (row.eligibility.eligible) {
-                // Full-width 48dp action: every asset card ends on the same
-                // aligned button, never a floating small one.
-                Button(
-                    onClick = { onDownload(asset) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Text("Download", maxLines = 1)
-                }
+            // Rows are pre-filtered to eligible APKs: filename, size, action.
+            Button(
+                onClick = { onDownload(asset) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text("Download", maxLines = 1)
             }
         }
-    }
-}
-
-@Composable
-private fun AbiLine(row: AssetRow) {
-    val artifact = row.artifact
-    if (!row.eligibility.eligible) return
-    when (artifact.abi) {
-        AbiType.UNKNOWN -> Text(
-            "ABI unknown — compatibility with this device is not established",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
-        AbiType.UNIVERSAL -> Text(
-            "Universal build (${artifact.confidence.name.lowercase()} confidence)",
-            style = MaterialTheme.typography.labelMedium,
-        )
-        else -> Text(
-            "${artifact.abi.name} (${artifact.confidence.name.lowercase()} confidence)",
-            style = MaterialTheme.typography.labelMedium,
-        )
-    }
-    if (artifact.confidence == AbiConfidence.LOW || artifact.confidence == AbiConfidence.UNKNOWN) {
-        Text(
-            "Filename-based guess only — inspect the APK before installing",
-            style = MaterialTheme.typography.labelSmall,
-        )
-    }
-}
-
-@Composable
-private fun KindLine(row: AssetRow) {
-    val label = when (row.eligibility.kind) {
-        AssetKind.APK -> return
-        AssetKind.BUNDLE -> "Bundle format — needs split-APK installer support, not directly installable"
-        AssetKind.ARCHIVE -> "Archive — not an installable artifact"
-        AssetKind.OTHER -> "Not an installable artifact"
-    }
-    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-}
-
-@Composable
-private fun ChecksumLine(asset: ReleaseAsset) {
-    val digest = asset.digest
-    if (digest == null) {
-        Text("Checksum unavailable for this artifact", style = MaterialTheme.typography.labelSmall)
-    } else {
-        Text(
-            "Published checksum (unverified): ${digest.take(24)}…",
-            style = MaterialTheme.typography.labelSmall,
-        )
     }
 }
 

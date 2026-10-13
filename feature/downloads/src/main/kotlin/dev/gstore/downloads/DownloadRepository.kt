@@ -93,6 +93,7 @@ class DownloadRepository(
             verification = null,
             packageName = null,
             versionName = null,
+            versionCode = null,
             minSdk = null,
             createdAt = existing?.createdAt ?: now(),
             updatedAt = now(),

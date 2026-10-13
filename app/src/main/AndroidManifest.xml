@@ -7,6 +7,14 @@
          in-app before system settings are ever opened. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Installed shelf (update checks): we query ONLY package names from our
+         own download records — never a device inventory. Same justification
+         as Aurora/F-Droid update checkers; Play distribution would need a
+         declaration for this permission. Lint QueryAllPackagesPermission is
+         deliberately suppressed here — see docs/ANDROID_PERMISSIONS.md. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
     <!-- We never run a foreground service (plain CoroutineWorker only), so the
          FOREGROUND_SERVICE permission merged in from WorkManager is stripped. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />

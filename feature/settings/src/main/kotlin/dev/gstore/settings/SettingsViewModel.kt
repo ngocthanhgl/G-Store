@@ -12,23 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** A curated accent choice. Null ARGB = dynamic/system seed, not a color. */
-data class AccentOption(val name: String, val argb: Int?)
-
-val ACCENT_OPTIONS = listOf(
-    AccentOption("Automatic", null),
-    // Aurora violet: Aurora Store's brand accent (GPL-3.0-or-later, see LICENSE).
-    AccentOption("Aurora", 0xFF6C63FF.toInt()),
-    AccentOption("Baseline", 0xFF6750A4.toInt()),
-    AccentOption("Ocean", 0xFF0061A4.toInt()),
-    AccentOption("Forest", 0xFF1B6B4A.toInt()),
-    AccentOption("Ember", 0xFFB3261E.toInt()),
-    AccentOption("Plum", 0xFF7D5260.toInt()),
-    AccentOption("Slate", 0xFF424242.toInt()),
-    AccentOption("Gold", 0xFF7A5900.toInt()),
-    AccentOption("Teal", 0xFF003731.toInt()),
-)
-
 /** Pure label maps — unit-tested without Android (SettingsLogicTest). */
 fun themeModeLabel(mode: ThemeMode): String = when (mode) {
     ThemeMode.LIGHT -> "Light"
@@ -52,21 +35,10 @@ class SettingsViewModel(private val prefs: PreferencesRepository) : ViewModel() 
 
     fun setTheme(mode: ThemeMode) = launch { prefs.setTheme(mode) }
     fun setDynamicColor(enabled: Boolean) = launch { prefs.setDynamicColor(enabled) }
-    fun setAccent(argb: Int?) = launch { prefs.setAccentArgb(argb) }
     fun setLayout(layout: HomeLayout) = launch { prefs.setLayout(layout) }
     fun setDensity(density: CardDensity) = launch { prefs.setDensity(density) }
     fun setCardRadius(radiusDp: Int) = launch { prefs.setCardRadiusDp(radiusDp) }
     fun setReduceMotion(enabled: Boolean) = launch { prefs.setReduceMotion(enabled) }
-
-    fun resetAll() = launch {
-        prefs.setTheme(ThemeMode.SYSTEM)
-        prefs.setDynamicColor(true)
-        prefs.setAccentArgb(null)
-        prefs.setLayout(HomeLayout.LIST)
-        prefs.setDensity(CardDensity.COMFORTABLE)
-        prefs.setCardRadiusDp(12)
-        prefs.setReduceMotion(false)
-    }
 
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }

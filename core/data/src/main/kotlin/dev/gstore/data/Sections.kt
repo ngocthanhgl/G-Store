@@ -71,7 +71,7 @@ data class HomeSections(
  * only domain keywords map — everything tech is ignored and uncategorized
  * repos return null instead of a wrong shelf.
  */
-enum class AppCategory { MEDIA, PRIVACY, TOOLS, CUSTOMIZE, PRODUCTIVITY, SOCIAL, DEV }
+enum class AppCategory { MEDIA, PRIVACY, TOOLS, CUSTOMIZE, PRODUCTIVITY, DEV, GAMES }
 
 fun categoryLabel(category: AppCategory): String = when (category) {
     AppCategory.MEDIA -> "Music & video"
@@ -79,8 +79,8 @@ fun categoryLabel(category: AppCategory): String = when (category) {
     AppCategory.TOOLS -> "Tools"
     AppCategory.CUSTOMIZE -> "Personalization"
     AppCategory.PRODUCTIVITY -> "Productivity"
-    AppCategory.SOCIAL -> "Social"
     AppCategory.DEV -> "Developer tools"
+    AppCategory.GAMES -> "Games"
 }
 
 /** Ordered specific-first: the first matching rule wins. */
@@ -88,15 +88,16 @@ private val CATEGORY_RULES: List<Pair<AppCategory, Set<String>>> = listOf(
     AppCategory.MEDIA to setOf(
         "music", "music-player", "video", "video-player", "youtube",
         "youtube-music", "newpipe", "podcast", "media", "player", "gallery",
-        "camera", "streaming", "iptv",
+        "camera", "streaming", "iptv", "comic", "comics", "manga", "anime",
+        "jellyfin", "bika", "picacg", "plex", "emby",
     ),
     AppCategory.PRIVACY to setOf(
         "privacy", "vpn", "encryption", "adblock", "ad-blocker", "firewall",
         "password", "2fa", "tor", "security",
     ),
     AppCategory.TOOLS to setOf(
-        "file-manager", "file-explorer", "launcher", "automation", "backup",
-        "root", "apk", "f-droid", "fdroid", "downloader", "keyboard",
+        "file-manager", "file-explorer", "file", "launcher", "automation",
+        "backup", "root", "apk", "f-droid", "fdroid", "downloader", "keyboard",
         "calculator", "qr", "scanner", "terminal", "widgets",
     ),
     AppCategory.CUSTOMIZE to setOf(
@@ -105,15 +106,17 @@ private val CATEGORY_RULES: List<Pair<AppCategory, Set<String>>> = listOf(
     ),
     AppCategory.PRODUCTIVITY to setOf(
         "notes", "todo", "task", "calendar", "email", "office", "pdf",
-        "reader", "rss", "news", "weather", "health", "fitness",
-    ),
-    AppCategory.SOCIAL to setOf(
-        "messaging", "chat", "social", "mastodon", "matrix", "telegram",
-        "email-client", "forum", "dating",
+        "reader", "rss", "news", "weather", "health", "fitness", "ai", "llm",
+        "productivity", "local-first", "foss", "book", "books", "ebook",
+        "finance", "maps", "navigation", "browser",
     ),
     AppCategory.DEV to setOf(
         "git", "github", "ide", "editor", "code", "developer-tools", "api",
         "database", "server", "self-hosted",
+    ),
+    AppCategory.GAMES to setOf(
+        "game", "games", "gaming", "emulator", "godot", "unity", "love2d",
+        "retroarch", "ppsspp",
     ),
 )
 

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,7 +14,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -34,7 +32,6 @@ import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.ThemeMode
 
 private val RowMinHeight = 48.dp
-private val ActionHeight = 48.dp
 
 /**
  * Appearance + behavior settings. Every control writes through
@@ -47,7 +44,6 @@ fun SettingsScreen(
     appearance: AppearanceSettings,
     vm: SettingsViewModel,
     appVersion: String,
-    onOpenThemeEditor: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -58,7 +54,11 @@ fun SettingsScreen(
                 modifier = Modifier.padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("Settings", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Settings",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                )
                 Text(
                     "Appearance and behavior. Changes apply and save instantly.",
                     style = MaterialTheme.typography.bodySmall,
@@ -140,24 +140,6 @@ fun SettingsScreen(
                     checked = appearance.reduceMotion,
                     onChecked = vm::setReduceMotion,
                 )
-            }
-        }
-        item {
-            SettingGroup("Customize") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onOpenThemeEditor,
-                        modifier = Modifier.fillMaxWidth().height(ActionHeight),
-                    ) {
-                        Text("Theme editor", maxLines = 1)
-                    }
-                    OutlinedButton(
-                        onClick = vm::resetAll,
-                        modifier = Modifier.fillMaxWidth().height(ActionHeight),
-                    ) {
-                        Text("Reset to defaults", maxLines = 1)
-                    }
-                }
             }
         }
         item {

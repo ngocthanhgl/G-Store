@@ -151,6 +151,8 @@ class HomeViewModel(
     }
 
     fun setSectionVisible(section: HomeSection, visible: Boolean) {
+        // Categories are locked: always browsable, never hiding.
+        if (section == HomeSection.CATEGORIES) return
         viewModelScope.launch { prefs.setSectionVisible(section, visible) }
     }
 
