@@ -72,22 +72,22 @@ class CatalogParseTest {
 
     @Test fun `slim index row parses`() {
         val rows = parseIndex(
-            """[{"schema":1,"unknown_future":"x","id":129710,"full_name":"o/app","owner":"o","stars":42,"forks":7,"archived":false,"updated_at":"2026-10-09T00:00:00Z","tag":"v1.0","published_at":"2026-10-08T00:00:00Z","prerelease":true,"apk_count":3}]""",
+            """[{"schema":1,"unknown_future":"x","last_verified":"2026-10-11T00:00:00Z","repo":{"id":129710,"full_name":"o/app","owner":"o","stars":42,"forks":7,"archived":false,"updated_at":"2026-10-09T00:00:00Z"},"release":{"id":9,"tag":"v1.0","published_at":"2026-10-08T00:00:00Z","prerelease":true,"apk_count":3}}]""",
         )
         assertEquals(1, rows.size)
         val r = rows.first()
-        assertEquals(129710L, r.id)
-        assertEquals("o/app", r.full_name)
-        assertEquals(42, r.stars)
-        assertEquals("v1.0", r.tag)
-        assertTrue(r.prerelease)
-        assertEquals(3, r.apk_count)
+        assertEquals(129710L, r.repo.id)
+        assertEquals("o/app", r.repo.full_name)
+        assertEquals(42, r.repo.stars)
+        assertEquals("v1.0", r.release?.tag)
+        assertTrue(r.release?.prerelease == true)
+        assertEquals(3, r.release?.apk_count)
     }
 
     @Test fun `slim index row uses defaults`() {
-        val rows = parseIndex("""[{"id":1,"full_name":"a/b","owner":"a","tag":"t"}]""")
+        val rows = parseIndex("""[{"repo":{"id":1,"full_name":"a/b","owner":"a"},"release":{"id":2,"tag":"t"}}]""")
         val r = rows.first()
-        assertEquals(0, r.stars)
-        assertEquals(0, r.apk_count)
+        assertEquals(0, r.repo.stars)
+        assertEquals(0, r.release?.apk_count)
     }
 }
