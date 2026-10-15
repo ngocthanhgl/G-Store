@@ -12,9 +12,15 @@ import okio.Buffer
  * Daily APK catalog produced by tools/scan.py and committed to catalog/.
  * Fetched from raw.githubusercontent.com — no auth, CDN-cached, ETag
  * supported. Schema 1; unknown keys ignored so the scanner can evolve.
+ *
+ * Single place that names the catalog repo: after a repo rename, update
+ * CATALOG_REPO here (and tools/scan.py needs no change — it commits
+ * locally) and the app pulls from the new location.
  */
+const val CATALOG_OWNER = "ngocthanhgl"
+const val CATALOG_REPO = "github-store-android"
 const val CATALOG_URL =
-    "https://raw.githubusercontent.com/ngocthanhgl/github-store-android/main/catalog/apps.json"
+    "https://raw.githubusercontent.com/$CATALOG_OWNER/$CATALOG_REPO/main/catalog/apps.json"
 
 /** 2 MiB cap — the scanner keeps the catalog well under 1 MiB. */
 const val CATALOG_MAX_BYTES = 2L * 1024 * 1024
