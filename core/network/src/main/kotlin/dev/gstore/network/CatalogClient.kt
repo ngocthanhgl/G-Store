@@ -18,7 +18,7 @@ import okio.Buffer
  * locally) and the app pulls from the new location.
  */
 const val CATALOG_OWNER = "ngocthanhgl"
-const val CATALOG_REPO = "github-store-android"
+const val CATALOG_REPO = "g-store-android"
 /**
  * Slim launch index (repo metadata + latest-APK-release pointer, no notes,
  * no per-asset rows). The full apps.json outgrew a safe single pull

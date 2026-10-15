@@ -27,15 +27,6 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons)
-    implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.fluent.icons) {
-        artifact {
-            name = "fluent-system-icons"
-            type = "aar"
-            extension = "aar"
-        }
-    }
     implementation(libs.coil.compose)
     implementation(libs.commonmark)
     implementation(libs.commonmark.gfm.tables)

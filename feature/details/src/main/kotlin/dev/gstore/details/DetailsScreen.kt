@@ -54,7 +54,6 @@ import dev.gstore.designsystem.cardShapeFor
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
-import dev.gstore.ui.Block
 import dev.gstore.ui.BlockView
 import dev.gstore.ui.parseMarkdown
 
@@ -179,17 +178,13 @@ fun DetailsScreen(
             item { ReleaseNotes(release, cardRadiusDp) }
             item { Spacer(Modifier.height(12.dp)) }
         }
-        if (state.readmeBlocks.isNotEmpty()) {
-            item {
-                ReadmeCard(
-                    blocks = state.readmeBlocks,
-                    owner = repo.owner,
-                    name = repo.fullName.substringAfter('/'),
-                    branch = repo.defaultBranch,
-                    onOpenFull = onOpenReadme,
-                    cardRadiusDp = cardRadiusDp,
-                )
-            }
+        item {
+            FilterChip(
+                selected = false,
+                onClick = onOpenReadme,
+                label = { Text("README", maxLines = 1) },
+                trailingIcon = { Icon(Fluent.ChevronRight, contentDescription = null) },
+            )
         }
     }
 }
@@ -281,37 +276,6 @@ private fun InfoGrid(repo: Repository, cardRadiusDp: Int) {
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * README is always shown in full — no collapse option. Only boundless
- * documents keep the separate full-screen route.
- */
-@Composable
-private fun ReadmeCard(
-    blocks: List<Block>,
-    owner: String,
-    name: String,
-    branch: String = "main",
-    onOpenFull: () -> Unit,
-    cardRadiusDp: Int,
-) {
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "README",
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                blocks.forEach { BlockView(it, owner, name, branch) }
-            }
-            TextButton(onClick = onOpenFull) { Text("Open full README") }
         }
     }
 }

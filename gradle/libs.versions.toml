@@ -20,7 +20,6 @@ serialization = "1.11.0"
 junit = "4.13.2"
 commonmark = "0.30.0"
 coil3 = "3.6.3"
-fluentIcons = "1.1.315"
 work = "2.12.0"
 androidxCore = "1.19.1"
 
@@ -38,8 +37,6 @@ compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeB
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
-androidx-compose-material-icons = { module = "androidx.compose.material:material-icons-core" }
-androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
@@ -55,7 +52,6 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 androidx-security-crypto = { module = "androidx.security:security-crypto", version = "1.0.0" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
-fluent-icons = { module = "com.microsoft.design:fluent-system-icons", version.ref = "fluentIcons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

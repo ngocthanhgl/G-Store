@@ -23,6 +23,7 @@ fun themeModeLabel(mode: ThemeMode): String = when (mode) {
     ThemeMode.LIGHT -> "Light"
     ThemeMode.DARK -> "Dark"
     ThemeMode.SYSTEM -> "System"
+    ThemeMode.AMOLED -> "AMOLED"
 }
 
 fun densityLabel(density: CardDensity): String = when (density) {

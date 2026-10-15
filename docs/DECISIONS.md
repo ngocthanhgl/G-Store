@@ -655,3 +655,40 @@ assert the old behavior - see MarkdownTest below).
   literal - use double quotes for newlines. (3) PS -replace replaces ALL
   occurrences (caused an import dup). (4) Non-ASCII in edit oldStrings
   breaks matching - use ASCII spans or line-number surgery.
+
+## 26. v1.0.0 record - Aurora tiles, condensed type, icon diet, lazy README, AMOLED
+
+- Home category rails now use RailCard (faithful Aurora AppListItem port:
+  80dp tile, 72dp icon, 2-line label, tap-only, no fav/star). CardDensity
+  got real meaning: grids show RailCard tiles under COMPACT (new default,
+  was COMFORTABLE) and big GridCards under COMFORTABLE; lists keep RepoCard
+  rows. Rails always tile and ignore density.
+- Typeface: Roboto Condensed variable TTF (ofl/robotocondensed, 363 KB)
+  in designsystem res/font, FontFamily instances at wght 400/500/700 via
+  FontVariation, applied to the whole M3 scale (this M3 release has
+  neither Typography(defaultFontFamily) nor a no-arg Typography()
+  constructor - the base scale is read from ambient MaterialTheme and
+  copied). System "sans-serif-condensed" was rejected (no such Compose
+  FontFamily(String) constructor exists).
+- Icon diet: 14 used ic_fluent_*_24_regular vectors extracted from the
+  Gradle-cached AAR (14/14, 466-2512 bytes each) into core/ui
+  res/drawable + fluent_default_icon_tint (#212121, from the AAR's own
+  color file); Fluent.kt and MainActivity use local R; upstream AAR
+  (~29MB, 34,128 drawables, 0.03% used) dropped from 6 modules;
+  material-icons-core/extended dropped from 10 modules (zero Kotlin
+  imports); empty app res/drawable deleted. Expected APK ~50MB -> ~20MB.
+- Details: inline ReadmeCard deleted, replaced by a README FilterChip pill
+  to the existing full Readme route (which self-fetches); DetailsViewModel
+  no longer fetches README (param/imports/state/loadReadme removed);
+  details opens with zero README wait.
+- AMOLED theme: ThemeMode.AMOLED (persisted as enum name, no migration);
+  GStoreTheme bypasses dynamic color and forces all surfaces black +
+  on-surfaces white; MainActivity treats it as dark for system bars;
+  Settings row picks it up automatically; label "AMOLED".
+- Version: versionCode 1 + versionName 1.0.0 per explicit user override
+  (user accepts uninstall/reinstall; update-path ordering knowingly
+  broken). Repo renamed to g-store-android: origin URL + CATALOG_REPO
+  updated (old name worked via redirect).
+- Lessons: (1) Set-Content fails when the parent dir is missing - New-Item
+  it first. (2) Dropping a resource AAR requires vendoring every
+  referenced resource (here: the tint color), not just the drawables.

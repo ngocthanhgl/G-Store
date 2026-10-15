@@ -1,6 +1,6 @@
 package dev.gstore.app
 
-import com.microsoft.fluent.mobile.icons.R as FluentRes
+import dev.gstore.ui.R as UiRes
 
 import android.app.Activity
 import android.content.Intent
@@ -116,10 +116,10 @@ private data class TopDestination(
 )
 
 private val DESTINATIONS = listOf(
-    TopDestination(Home, "Home", FluentRes.drawable.ic_fluent_home_24_regular),
-    TopDestination(Search, "Search", FluentRes.drawable.ic_fluent_search_24_regular),
-    TopDestination(Downloads, "Installed", FluentRes.drawable.ic_fluent_arrow_download_24_regular),
-    TopDestination(Settings, "Settings", FluentRes.drawable.ic_fluent_settings_24_regular),
+    TopDestination(Home, "Home", UiRes.drawable.ic_fluent_home_24_regular),
+    TopDestination(Search, "Search", UiRes.drawable.ic_fluent_search_24_regular),
+    TopDestination(Downloads, "Installed", UiRes.drawable.ic_fluent_arrow_download_24_regular),
+    TopDestination(Settings, "Settings", UiRes.drawable.ic_fluent_settings_24_regular),
 )
 
 class MainActivity : ComponentActivity() {
@@ -143,6 +143,7 @@ class MainActivity : ComponentActivity() {
                 dev.gstore.datastore.ThemeMode.LIGHT -> false
                 dev.gstore.datastore.ThemeMode.DARK -> true
                 dev.gstore.datastore.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                dev.gstore.datastore.ThemeMode.AMOLED -> true
             }
             GStoreTheme(settings = appearance) {
                 SystemBarContrast(darkTheme)
@@ -570,7 +571,7 @@ private fun Content(
             val vm: DetailsViewModel = viewModel(
                 key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway, container.readme)
+                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway)
                 },
             )
             val state by vm.state.collectAsState()

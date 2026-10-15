@@ -21,7 +21,7 @@ import java.io.IOException
 
 private val Context.store by preferencesDataStore(name = "gstore_prefs")
 
-enum class ThemeMode { LIGHT, DARK, SYSTEM }
+enum class ThemeMode { LIGHT, DARK, SYSTEM, AMOLED }
 enum class HomeLayout { GRID, LIST }
 enum class CardDensity { COMFORTABLE, COMPACT }
 
@@ -30,7 +30,7 @@ data class AppearanceSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val accentArgb: Int? = null,
-    val density: CardDensity = CardDensity.COMFORTABLE,
+    val density: CardDensity = CardDensity.COMPACT,
     val layout: HomeLayout = HomeLayout.LIST,
     val cardRadiusDp: Int = 12,
     val reduceMotion: Boolean = false,
@@ -94,8 +94,8 @@ class PreferencesRepository(private val context: Context) {
                 .getOrDefault(ThemeMode.SYSTEM),
             dynamicColor = p[Keys.DYNAMIC_COLOR] ?: true,
             accentArgb = p[Keys.ACCENT],
-            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMFORTABLE") }
-                .getOrDefault(CardDensity.COMFORTABLE),
+            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMPACT") }
+                .getOrDefault(CardDensity.COMPACT),
             layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "LIST") }
                 .getOrDefault(HomeLayout.LIST),
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).

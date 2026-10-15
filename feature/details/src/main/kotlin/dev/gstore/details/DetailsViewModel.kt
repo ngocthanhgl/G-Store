@@ -7,7 +7,6 @@ import dev.gstore.data.AssetKind
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.Eligibility
 import dev.gstore.data.InstalledAppsGateway
-import dev.gstore.data.ReadmeRepository
 import dev.gstore.data.artifactOf
 import dev.gstore.data.classifyAsset
 import dev.gstore.database.DownloadRecord
@@ -15,18 +14,13 @@ import dev.gstore.model.ApkArtifact
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
-import dev.gstore.ui.Block
-import dev.gstore.ui.parseMarkdown
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** One row of the artifact chooser — non-APKs labeled, never hidden. */
 data class AssetRow(
@@ -53,8 +47,6 @@ data class DetailsUiState(
     val selectedReleaseId: Long? = null,
     val assetRows: List<AssetRow> = emptyList(),
     val hero: HeroDlState = HeroDlState.IdleDownload,
-    /** Parsed README blocks for the inline expandable preview. */
-    val readmeBlocks: List<Block> = emptyList(),
     val loadingAssets: Boolean = false,
     /** True while the APK scan over cached releases is still running. */
     val scanningApks: Boolean = false,
@@ -89,7 +81,6 @@ class DetailsViewModel(
     private val catalog: CatalogRepository,
     private val tracker: DownloadTracker,
     private val installed: InstalledAppsGateway,
-    private val readme: ReadmeRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -145,21 +136,6 @@ class DetailsViewModel(
             _state.value = _state.value.copy(syncing = false)
         }
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
-        val resolved = repo
-        if (resolved != null) {
-            val parts = resolved.fullName.split('/')
-            if (parts.size == 2) loadReadme(parts[0], parts[1], resolved.fullName)
-        }
-    }
-
-    /** Inline README preview: refresh, then parse off the main thread. */
-    private fun loadReadme(owner: String, name: String, fullName: String) {
-        viewModelScope.launch {
-            runCatching { readme.refresh(owner, name) }
-            val markdown = readme.observe(fullName).first()?.markdown ?: return@launch
-            val blocks = withContext(Dispatchers.Default) { parseMarkdown(markdown) }
-            _state.value = _state.value.copy(readmeBlocks = blocks)
-        }
     }
 
     /**

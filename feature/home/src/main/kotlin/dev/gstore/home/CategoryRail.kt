@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -29,7 +28,7 @@ import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
-import dev.gstore.ui.GridCard
+import dev.gstore.ui.RailCard
 import dev.gstore.ui.SkeletonRows
 
 internal fun apkBadgeOf(signals: RepoSignals): ApkBadge =
@@ -73,15 +72,9 @@ fun CategoryRail(
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(top, key = { it.repo.id }) { signals ->
-                GridCard(
+                RailCard(
                     repo = signals.repo,
-                    isFavorite = signals.repo.id in favorites,
-                    apkBadge = apkBadgeOf(signals),
                     onOpen = { onOpen(signals.repo) },
-                    onToggleFavorite = { onToggleFavorite(signals.repo) },
-                    modifier = Modifier.width(160.dp),
-                    cardRadiusDp = cardRadiusDp,
-                    compact = true,
                 )
             }
         }
