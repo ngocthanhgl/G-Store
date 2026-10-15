@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-15T05:55:45.703534+00:00",
+ "scanned_at": "2026-10-15T06:59:42.371465+00:00",
  "tool": "tools/scan.py",
  "query_set": 4,
  "queries": [
@@ -20,6 +20,6 @@
  "truncated": false,
  "deadline_hit": false,
  "complete": false,
- "error": "Traceback (most recent call last):\n  File \"/home/runner/work/g-store-android/g-store-android/tools/scan.py\", line 339, in main\n    candidates = search_candidates(queries)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/g-store-android/g-store-android/tools/scan.py\", line 222, in search_candidates\n    status, data, _ = api_get(\"/search/repositories?\" + params)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/g-store-android/g-store-android/tools/scan.py\", line 184, in api_get\n    raw = resp.read()\n          ^^^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 500, in read\n    s = self._safe_read(self.length)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 650, in _safe_read\n    raise IncompleteRead(data, amt - len(data))\nhttp.client.IncompleteRead: IncompleteRead(780160 bytes read, 851651 more expected)\n",
- "duration_s": 267.1
+ "error": "Traceback (most recent call last):\n  File \"/home/runner/work/G-Store/G-Store/tools/scan.py\", line 339, in main\n    candidates = search_candidates(queries)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/G-Store/G-Store/tools/scan.py\", line 222, in search_candidates\n    status, data, _ = api_get(\"/search/repositories?\" + params)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/G-Store/G-Store/tools/scan.py\", line 184, in api_get\n    raw = resp.read()\n          ^^^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 500, in read\n    s = self._safe_read(self.length)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/http/client.py\", line 650, in _safe_read\n    raise IncompleteRead(data, amt - len(data))\nhttp.client.IncompleteRead: IncompleteRead(747592 bytes read, 884219 more expected)\n",
+ "duration_s": 266.6
 }
