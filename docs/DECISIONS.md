@@ -571,3 +571,23 @@ before retrying.
   (2) material-icons-core is filled-only; outlined/rounded/sharp live in
   material-icons-extended. (3) PS -match is case-insensitive too - use
   -cmatch for BUILD/error greps ('preBuild' matches 'BUILD').
+
+## 24 - CI red from unexecuted index tests, fixed (2026-10-15)
+- Release v0.10.1 published fine (Release workflow green) but CI failed at
+  'Unit tests (all modules)': the parseIndex/importIndex tests were written
+  against a FLAT row model that never existed (CatalogIndexRow) while the
+  real parser + bot output are NESTED (CatalogIndexEntry{repo, release?}).
+  Test compile failed on CI; local assemble had never compiled test sources.
+- Fixed tests to the real model (nested JSON fixtures; importIndex test uses
+  real release id 70L, not an invented synthetic key). Full suite now
+  113/113 green locally; pushed 96ce872 (+ bot index) as 7188f73; CI
+  completed/success on that head. No new tag: the fix touches test files
+  only, shipped APK behavior unchanged.
+- Bot index verified end-to-end: catalog/index.json from the scheduled bot
+  has 772 entries / 683KB (under the 4MiB cap), nested shape, 0 entries
+  missing full_name/tag; top rustdesk/rustdesk 125,674 stars. The launch
+  pull path (index -> parseIndex -> importIndex) is proven against live
+  bot output, not just fixtures.
+- Lesson: 'skip tests' orders never cover CI - CI runs the suite, so any
+  committed test must at least COMPILE; run test-compile before pushing
+  even when test execution is waived.
