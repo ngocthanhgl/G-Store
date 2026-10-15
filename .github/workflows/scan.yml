@@ -26,14 +26,14 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v5
       - name: Run catalog scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_CHECK: 8000
-          SCAN_DEADLINE_S: 18000 # 300 min soft deadline inside a 360 min job
+          MAX_CHECK: 15000
+          SCAN_DEADLINE_S: 12000 # 200 min soft deadline inside a 240 min job
         # The script always writes partial results + meta.json, even on
         # failure — the commit step must still run. But a nonzero exit with
         # NO catalog changes means nothing was written at all, which must be
@@ -58,5 +58,8 @@ jobs:
             fi
           else
             git commit -m "catalog: daily APK scan $(date -u +%F)" &&
-            git push
+            # A second scan run may have pushed first (concurrency queues
+            # starts but each job checks out at start): rebase and retry
+            # once instead of going red on a non-fast-forward push.
+            (git push || (git pull --rebase origin main && git push))
           fi

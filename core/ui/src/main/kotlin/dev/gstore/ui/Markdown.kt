@@ -105,18 +105,19 @@ fun isSafeHref(href: String): Boolean {
  * Resolves a relative link/image against the repository context.
  * [forImage]=true resolves against raw.githubusercontent.com (actual file bytes).
  */
-fun resolveRelative(href: String, owner: String, repo: String, forImage: Boolean): String {
+fun resolveRelative(href: String, owner: String, repo: String, forImage: Boolean, branch: String = "main"): String {
     val trimmed = href.trim()
     if (trimmed.startsWith("#")) return "https://github.com/$owner/$repo$trimmed"
     val lower = trimmed.lowercase()
     if (lower.startsWith("http://") || lower.startsWith("https://")) return trimmed
+    val ref = branch.ifBlank { "main" }
     if (trimmed.startsWith("/")) {
         val path = trimmed.trimStart('/')
-        return if (forImage) "https://raw.githubusercontent.com/$owner/$repo/HEAD/$path"
+        return if (forImage) "https://raw.githubusercontent.com/$owner/$repo/$ref/$path"
         else "https://github.com/$path"
     }
-    val base = if (forImage) "https://raw.githubusercontent.com/$owner/$repo/HEAD/"
-    else "https://github.com/$owner/$repo/blob/HEAD/"
+    val base = if (forImage) "https://raw.githubusercontent.com/$owner/$repo/$ref/"
+    else "https://github.com/$owner/$repo/blob/$ref/"
     return base + normalizePath(trimmed.removePrefix("./"))
 }
 
@@ -167,7 +168,7 @@ private fun spansOf(node: Node): List<Span> {
             is Strikethrough -> out += Span.Strike(spansOf(child))
             is SoftLineBreak -> out += Span.Text(" ")
             is HardLineBreak -> out += Span.Text("\n")
-            is HtmlInline -> out += Span.Text(child.literal)
+            is HtmlInline -> out += htmlSpans(child.literal)
             is Link -> {
                 val href = child.destination
                 val inner = spansOf(child)
@@ -203,7 +204,7 @@ private fun blocksOf(node: Node): List<Block> {
             is BlockQuote -> out += Block.Quote(blocksOf(child))
             is org.commonmark.ext.gfm.tables.TableBlock -> out += tableOf(child)
             is ThematicBreak -> out += Block.Rule
-            is HtmlBlock -> out += Block.RawText(child.literal.trim())
+            is HtmlBlock -> out += htmlBlocks(child.literal.trim())
             else -> {
                 val text = plainText(child)
                 if (text.isNotBlank()) out += Block.RawText(text)
@@ -259,4 +260,106 @@ private fun tableOf(table: Node): Block {
         }
     }
     return Block.Table(headers, rows)
+}
+
+private val HTML_TAG = Regex("<(/?)([a-zA-Z][a-zA-Z0-9]*)((?:\"[^\"]*\"|'[^']*'|[^\"'>])*)>")
+private val HTML_ATTR = Regex("([a-zA-Z-]+)\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))")
+private val HTML_CLOSE = Regex("</%s\\s*>", RegexOption.IGNORE_CASE)
+
+private fun htmlAttr(attrs: String, name: String): String? {
+    for (m in HTML_ATTR.findAll(attrs)) {
+        if (!m.groupValues[1].equals(name, ignoreCase = true)) continue
+        return listOf(m.groupValues[3], m.groupValues[4], m.groupValues[5]).firstOrNull { it.isNotEmpty() }
+    }
+    return null
+}
+
+private fun decodeEntities(s: String): String =
+    s.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+        .replace("&quot;", "\"").replace("&#39;", "'").replace("&nbsp;", " ")
+
+private fun stripTags(html: String): String = decodeEntities(HTML_TAG.replace(html, "")).trim()
+
+/** Inline spans from an HTML fragment: links and images survive, the rest becomes text. */
+private fun htmlSpans(html: String): List<Span> {
+    val out = mutableListOf<Span>()
+    var i = 0
+    while (i < html.length) {
+        val m = HTML_TAG.find(html, i)
+        if (m == null) {
+            val t = decodeEntities(html.substring(i)).trim()
+            if (t.isNotEmpty()) out += Span.Text(t)
+            break
+        }
+        if (m.range.first > i) {
+            val t = decodeEntities(html.substring(i, m.range.first)).trim()
+            if (t.isNotEmpty()) out += Span.Text(t)
+        }
+        val closing = m.groupValues[1] == "/"
+        val name = m.groupValues[2].lowercase()
+        val attrs = m.groupValues[3]
+        val after = m.range.last + 1
+        when {
+            !closing && (name == "script" || name == "style" || name == "iframe") -> {
+                val close = Regex(HTML_CLOSE.pattern.format(name)).find(html, after)
+                i = close?.range?.last?.plus(1) ?: html.length
+            }
+            !closing && name == "a" -> {
+                val href = htmlAttr(attrs, "href")
+                val closeAt = html.indexOf("</a>", after, ignoreCase = true)
+                val inner = if (closeAt >= 0) html.substring(after, closeAt) else html.substring(after)
+                i = if (closeAt >= 0) closeAt + 4 else html.length
+                val text = stripTags(inner)
+                if (href != null && isSafeHref(href)) {
+                    out += Span.Hyperlink(href, listOf(Span.Text(text.ifBlank { href })), safe = true)
+                } else if (text.isNotEmpty()) out += Span.Text(text)
+            }
+            !closing && name == "img" -> {
+                val src = htmlAttr(attrs, "src")
+                if (src != null) out += Span.Picture(htmlAttr(attrs, "alt") ?: "", src)
+                i = after
+            }
+            !closing && name == "br" -> {
+                out += Span.Text(" ")
+                i = after
+            }
+            else -> i = after
+        }
+    }
+    return out
+}
+
+/** Blocks from an HTML fragment: headings, lists, links/images survive as real blocks. */
+private fun htmlBlocks(html: String): List<Block> {
+    if (html.isBlank()) return emptyList()
+    val trimmed = html.trim()
+    val out = mutableListOf<Block>()
+    val heading = Regex("^<h([1-6])\\b[^>]*>(.*)</h[1-6]>$", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(trimmed)
+    if (heading != null) {
+        val text = stripTags(heading.groupValues[2])
+        if (text.isNotEmpty()) out += Block.Heading(heading.groupValues[1].toInt(), text, slugify(text))
+        return out
+    }
+    val list = Regex("^<(ul|ol)\\b[^>]*>(.*)</(ul|ol)>$", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(trimmed)
+    if (list != null) {
+        val items = Regex("<li\\b[^>]*>(.*?)</li>", RegexOption.DOT_MATCHES_ALL).findAll(list.groupValues[2]).map { li ->
+            val text = stripTags(li.groupValues[1])
+            MdListItem(listOf(Span.Text(text)), null, emptyList())
+        }.filter { it.spans.isNotEmpty() }.toList()
+        if (items.isNotEmpty()) out += Block.ListBlock(ordered = list.groupValues[1].equals("ol", ignoreCase = true), items)
+        return out
+    }
+    if (trimmed.startsWith("<pre", ignoreCase = true)) {
+        val text = stripTags(trimmed)
+        if (text.isNotEmpty()) out += Block.CodeBlock(null, text)
+        return out
+    }
+    if (trimmed.contains("<img", ignoreCase = true) || trimmed.contains("<a", ignoreCase = true)) {
+        val spans = htmlSpans(trimmed)
+        if (spans.isNotEmpty()) out += Block.Paragraph(spans)
+        return out
+    }
+    val text = stripTags(trimmed)
+    if (text.isNotEmpty()) out += Block.Paragraph(listOf(Span.Text(text)))
+    return out
 }

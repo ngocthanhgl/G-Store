@@ -56,6 +56,8 @@ data class DetailsUiState(
     /** Parsed README blocks for the inline expandable preview. */
     val readmeBlocks: List<Block> = emptyList(),
     val loadingAssets: Boolean = false,
+    /** True while the APK scan over cached releases is still running. */
+    val scanningApks: Boolean = false,
     val isFavorite: Boolean = false,
     val syncing: Boolean = false,
     val notice: String? = null,
@@ -130,6 +132,18 @@ class DetailsViewModel(
             }
             _state.value = _state.value.copy(syncing = false)
         }
+        // Slim scanner rows have metadata but no assets: full-sync on entry
+        // so the screen never reports "no APK" for data it never fetched.
+        // A failed sync leaves the row STALE, so a later refresh retries.
+        val resolvedName = repo?.fullName?.takeIf { it.isNotBlank() } ?: fullName
+        if (repo != null && resolvedName.isNotBlank() && catalog.needsFullSync(resolvedName)) {
+            _state.value = _state.value.copy(syncing = true)
+            when (val result = catalog.sync(resolvedName)) {
+                is Outcome.Ok -> repo = catalog.getByFullName(resolvedName)
+                is Outcome.Err -> _state.value = _state.value.copy(notice = result.failure)
+            }
+            _state.value = _state.value.copy(syncing = false)
+        }
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
         val resolved = repo
         if (resolved != null) {
@@ -152,9 +166,15 @@ class DetailsViewModel(
      * APK-only scope: find releases shipping at least one eligible APK and
      * prefer them for selection. Runs off the collector so a slow repo never
      * blocks the release list; stale results are discarded when releases
-     * change underneath.
+     * change underneath. [scanningApks] lets the hero show "finding" instead
+     * of "no APK" while this runs — the generation guard keeps overlapping
+     * scans from clearing each other's flag.
      */
+    private var scanGen = 0
+
     private fun scanApkReleases(releases: List<Release>) {
+        val gen = ++scanGen
+        _state.value = _state.value.copy(scanningApks = true)
         viewModelScope.launch {
             val ids = releases.filter { rel ->
                 runCatching {
@@ -164,12 +184,20 @@ class DetailsViewModel(
                     }
                 }.getOrDefault(false)
             }.map { it.id }.toSet()
+            if (gen != scanGen) return@launch // superseded by a newer scan
             val current = _state.value
-            if (current.releases != releases) return@launch // superseded
+            if (current.releases != releases) {
+                _state.value = current.copy(scanningApks = gen == scanGen)
+                return@launch // superseded
+            }
             val selected = current.selectedReleaseId
             val next = if (selected != null && selected in ids) selected
             else releases.firstOrNull { it.id in ids }?.id
-            var updated = current.copy(apkReleaseIds = ids, selectedReleaseId = next)
+            var updated = current.copy(
+                apkReleaseIds = ids,
+                selectedReleaseId = next,
+                scanningApks = false,
+            )
             if (next == null) updated = updated.copy(assetRows = emptyList(), loadingAssets = false)
             _state.value = updated
             if (next != null && next != selected) loadAssets(next)

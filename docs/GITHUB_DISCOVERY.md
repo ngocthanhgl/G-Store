@@ -54,29 +54,31 @@ repo; the app pulls it on launch so Home always has a list.
 - Workflow: `.github/workflows/scan.yml` — cron `0 2 * * *` (daily) +
   `workflow_dispatch` + push trigger on `tools/scan.py` / `scan.yml` itself
   (so the first scan runs immediately after merge without waiting for cron).
-  `permissions: contents: write`; 360-min timeout; commits
-  `catalog/apps.json` + `catalog/meta.json` only when bytes changed. The scan
+  `permissions: contents: write`; 240-min timeout; commits
+  `catalog/apps.json` + `catalog/index.json` + `catalog/meta.json` only when bytes changed. The scan
   step records its exit code and the commit step has `if: always()`, so partial
   results are committed even when the run hits its soft deadline or an error —
   while a nonzero exit with zero catalog changes fails the job red.
-- Scanner: `tools/scan.py` (stdlib only, no deps). Ten rotating query
-  sets (day-of-year % 10) across languages (Kotlin/Java/Dart/C#/Python/C++/
-  Rust/Go/Scala), game engines (Godot/Unity/LÖVE/emulators), app domains
-  (media, system, productivity, comms, maps, finance, fitness, FOSS
-  ecosystem), and star tiers. Major languages are split into tiers
-  (`stars:10..100` / `100..1000` / `>1000`) because search pagination caps
+- Scanner: `tools/scan.py` (stdlib only, no deps). Fourteen rotating query
+  sets (day-of-year % 14) across languages (Kotlin/Java/Dart/C#/Python/C++/
+  Rust/Go/Scala/C/Lua/GDScript/JS/TS), game engines (Godot/Unity/LÖVE/emulators),
+  APK topics (`topic:apk`, `topic:android-app`), form factors (TV/Wear),
+  app domains (media, system, productivity, comms, maps, finance, fitness,
+  FOSS ecosystem), and star tiers including the low-star tail (`stars:<10`).
+  Major languages are split into tiers
+  (`stars:<10` / `10..100` / `100..1000` / `>1000`) because search pagination caps
   at 1,000 results per query — one query can never cover a whole language.
   Every query carries `archived:false` so dead repos never consume check
   budget. Up to 10 pages × 100 per query; dedupe, stars-desc, cap
-  `MAX_CHECK=8000` candidates (~1,600 req/hr over a 5 h run, far under the
-  GITHUB_TOKEN 5,000/hr budget). A 300-minute soft deadline
-  (`SCAN_DEADLINE_S=18000`) stops starting new repos in time for the
-  360-min job timeout; meta.json flags `deadline_hit` / `complete` /
+  `MAX_CHECK=15000` candidates (~4,500 req/hr over a 200 min run, under the
+  GITHUB_TOKEN 5,000/hr budget). A 200-minute soft deadline
+  (`SCAN_DEADLINE_S=12000`) stops starting new repos in time for the
+  240-min job timeout; meta.json flags `deadline_hit` / `complete` /
   `error` honestly. Each run MERGES into the previous catalog (keyed by
   repo id): re-checked entries refresh and stamp `last_verified`; repos
   re-checked with no APK release are dropped; entries unseen for
   `STALE_DAYS=30` are dropped; pre-`last_verified` entries were
-  grandfathered with the merge date. Cap `ENTRY_CAP=8000`.
+  grandfathered with the merge date. Cap `ENTRY_CAP=12000`.
   Per repo: `releases?per_page=10`, first stable release with an APK asset
   wins, else newest prerelease-with-APK (flagged `prerelease: true`);
   archived / disabled / draft-only repos skipped. Rate-limit guard: sleeps
@@ -112,7 +114,7 @@ repo; the app pulls it on launch so Home always has a list.
 ## 7 - Slim launch index (2026-10-12)
 The app no longer pulls catalog/apps.json at launch (it passed 2.8MB and
 tripped the 2MiB response cap). The bot also writes catalog/index.json
-(top 3000 by stars, descriptions capped at 240 chars, no asset lists,
+(top 3500 by stars, descriptions capped at 240 chars, no asset lists,
 ~0.5MB); the app pulls the index and imports repo+release rows only.
 Full per-release asset lists lazy-load when a details screen opens.
 scan.yml commits both files.

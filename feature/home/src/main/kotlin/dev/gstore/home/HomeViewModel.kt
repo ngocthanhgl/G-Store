@@ -230,6 +230,7 @@ class HomeViewModel(
     fun addRepository(rawInput: String) {
         val input = rawInput.trim().removePrefix("https://github.com/").removeSuffix("/")
         viewModelScope.launch {
+            prefs.addManualRepo(input)
             when (val result = catalog.sync(input)) {
                 is Outcome.Ok -> banner.value = "Added $input"
                 is Outcome.Err -> banner.value = "Could not add $input: ${result.failure}"

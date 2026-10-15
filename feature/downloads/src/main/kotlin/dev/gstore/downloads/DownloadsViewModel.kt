@@ -5,14 +5,18 @@ import androidx.lifecycle.viewModelScope
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.InstalledAppsGateway
 import dev.gstore.data.UpdateState
+import dev.gstore.data.classifyAsset
 import dev.gstore.data.resolveUpdateState
 import dev.gstore.database.DownloadRecord
+import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.datastore.TokenStore
+import dev.gstore.model.Repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -34,6 +38,8 @@ data class DownloadsUiState(
     val active: List<DownloadRecord> = emptyList(),
     val history: List<DownloadRecord> = emptyList(),
     val installed: List<InstalledRow> = emptyList(),
+    val favorites: List<Repository> = emptyList(),
+    val manual: List<Repository> = emptyList(),
     val installedRefreshing: Boolean = false,
     val sort: InstalledSort = InstalledSort.NAME,
     val showLoginPrompt: Boolean = false,
@@ -45,6 +51,7 @@ class DownloadsViewModel(
     private val installedApps: InstalledAppsGateway,
     private val catalog: CatalogRepository,
     private val tokens: TokenStore,
+    private val prefs: PreferencesRepository,
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
@@ -67,12 +74,33 @@ class DownloadsViewModel(
         notice,
     ) { refreshing, prompt, message -> RefreshUi(refreshing, prompt, message) }
 
+    private val favorites = MutableStateFlow<List<Repository>>(emptyList())
+    private val manual = MutableStateFlow<List<Repository>>(emptyList())
+
+    init {
+        viewModelScope.launch {
+            catalog.observeFavoriteIds().collectLatest { ids ->
+                catalog.observeByIds(ids.toList()).collectLatest { favorites.value = it }
+            }
+        }
+        viewModelScope.launch {
+            prefs.manualRepos.collectLatest { names ->
+                manual.value = names.mapNotNull { name ->
+                    runCatching { catalog.getByFullName(name) }.getOrNull()
+                }
+            }
+        }
+    }
+
+    private val shelves = combine(favorites, manual) { f, m -> f to m }
+
     val state: StateFlow<DownloadsUiState> = combine(
         repository.observeAll(),
         installed,
         sort,
         refreshUi,
-    ) { records, rows, order, ui ->
+        shelves,
+    ) { records, rows, order, ui, shelfPair ->
         val (running, done) = records.partition {
             it.status == "QUEUED" || it.status == "ACTIVE"
         }
@@ -83,6 +111,8 @@ class DownloadsViewModel(
             active = running,
             history = history,
             installed = sortRows(rows, order),
+            favorites = shelfPair.first,
+            manual = shelfPair.second,
             installedRefreshing = ui.refreshing,
             sort = order,
             showLoginPrompt = ui.prompt,
@@ -173,6 +203,42 @@ class DownloadsViewModel(
 
     fun forget(assetId: Long) {
         viewModelScope.launch { repository.forget(assetId) }
+    }
+
+    fun removeManualRepo(fullName: String) {
+        viewModelScope.launch { prefs.removeManualRepo(fullName) }
+    }
+
+    /**
+     * One-tap APK for a hearted repo: latest stable release carrying an
+     * eligible APK wins, prereleases are the fallback. Surfaces a notice
+     * when nothing downloadable exists — never a silent no-op.
+     */
+    fun downloadFavorite(repo: Repository) {
+        viewModelScope.launch {
+            val started = runCatching {
+                val releases = catalog.observeReleases(repo.id).first()
+                val ordered = releases.filter { !it.prerelease } + releases.filter { it.prerelease }
+                for (rel in ordered) {
+                    val apk = catalog.allAssets(rel.id).firstOrNull {
+                        classifyAsset(it.filename, it.contentType, it.size).eligible
+                    }
+                    if (apk != null) {
+                        return@runCatching repository.start(
+                            assetId = apk.id,
+                            repoFullName = repo.fullName,
+                            releaseTag = rel.tag,
+                            rawFilename = apk.filename,
+                            url = apk.downloadUrl,
+                            expectedSize = apk.size,
+                            expectedDigest = apk.digest,
+                        )
+                    }
+                }
+                false
+            }.getOrDefault(false)
+            if (!started) notice.value = "No downloadable APK found for ${repo.fullName}"
+        }
     }
 
     fun recordFor(assetId: Long) = repository.observe(assetId)

@@ -591,3 +591,67 @@ before retrying.
 - Lesson: 'skip tests' orders never cover CI - CI runs the suite, so any
   committed test must at least COMPILE; run test-compile before pushing
   even when test execution is waived.
+
+## 25 - Overhaul batch W1-W6+W8 (v0.11.0): sync truth, README HTML, categories, shelves, Fluent, bot max
+User 10-item overhaul in build mode: no test EXECUTION, but CI must stay
+green (so behavior-changing edits still require updating the tests that
+assert the old behavior - see MarkdownTest below).
+
+- W1 (false "no APK" + hero gated behind release tap): CatalogRepository
+  .needsFullSync (syncState != FRESH); DetailsViewModel.load() auto-syncs
+  slim index rows; scanGen counter + scanningApks state; hero shows
+  indeterminate "Finding APK..." (findingApk = syncing||loadingAssets||
+  scanningApks) instead of a false negative. classifyAsset itself was
+  already correct; not a bot problem.
+- W2 (nav/state amnesia): navigateTopLevel (same-tab no-op + popBackStack
+  hard-reset fallback); Home/Search/Downloads VMs hoisted to activity
+  scope; remember -> rememberSaveable for dialogs/panels/expanded;
+  LazyListState.Saver scroll retention on Home/Search/Downloads/Details.
+- W3 (categories): CategoryRail.kt (top-5 stars-desc rails + See-all,
+  CategoryFullScreen grid/list honoring layout pref); HomeScreen renders
+  rails for categoriesPresent; MainActivity CategoryFull(name) route with
+  valueOf guard; GridCard Row fillMaxWidth pushes heart to card top-right.
+- W4 (README raw HTML + dead images): Markdown.kt htmlSpans() tokenizer
+  (a -> Hyperlink/strip, img -> Picture, br -> space, script/style/iframe
+  dropped WITH content) + stripTags/entity decoder + htmlBlocks()
+  (h1-6, ul/ol, pre, img/a paragraphs); HtmlInline -> htmlSpans,
+  HtmlBlock -> htmlBlocks. Branch threading killed the HEAD bug:
+  resolveRelative gains branch="main" (raw.githubusercontent has no HEAD
+  ref); threaded through BlockView/ListItemView/SpanText + 3 callsites
+  (Details passes repo.defaultBranch, ReadmeViewModel resolves it from
+  catalog via new CatalogRepository param, changelog passes "main").
+  Coil loader was ALREADY global in GStoreApp.onCreate (corrects the old
+  claim) - no change needed. MarkdownTest `quotes rules and raw html`
+  updated RawText -> Paragraph: mandatory under no-test orders, otherwise
+  CI goes red on the stale assertion.
+- W5 (Installed shelves): PreferencesRepository.manualRepos set +
+  add/remove (tracked on every AddRepoDialog submit); DownloadsVM
+  favourites shelf (observeFavoriteIds -> observeByIds) + manual shelf
+  (getByFullName resolution) + downloadFavorite (latest stable eligible
+  APK via classifyAsset, prerelease fallback, notice when none);
+  FavoriteRow/ManualRow; InstalledRow gains Uninstall (MainActivity fires
+  ACTION_DELETE, no permission needed). Combine stays at 5 via nested
+  shelves flow.
+- W6 (Fluent icons, 31 sites / 13 icons, all compile-green): Maven Central
+  latest is 1.1.315 (upstream README's 1.1.344 unpublished) -
+  com.microsoft.design:fluent-system-icons + artifact{type/extension=aar}
+  in 6 modules (plain notation resolves the jar variant, which has no
+  resources). Non-transitive R (AGP 8 default) means dep resources are
+  invisible in the module R: reference the AAR's own R via alias
+  (com.microsoft.fluent.mobile.icons.R as FluentRes). Static nav lists
+  cannot hold @Composable Painters: TopDestination.icon is an Int res id.
+  Named imageVector= -> painter=; EmptyContent takes Painter. Launcher
+  icon untouched per user answer.
+- W8 (bot max): 14 rotating sets (added Rust/Go/Scala/C stacks,
+  topic:apk + topic:android-app, TV/Wear, stars:<10 tail, podcast/ebook/
+  expense/habit domains); MAX_CHECK 15000 (~4,500 req/hr, under 5,000
+  budget); ENTRY_CAP 12000; INDEX_CAP 3500 (app 4MiB cap untouched);
+  SCAN_DEADLINE_S 12000 with workflow timeout-minutes 240. Rotation uses
+  len(QUERY_SETS) so no index change was needed.
+- Lessons: (1) edit-tool parameters take LITERAL text - JSON-style \"
+  sequences were written into files as backslashes and broke compilation;
+  write plain quotes; the PS repair is [char]92-based Replace on the
+  affected line range. (2) PS single-quoted strings keep backtick-n
+  literal - use double quotes for newlines. (3) PS -replace replaces ALL
+  occurrences (caused an import dup). (4) Non-ASCII in edit oldStrings
+  breaks matching - use ASCII spans or line-number surgery.

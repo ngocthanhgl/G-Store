@@ -98,6 +98,16 @@ class CatalogRepository(
     suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
 
     /**
+     * Slim scanner rows carry metadata but no assets — details must full-sync
+     * before it may claim "no APK". True when the repo is unknown or its row
+     * was never fully synced (STALE from the index import).
+     */
+    suspend fun needsFullSync(fullName: String): Boolean {
+        val existing = repos.getByFullName(fullName) ?: return true
+        return existing.syncState != "FRESH"
+    }
+
+    /**
      * Merge scanner-catalog entries into Room (flow A entry point for the bot).
      * Repo metadata is always refreshed, but a FRESH fully-synced row is never
      * downgraded to STALE, and release history is only ever added to — the

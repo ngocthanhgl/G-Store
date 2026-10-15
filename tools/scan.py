@@ -8,24 +8,24 @@ tab always has a list even before any on-device sync.
 
 Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
 - GitHub has NO endpoint enumerating every repo with APK releases. This
-  scanner rotates 10 query sets (one per day) across languages, game
-  engines, app domains, and star tiers, and MERGES each run into the
-  previous catalog instead of replacing it — coverage accumulates over the
-  10-day cycle toward the whole APK-bearing surface without ever claiming
-  to be exhaustive.
+scanner rotates 14 query sets (one per day) across languages, game
+ engines, app domains, and star tiers, and MERGES each run into the
+ previous catalog instead of replacing it — coverage accumulates over the
+ 14-day cycle toward the whole APK-bearing surface without ever claiming
+ to be exhaustive.
 - Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
-  search calls + one releases call per candidate must fit comfortably, so
-  MAX_CHECK caps candidates per run (default 8000, ~1,600 req/hr over a
-  5-hour run). A 300-minute soft deadline (SCAN_DEADLINE_S) stops starting
-  new repos in time for the 360-min job timeout; partial results are
-  always written and committed, flagged in meta.json.
+ search calls + one releases call per candidate must fit comfortably, so
+ MAX_CHECK caps candidates per run (default 15000, ~4,500 req/hr over a
+ 200-minute run). A 200-minute soft deadline (SCAN_DEADLINE_S) stops starting
+ new repos in time for the 240-min job timeout; partial results are
+ always written and committed, flagged in meta.json.
 - Entries carry last_verified (ISO date). Entries unseen for STALE_DAYS
   (default 30) are dropped; a repo re-checked with no APK release is
   dropped immediately. Archived/disabled repos and drafts are excluded.
   Digest is usually null (GitHub rarely provides one).
 
 Stdlib only (urllib) so ubuntu-latest runners need no setup.
-Env: GITHUB_TOKEN (required), MAX_CHECK (default 850), OUT_DIR (default catalog).
+Env: GITHUB_TOKEN (required), MAX_CHECK (default 15000), OUT_DIR (default catalog).
 """
 import http.client
 import json
@@ -40,33 +40,34 @@ import urllib.request
 from datetime import date, datetime, timezone
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "15000"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
 # Soft deadline: the workflow kills the job at 360 min, which would discard
 # everything if files were only written at the end. Stop starting new repos
 # after DEADLINE_S and commit whatever we have (meta flags it as partial).
-DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(300 * 60)))
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(200 * 60)))
 PER_PAGE = 100
 SEARCH_PAGES = 10  # GitHub caps search pagination at 1,000 results
 RELEASES_PER_REPO = 10
-ENTRY_CAP = 8000
+ENTRY_CAP = 12000
 NOTES_CAP = 2000
 ASSETS_CAP = 20
 # Slim app index: top entries by stars, repo metadata + latest APK release
 # pointer only (no notes, no per-asset rows). The app pulls this on launch;
 # full asset lists load lazily per repo via the GitHub API on demand.
-INDEX_CAP = 3000
+INDEX_CAP = 3500
 DESC_CAP = 240
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
-# Ten query sets — one runs per day (day-of-year % 10). Every query carries
+# Fourteen query sets — one runs per day (day-of-year % 14). Every query carries
 # archived:false so dead repos never consume check budget. Major languages
 # are split into star tiers (10..100 / 100..1000 / >1000) because search
 # pagination caps at 1,000 results per query — one query can never cover a
 # whole language. Mobile stacks covered: Kotlin, Java, Dart/Flutter,
 # C#/Xamarin-MAUI, JavaScript/TypeScript, Python (Kivy/BeeWare/Chaquopy),
-# C++ NDK, Rust, Go, Scala, Godot, Unity, LÖVE.
+# C++ NDK, Rust, Go, Scala, Godot, Unity, LÖVE, APK topics, form factors
+# (TV/Wear), and the low-star tail.
 QUERY_SETS = [
     [  # Day 0 — Android headliners
         "topic:android archived:false fork:false",
@@ -126,6 +127,30 @@ QUERY_SETS = [
         "android maps navigation archived:false fork:false",
         "android finance archived:false fork:false",
         "android fitness archived:false fork:false",
+    ],
+    [  # Day 10 — compiled-native stacks
+        "android language:Rust archived:false fork:false",
+        "android language:Go archived:false fork:false",
+        "android language:Scala archived:false fork:false",
+        "android language:C archived:false fork:false",
+    ],
+    [  # Day 11 — APK topics and form factors
+        "topic:apk archived:false fork:false",
+        "topic:android-app archived:false fork:false",
+        "android tv archived:false fork:false",
+        "android wear os archived:false fork:false",
+    ],
+    [  # Day 12 — low-star long tail (pagination still caps at 1k/query)
+        "android language:Kotlin archived:false fork:false stars:<10",
+        "android language:Java archived:false fork:false stars:<10",
+        "android language:Dart archived:false fork:false stars:<10",
+        "android language:C++ archived:false fork:false stars:<10",
+    ],
+    [  # Day 13 — more everyday domains
+        "android podcast archived:false fork:false",
+        "android ebook reader archived:false fork:false",
+        "android expense tracker archived:false fork:false",
+        "android habit tracker archived:false fork:false",
     ],
 ]
 

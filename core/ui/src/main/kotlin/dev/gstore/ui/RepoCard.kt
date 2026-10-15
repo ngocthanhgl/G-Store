@@ -6,9 +6,6 @@
 package dev.gstore.ui
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +56,7 @@ fun RepoCard(
                 modifier = Modifier.size(TouchTarget),
             ) {
                 Icon(
-                    if (isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                    if (isFavorite) Fluent.Heart else Fluent.Heart,
                     contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,

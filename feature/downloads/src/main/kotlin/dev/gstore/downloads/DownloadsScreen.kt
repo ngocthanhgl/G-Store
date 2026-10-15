@@ -1,4 +1,5 @@
-package dev.gstore.downloads
+package dev.gstore.downloads
+import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,11 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +31,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.gstore.data.UpdateState
 import dev.gstore.database.DownloadRecord
+import dev.gstore.model.Repository
 import dev.gstore.model.VerificationResult
 import dev.gstore.ui.AppIcon
 import dev.gstore.ui.EmptyContent
@@ -61,6 +62,9 @@ fun DownloadsScreen(
     onInstall: (DownloadRecord) -> Unit,
     onBrowseRepo: (String) -> Unit,
     onLaunch: (String) -> Unit,
+    onUninstall: (String) -> Unit,
+    onDownloadFavorite: (Repository) -> Unit,
+    onRemoveManual: (String) -> Unit,
     onRefreshInstalled: () -> Unit,
     onSort: (InstalledSort) -> Unit,
     onOpenLogin: () -> Unit,
@@ -111,14 +115,18 @@ fun DownloadsScreen(
         }
         val current = state.installed.filter { it.updateState == UpdateState.UP_TO_DATE }
         val missing = state.installed.filter { it.updateState == UpdateState.NOT_INSTALLED }
-        if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty()) {
+        if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty() &&
+            state.favorites.isEmpty() && state.manual.isEmpty()
+        ) {
             EmptyContent(
                 message = "Nothing here yet. Pick an APK on an app's details screen.",
-                icon = Icons.Outlined.KeyboardArrowDown,
+                icon = Fluent.ArrowDownload,
             )
             return@PullToRefreshBox
         }
+        val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -131,7 +139,7 @@ fun DownloadsScreen(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onRefreshInstalled) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Check for updates")
+                        Icon(Fluent.ArrowSync, contentDescription = "Check for updates")
                     }
                 }
             }
@@ -157,6 +165,26 @@ fun DownloadsScreen(
                     }
                 }
             }
+            if (state.favorites.isNotEmpty()) {
+                item { SectionTitle("Favourites (${state.favorites.size})") }
+                items(state.favorites, key = { "f-${it.id}" }) { repo ->
+                    FavoriteRow(
+                        repo = repo,
+                        onBrowse = { onBrowseRepo(repo.fullName) },
+                        onDownload = { onDownloadFavorite(repo) },
+                    )
+                }
+            }
+            if (state.manual.isNotEmpty()) {
+                item { SectionTitle("Added by you (${state.manual.size})") }
+                items(state.manual, key = { "a-${it.id}" }) { repo ->
+                    ManualRow(
+                        repo = repo,
+                        onBrowse = { onBrowseRepo(repo.fullName) },
+                        onRemove = { onRemoveManual(repo.fullName) },
+                    )
+                }
+            }
             if (updates.isNotEmpty()) {
                 item { SectionTitle("Updates available (${updates.size})") }
                 items(updates, key = { "u-${it.record.assetId}" }) { row ->
@@ -164,6 +192,7 @@ fun DownloadsScreen(
                         row = row,
                         onBrowseRepo = onBrowseRepo,
                         onLaunch = onLaunch,
+                        onUninstall = onUninstall,
                         onInstall = onInstall,
                     )
                 }
@@ -175,6 +204,7 @@ fun DownloadsScreen(
                         row = row,
                         onBrowseRepo = onBrowseRepo,
                         onLaunch = onLaunch,
+                        onUninstall = onUninstall,
                         onInstall = onInstall,
                     )
                 }
@@ -186,6 +216,7 @@ fun DownloadsScreen(
                         row = row,
                         onBrowseRepo = onBrowseRepo,
                         onLaunch = onLaunch,
+                        onUninstall = onUninstall,
                         onInstall = onInstall,
                     )
                 }
@@ -216,6 +247,7 @@ private fun InstalledRow(
     row: InstalledRow,
     onBrowseRepo: (String) -> Unit,
     onLaunch: (String) -> Unit,
+    onUninstall: (String) -> Unit,
     onInstall: (DownloadRecord) -> Unit,
 ) {
     val record = row.record
@@ -285,8 +317,81 @@ private fun InstalledRow(
                     TextButton(onClick = { onLaunch(record.packageName ?: "") }) {
                         Text("Open")
                     }
+                    TextButton(onClick = { onUninstall(record.packageName ?: "") }) {
+                        Text("Uninstall")
+                    }
                 }
             }
+        }
+    }
+}
+
+/** Hearted repo with a one-tap APK download (latest stable eligible asset wins). */
+@Composable
+private fun FavoriteRow(
+    repo: Repository,
+    onBrowse: () -> Unit,
+    onDownload: () -> Unit,
+) {
+    Card(onClick = onBrowse, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = repo.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${repo.stars} stars",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+            Button(onClick = onDownload) { Text("Download") }
+        }
+    }
+}
+
+/** Hand-added repo (link or owner/name): browseable, removable, no download yet. */
+@Composable
+private fun ManualRow(
+    repo: Repository,
+    onBrowse: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Card(onClick = onBrowse, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = repo.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (repo.archived) "Archived on GitHub" else "${repo.stars} stars",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+            TextButton(onClick = onRemove) { Text("Remove") }
         }
     }
 }
@@ -437,3 +542,5 @@ private fun formatBytes(bytes: Long): String {
     if (mb < 1024) return "%.1f MB".format(mb)
     return "%.2f GB".format(mb / 1024.0)
 }
+
+

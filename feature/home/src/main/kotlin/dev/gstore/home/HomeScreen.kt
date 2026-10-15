@@ -1,4 +1,5 @@
-package dev.gstore.home
+package dev.gstore.home
+import dev.gstore.ui.Fluent
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -13,11 +14,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,11 +38,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
+import dev.gstore.data.categoriesPresent
+import dev.gstore.data.categoryOf
 import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
@@ -69,6 +71,7 @@ private const val COLLAPSED_COUNT = 5
 fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
+    onOpenCategory: (AppCategory) -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
     snackbar: SnackbarHostState,
@@ -78,8 +81,10 @@ fun HomeScreen(
     reduceMotion: Boolean = false,
 ) {
     val state by vm.state.collectAsState()
-    var showAdd by remember { mutableStateOf(false) }
-    var showDiscover by remember { mutableStateOf(false) }
+    var showAdd by rememberSaveable { mutableStateOf(false) }
+    var showDiscover by rememberSaveable { mutableStateOf(false) }
+    // Scroll + panel state survive tab switches (saved with the back stack).
+    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
 
     LaunchedEffect(state.banner) {
         state.banner?.let {
@@ -104,6 +109,7 @@ fun HomeScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
@@ -126,6 +132,25 @@ fun HomeScreen(
                         cardRadiusDp = cardRadiusDp,
                         reduceMotion = reduceMotion,
                         onRefresh = { vm.syncCatalog() },
+                        onOpen = onOpenRepo,
+                        onToggleFavorite = vm::toggleFavorite,
+                    )
+                }
+                // Aurora-style shelves: one horizontal rail of the top 5 per
+                // category, only for categories present in the catalog.
+                val shelves = categoriesPresent(state.catalog)
+                items(shelves, key = { it.first }) { (category, count) ->
+                    val top = state.catalog
+                        .filter { categoryOf(it.repo.topics) == category }
+                        .sortedByDescending { it.repo.stars }
+                        .take(5)
+                    CategoryRail(
+                        category = category,
+                        count = count,
+                        top = top,
+                        favorites = state.favoriteIds,
+                        cardRadiusDp = cardRadiusDp,
+                        onOpenCategory = onOpenCategory,
                         onOpen = onOpenRepo,
                         onToggleFavorite = vm::toggleFavorite,
                     )
@@ -157,9 +182,6 @@ fun HomeScreen(
     }
 }
 
-private fun apkBadgeOf(signals: RepoSignals): ApkBadge =
-    if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.NO_APK
-
 /**
  * Accepts owner/name or a full GitHub link:
  * https://github.com/owner/repo, with optional .git or sub-path suffix.
@@ -186,7 +208,7 @@ private fun HomeHeader(
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    var showProfile by remember { mutableStateOf(false) }
+    var showProfile by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -198,12 +220,12 @@ private fun HomeHeader(
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onAdd) {
-            Icon(Icons.Outlined.Add, contentDescription = "Add repository")
+            Icon(Fluent.Add, contentDescription = "Add repository")
         }
         // Profile opens login when logged out, identity + logout when in.
         if (identity.login.isBlank()) {
             IconButton(onClick = onOpenLogin) {
-                Icon(Icons.Outlined.Person, contentDescription = "Log in to GitHub")
+                Icon(Fluent.Person, contentDescription = "Log in to GitHub")
             }
         } else {
             IconButton(onClick = { showProfile = true }) {
@@ -262,7 +284,7 @@ private fun HeaderActions(
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         } else if (onRefresh != null) {
             IconButton(onClick = onRefresh) {
-                Icon(Icons.Outlined.Refresh, contentDescription = refreshDescription)
+                Icon(Fluent.ArrowSync, contentDescription = refreshDescription)
             }
         }
         if (onHide != null) {
@@ -285,7 +307,7 @@ private fun EmptyCatalog(
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            Icons.Outlined.Add,
+            Fluent.Add,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.primary,
@@ -336,7 +358,7 @@ private fun CatalogBlock(
 ) {
     // Collapsed by default: nothing is pre-opened. Tapping a filter expands
     // its list with animation; tapping again collapses back to chips.
-    var expanded by remember { mutableStateOf<CatalogFilter?>(null) }
+    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(null) }
     val shown = if (expanded != null) items.take(10) else emptyList()
     Column(
         modifier = Modifier
@@ -380,7 +402,7 @@ private fun CatalogBlock(
                     leadingIcon = if (open) {
                         {
                             Icon(
-                                Icons.Outlined.Check,
+                                Fluent.Checkmark,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -447,7 +469,7 @@ private fun filterLabel(filter: CatalogFilter): String = when (filter) {
 
 @Composable
 private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
     val parsed = parseRepoLink(text)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -523,3 +545,9 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
+
+
+
+
+
+

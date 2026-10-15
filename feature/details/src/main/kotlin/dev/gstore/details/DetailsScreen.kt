@@ -1,4 +1,5 @@
-package dev.gstore.details
+package dev.gstore.details
+import dev.gstore.ui.Fluent
 
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -18,16 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -123,7 +118,9 @@ fun DetailsScreen(
         it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
     }?.asset
     Column(modifier.fillMaxSize()) {
+    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     LazyColumn(
+        state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
         contentPadding = PaddingValues(16.dp),
     ) {
@@ -163,6 +160,7 @@ fun DetailsScreen(
                     canOpenApp = canOpenApp,
                     onOpenApp = onOpenApp,
                     cardRadiusDp = cardRadiusDp,
+                    findingApk = state.syncing || state.loadingAssets || state.scanningApks,
                 )
             }
             item { Spacer(Modifier.height(12.dp)) }
@@ -187,6 +185,7 @@ fun DetailsScreen(
                     blocks = state.readmeBlocks,
                     owner = repo.owner,
                     name = repo.fullName.substringAfter('/'),
+                    branch = repo.defaultBranch,
                     onOpenFull = onOpenReadme,
                     cardRadiusDp = cardRadiusDp,
                 )
@@ -205,7 +204,7 @@ private fun selectedRelease(state: DetailsUiState): Release? =
  */
 @Composable
 private fun InfoCard(description: String, cardRadiusDp: Int) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
         Text(
             text = description,
@@ -295,6 +294,7 @@ private fun ReadmeCard(
     blocks: List<Block>,
     owner: String,
     name: String,
+    branch: String = "main",
     onOpenFull: () -> Unit,
     cardRadiusDp: Int,
 ) {
@@ -309,7 +309,7 @@ private fun ReadmeCard(
                 maxLines = 1,
             )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                blocks.forEach { BlockView(it, owner, name) }
+                blocks.forEach { BlockView(it, owner, name, branch) }
             }
             TextButton(onClick = onOpenFull) { Text("Open full README") }
         }
@@ -327,19 +327,19 @@ private fun TopBar(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, contentDescription = "Back") }
+        IconButton(onClick = onBack) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
-        IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, contentDescription = "Share") }
+        IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
         IconButton(onClick = onToggleFavorite) {
             Icon(
-                if (isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                if (isFavorite) Fluent.Heart else Fluent.Heart,
                 contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
             )
         }
         if (syncing) CircularProgressIndicator(Modifier.size(24.dp))
-        else IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, contentDescription = "Re-sync") }
+        else IconButton(onClick = onRefresh) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
     }
 }
 
@@ -502,7 +502,7 @@ private fun ReleasePicker(
 @Composable
 private fun ReleaseNotes(release: Release, cardRadiusDp: Int) {
     val uriHandler = LocalUriHandler.current
-    var expanded by remember(release.id) { mutableStateOf(false) }
+    var expanded by rememberSaveable(release.id) { mutableStateOf(false) }
     Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -525,7 +525,7 @@ private fun ReleaseNotes(release: Release, cardRadiusDp: Int) {
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    if (expanded) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowRight,
+                    if (expanded) Fluent.ChevronDown else Fluent.ChevronRight,
                     contentDescription = if (expanded) "Collapse changelog" else "Expand changelog",
                 )
             }
@@ -579,6 +579,8 @@ private fun HeroDownloadBar(
     canOpenApp: (String) -> Boolean,
     onOpenApp: (String) -> Unit,
     cardRadiusDp: Int,
+    /** True while assets are still arriving — show progress, never "no APK". */
+    findingApk: Boolean = false,
 ) {
     Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -591,6 +593,16 @@ private fun HeroDownloadBar(
             when (hero) {
                 is HeroDlState.IdleDownload -> {
                     val target = asset
+                    if (target == null && findingApk) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Finding APK…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                        return@Column
+                    }
                     Button(
                         onClick = { if (target != null) onDownload(target) },
                         enabled = target != null,
@@ -676,3 +688,7 @@ private fun HeroDownloadBar(
         }
     }
 }
+
+
+
+

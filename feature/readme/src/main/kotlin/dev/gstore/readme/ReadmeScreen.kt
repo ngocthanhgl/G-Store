@@ -92,7 +92,7 @@ private fun BlocksList(state: ReadmeUiState, modifier: Modifier = Modifier) {
     }
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
         itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
-            BlockView(block, state.owner, state.repo)
+            BlockView(block, state.owner, state.repo, state.branch)
             Spacer(Modifier.height(8.dp))
         }
     }

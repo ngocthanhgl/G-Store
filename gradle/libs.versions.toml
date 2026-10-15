@@ -20,6 +20,7 @@ serialization = "1.11.0"
 junit = "4.13.2"
 commonmark = "0.30.0"
 coil3 = "3.6.3"
+fluentIcons = "1.1.315"
 work = "2.12.0"
 androidxCore = "1.19.1"
 
@@ -54,6 +55,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 androidx-security-crypto = { module = "androidx.security:security-crypto", version = "1.0.0" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
+fluent-icons = { module = "com.microsoft.design:fluent-system-icons", version.ref = "fluentIcons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

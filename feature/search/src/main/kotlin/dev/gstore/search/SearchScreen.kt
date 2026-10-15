@@ -1,4 +1,5 @@
-package dev.gstore.search
+package dev.gstore.search
+import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -30,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -79,7 +79,7 @@ fun SearchScreen(
             ),
             trailingIcon = {
                 IconButton(onClick = vm::searchGitHub) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search GitHub")
+                    Icon(Fluent.Search, contentDescription = "Search GitHub")
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -101,7 +101,9 @@ fun SearchScreen(
                 label = { Text("Has APK") },
             )
         }
+        val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         LazyColumn(
+            state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(top = 8.dp),
         ) {
@@ -207,7 +209,10 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
             )
         }
         IconButton(onClick = onAdd) {
-            Icon(Icons.Outlined.Add, contentDescription = "Add ${repo.fullName}")
+            Icon(Fluent.Add, contentDescription = "Add ${repo.fullName}")
         }
     }
 }
+
+
+

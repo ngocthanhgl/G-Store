@@ -53,6 +53,7 @@ class PreferencesRepository(private val context: Context) {
         val W_DOWNLOADS = floatPreferencesKey("w_downloads")
         val CATALOG_ETAG = stringPreferencesKey("catalog_etag")
         val CATALOG_IMPORTED_AT = longPreferencesKey("catalog_imported_at")
+        val MANUAL_REPOS = stringSetPreferencesKey("manual_repos")
     }
 
     /**
@@ -197,6 +198,27 @@ class PreferencesRepository(private val context: Context) {
         context.store.edit { p ->
             if (etag == null) p.remove(Keys.CATALOG_ETAG) else p[Keys.CATALOG_ETAG] = etag
             p[Keys.CATALOG_IMPORTED_AT] = importedAt
+        }
+    }
+
+    /**
+     * Repositories the user added by hand (link or owner/name). Rendered as
+     * their own shelf on Installed so hand-added entries stay visible even
+     * before any download exists for them.
+     */
+    val manualRepos: Flow<Set<String>> = resilientData().map { p -> p[Keys.MANUAL_REPOS] ?: emptySet() }
+
+    suspend fun addManualRepo(fullName: String) {
+        val name = fullName.trim()
+        if (name.isEmpty()) return
+        context.store.edit { p ->
+            p[Keys.MANUAL_REPOS] = (p[Keys.MANUAL_REPOS] ?: emptySet()) + name
+        }
+    }
+
+    suspend fun removeManualRepo(fullName: String) {
+        context.store.edit { p ->
+            p[Keys.MANUAL_REPOS] = (p[Keys.MANUAL_REPOS] ?: emptySet()) - fullName
         }
     }
 }

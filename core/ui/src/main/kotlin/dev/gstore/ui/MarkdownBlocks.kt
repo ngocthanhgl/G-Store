@@ -38,7 +38,7 @@ import coil3.compose.AsyncImage
  * no duplication, no feature-to-feature dependency).
  */
 @Composable
-fun BlockView(block: Block, owner: String, repo: String) {
+fun BlockView(block: Block, owner: String, repo: String, branch: String = "main") {
     when (block) {
         is Block.Heading -> {
             val style = when (block.level) {
@@ -50,10 +50,10 @@ fun BlockView(block: Block, owner: String, repo: String) {
             Text(block.text, style = style, fontWeight = FontWeight.Bold)
             if (block.level <= 2) HorizontalDivider(Modifier.padding(top = 4.dp))
         }
-        is Block.Paragraph -> SpanText(block.spans, owner, repo, MaterialTheme.typography.bodyLarge)
+        is Block.Paragraph -> SpanText(block.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
         is Block.CodeBlock -> CodeBlockView(block)
         is Block.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            block.items.forEach { item -> ListItemView(item, block.ordered, owner, repo) }
+            block.items.forEach { item -> ListItemView(item, block.ordered, owner, repo, branch) }
         }
         is Block.Quote -> Surface(
             tonalElevation = 1.dp,
@@ -61,7 +61,7 @@ fun BlockView(block: Block, owner: String, repo: String) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                block.children.forEach { BlockView(it, owner, repo) }
+                block.children.forEach { BlockView(it, owner, repo, branch) }
             }
         }
         is Block.Table -> TableView(block)
@@ -71,7 +71,7 @@ fun BlockView(block: Block, owner: String, repo: String) {
 }
 
 @Composable
-private fun ListItemView(item: MdListItem, ordered: Boolean, owner: String, repo: String) {
+private fun ListItemView(item: MdListItem, ordered: Boolean, owner: String, repo: String, branch: String) {
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (item.checked != null) {
             Checkbox(checked = item.checked, onCheckedChange = null, enabled = false)
@@ -79,8 +79,8 @@ private fun ListItemView(item: MdListItem, ordered: Boolean, owner: String, repo
             Text(if (ordered) "•" else "•", style = MaterialTheme.typography.bodyLarge)
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (item.spans.isNotEmpty()) SpanText(item.spans, owner, repo, MaterialTheme.typography.bodyLarge)
-            item.children.forEach { BlockView(it, owner, repo) }
+            if (item.spans.isNotEmpty()) SpanText(item.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
+            item.children.forEach { BlockView(it, owner, repo, branch) }
         }
     }
 }
@@ -145,6 +145,7 @@ private fun SpanText(
     spans: List<Span>,
     owner: String,
     repo: String,
+    branch: String,
     style: androidx.compose.ui.text.TextStyle,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -191,12 +192,12 @@ private fun SpanText(
             style = style.copy(color = MaterialTheme.colorScheme.onSurface),
             onClick = { offset ->
                 annotated.getStringAnnotations("url", offset, offset).firstOrNull()?.let { link ->
-                    uriHandler.openUri(resolveRelative(link.item, owner, repo, forImage = false))
+                    uriHandler.openUri(resolveRelative(link.item, owner, repo, forImage = false, branch = branch))
                 }
             },
         )
         spans.filterIsInstance<Span.Picture>().forEach { picture ->
-            val url = resolveRelative(picture.src, owner, repo, forImage = true)
+            val url = resolveRelative(picture.src, owner, repo, forImage = true, branch = branch)
             // Auto-fetch images only over HTTPS. Anything else renders as an
             // explicit tap-to-open link so the app never silently fetches
             // cleartext or non-web content on the user's behalf.

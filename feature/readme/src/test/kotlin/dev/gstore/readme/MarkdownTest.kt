@@ -58,11 +58,11 @@ class MarkdownTest {
 
     @Test fun `relative urls resolve against repo context`() {
         assertEquals(
-            "https://github.com/o/r/blob/HEAD/docs/a.md",
+            "https://github.com/o/r/blob/main/docs/a.md",
             resolveRelative("docs/a.md", "o", "r", forImage = false),
         )
         assertEquals(
-            "https://raw.githubusercontent.com/o/r/HEAD/img/a.png",
+            "https://raw.githubusercontent.com/o/r/main/img/a.png",
             resolveRelative("img/a.png", "o", "r", forImage = true),
         )
         assertEquals(
@@ -70,7 +70,7 @@ class MarkdownTest {
             resolveRelative("#install", "o", "r", forImage = false),
         )
         assertEquals(
-            "https://github.com/o/r/blob/HEAD/a.md",
+            "https://github.com/o/r/blob/main/a.md",
             resolveRelative("docs/../a.md", "o", "r", forImage = false),
         )
         assertEquals(
@@ -111,8 +111,9 @@ class MarkdownTest {
         val blocks = parseMarkdown("> note\n\n---\n\n<div>hi</div>\n")
         assertTrue(blocks[0] is Block.Quote)
         assertEquals(Block.Rule, blocks[1])
-        val raw = blocks[2] as Block.RawText
-        assertTrue(raw.text.contains("hi"))
+        // Inline HTML renders as text, never raw tags.
+        val para = blocks[2] as Block.Paragraph
+        assertTrue(para.spans.any { it is Span.Text && it.text.contains("hi") })
     }
 
     @Test fun `images keep alt and relative src`() {

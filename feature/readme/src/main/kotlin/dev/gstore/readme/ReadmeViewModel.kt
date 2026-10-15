@@ -3,6 +3,7 @@ package dev.gstore.readme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
+import dev.gstore.data.CatalogRepository
 import dev.gstore.data.ReadmeRepository
 import dev.gstore.ui.Block
 import dev.gstore.ui.parseMarkdown
@@ -24,6 +25,7 @@ data class ReadmeUiState(
     val notice: String? = null,
     val owner: String = "",
     val repo: String = "",
+    val branch: String = "main",
 )
 
 /**
@@ -34,6 +36,7 @@ class ReadmeViewModel(
     owner: String,
     name: String,
     private val repository: ReadmeRepository,
+    catalog: CatalogRepository,
 ) : ViewModel() {
     private val fullName = "$owner/$name"
 
@@ -41,6 +44,10 @@ class ReadmeViewModel(
     val state: StateFlow<ReadmeUiState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            val branch = catalog.getByFullName(fullName)?.defaultBranch?.ifBlank { "main" } ?: "main"
+            _state.value = _state.value.copy(branch = branch)
+        }
         viewModelScope.launch {
             repository.observe(fullName).collectLatest { entity ->
                 if (entity == null) {

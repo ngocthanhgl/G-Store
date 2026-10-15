@@ -1,5 +1,7 @@
 package dev.gstore.app
 
+import com.microsoft.fluent.mobile.icons.R as FluentRes
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -23,11 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -53,7 +50,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -75,7 +72,9 @@ import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.PreferencesRepository
+import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.categoryOf
 import dev.gstore.database.DownloadRecord
 import dev.gstore.designsystem.GStoreTheme
 import dev.gstore.downloads.DownloadsScreen
@@ -84,7 +83,7 @@ import dev.gstore.downloads.SystemInstalledApps
 import dev.gstore.details.DetailsScreen
 import dev.gstore.details.DetailsViewModel
 import dev.gstore.details.DownloadTracker
-import dev.gstore.home.HomeScreen
+import dev.gstore.home.CategoryFullScreen
 import dev.gstore.home.HomeScreen
 import dev.gstore.home.HomeViewModel
 import dev.gstore.installation.InstallerPermissionScreen
@@ -106,19 +105,21 @@ import kotlinx.serialization.Serializable
 @Serializable data object Downloads
 @Serializable data object Settings
 @Serializable data class Details(val repoId: Long, val fullName: String = "")
+@Serializable data class CategoryFull(val name: String)
 @Serializable data class Readme(val owner: String, val name: String)
 
 private data class TopDestination(
     val route: Any,
     val label: String,
-    val icon: ImageVector,
+    /** Drawable res id: static lists cannot hold @Composable Painters. */
+    val icon: Int,
 )
 
 private val DESTINATIONS = listOf(
-    TopDestination(Home, "Home", Icons.Outlined.Home),
-    TopDestination(Search, "Search", Icons.Outlined.Search),
-    TopDestination(Downloads, "Installed", Icons.Outlined.KeyboardArrowDown),
-    TopDestination(Settings, "Settings", Icons.Outlined.Settings),
+    TopDestination(Home, "Home", FluentRes.drawable.ic_fluent_home_24_regular),
+    TopDestination(Search, "Search", FluentRes.drawable.ic_fluent_search_24_regular),
+    TopDestination(Downloads, "Installed", FluentRes.drawable.ic_fluent_arrow_download_24_regular),
+    TopDestination(Settings, "Settings", FluentRes.drawable.ic_fluent_settings_24_regular),
 )
 
 class MainActivity : ComponentActivity() {
@@ -188,10 +189,10 @@ private fun GStoreShell(container: AppContainer) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = maxWidth >= 600.dp
         if (expanded) {
-            Row(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxSize()) {
                 Rail(
                     current = entry?.destination,
-                    navigate = { nav.navigate(it) { popToRoot(nav) } },
+                    navigate = { navigateTopLevel(nav, it) },
                     )
                 // Screens own their top inset (statusBarsPadding) — except
                 // Details, whose hero bleeds under the status bar.
@@ -232,11 +233,11 @@ private fun GStoreShell(container: AppContainer) {
                                 NavigationBarItem(
                                     selected = selected,
                                     onClick = {
-                                        nav.navigate(d.route) { popToRoot(nav) }
+                                        navigateTopLevel(nav, d.route)
                                     },
                                     icon = {
                                         Icon(
-                                            d.icon,
+                                            painterResource(d.icon),
                                             contentDescription = d.label,
                                             modifier = Modifier.size(26.dp),
                                         )
@@ -278,6 +279,23 @@ private fun androidx.navigation.NavOptionsBuilder.popToRoot(
     restoreState = true
 }
 
+/**
+ * Top-level tab navigation with a same-tab guard and a hard-reset
+ * fallback. The same-tab tap is a no-op (no reload flash); if the
+ * back stack does not land on the target — observed once as "tap Home
+ * from Details stays put" — everything above the start destination is
+ * popped and the target is navigated to plainly.
+ */
+private fun navigateTopLevel(nav: androidx.navigation.NavHostController, route: Any) {
+    val target = route::class
+    if (nav.currentDestination?.hasRoute(target) == true) return
+    nav.navigate(route) { popToRoot(nav) }
+    if (nav.currentDestination?.hasRoute(target) != true) {
+        nav.popBackStack(nav.graph.findStartDestination().id, inclusive = false)
+        nav.navigate(route) { launchSingleTop = true }
+    }
+}
+
 @Composable
 private fun Rail(
     current: androidx.navigation.NavDestination?,
@@ -297,7 +315,7 @@ private fun Rail(
             NavigationRailItem(
                 selected = current?.hasRoute(d.route::class) == true,
                 onClick = { navigate(d.route) },
-                icon = { Icon(d.icon, contentDescription = d.label) },
+                icon = { Icon(painterResource(d.icon), contentDescription = d.label) },
                 label = { Text(d.label) },
                 alwaysShowLabel = false,
                 colors = NavigationRailItemDefaults.colors(
@@ -353,14 +371,33 @@ private fun Content(
                 container.downloader.cancel(assetId)
         }
     }
+    // Tab VMs live at shell scope (activity ViewModelStore), not per
+    // destination: switching tabs never resets query, sort, filter, or
+    // catalog state. Screens stay destination-scoped, so entry effects
+    // (installed refresh, permission re-check) still re-fire on return.
+    val homeVm: HomeViewModel = viewModel(
+        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
+    )
+    val searchVm: SearchViewModel = viewModel(
+        factory = vmFactory { SearchViewModel(container.catalog) },
+    )
+    val downloadsVm: DownloadsViewModel = viewModel(
+        factory = vmFactory {
+            DownloadsViewModel(
+                container.downloader,
+                installedGateway,
+                container.catalog,
+                container.tokens,
+                container.preferences,
+            )
+        },
+    )
     NavHost(navController = nav, startDestination = Home, modifier = modifier) {
         composable<Home> {
-            val vm: HomeViewModel = viewModel(
-                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
-            )
             HomeScreen(
-                vm = vm,
+                vm = homeVm,
                 onOpenRepo = onOpenRepo,
+                onOpenCategory = { nav.navigate(CategoryFull(it.name)) },
                 onOpenLogin = { nav.navigate(Settings) },
                 onLogout = {
                     scope.launch {
@@ -376,11 +413,8 @@ private fun Content(
             )
         }
         composable<Search> {
-            val vm: SearchViewModel = viewModel(
-                factory = vmFactory { SearchViewModel(container.catalog) },
-            )
             SearchScreen(
-                vm = vm,
+                vm = searchVm,
                 onOpenRepo = onOpenRepo,
                 snackbar = snackbar,
                 grid = grid,
@@ -389,16 +423,7 @@ private fun Content(
             )
         }
         composable<Downloads> {
-            val vm: DownloadsViewModel = viewModel(
-                factory = vmFactory {
-                    DownloadsViewModel(
-                        container.downloader,
-                        installedGateway,
-                        container.catalog,
-                        container.tokens,
-                    )
-                },
-            )
+            val vm = downloadsVm
             val dlState by vm.state.collectAsState()
             val context = LocalContext.current
             val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -480,6 +505,20 @@ private fun Content(
                         if (intent != null) context.startActivity(intent)
                         else scope.launch { snackbar.showSnackbar("No launcher entry") }
                     },
+                    onUninstall = { packageName ->
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_DELETE,
+                                    Uri.parse("package:$packageName"),
+                                ),
+                            )
+                        }.onFailure {
+                            scope.launch { snackbar.showSnackbar("Could not open uninstall") }
+                        }
+                    },
+                    onDownloadFavorite = vm::downloadFavorite,
+                    onRemoveManual = vm::removeManualRepo,
                     onRefreshInstalled = vm::refreshInstalled,
                     onSort = vm::setSort,
                     onOpenLogin = { nav.navigate(Settings) },
@@ -500,6 +539,31 @@ private fun Content(
                 vm = vm,
                 appVersion = BuildConfig.VERSION_NAME,
             )
+        }
+        composable<CategoryFull> { backStack ->
+            val name = backStack.toRoute<CategoryFull>().name
+            val category = runCatching { AppCategory.valueOf(name) }.getOrNull()
+            if (category == null) {
+                LaunchedEffect(name) { nav.popBackStack() }
+            } else {
+                val homeState by homeVm.state.collectAsState()
+                val items = homeState.catalog
+                    .filter { categoryOf(it.repo.topics) == category }
+                    .sortedByDescending { it.repo.stars }
+                CategoryFullScreen(
+                    category = category,
+                    items = items,
+                    favorites = homeState.favoriteIds,
+                    syncing = homeState.syncingCatalog,
+                    grid = grid,
+                    compact = compact,
+                    cardRadiusDp = appearance.cardRadiusDp,
+                    reduceMotion = appearance.reduceMotion,
+                    onBack = { nav.popBackStack() },
+                    onOpen = onOpenRepo,
+                    onToggleFavorite = homeVm::toggleFavorite,
+                )
+            }
         }
         composable<Details> { backStack ->
             val route = backStack.toRoute<Details>()
@@ -598,7 +662,7 @@ private fun Content(
             val vm: ReadmeViewModel = viewModel(
                 key = "readme-${route.owner}/${route.name}",
                 factory = vmFactory {
-                    ReadmeViewModel(route.owner, route.name, container.readme)
+                    ReadmeViewModel(route.owner, route.name, container.readme, container.catalog)
                 },
             )
             val state by vm.state.collectAsState()
@@ -610,3 +674,4 @@ private fun Content(
         }
     }
 }
+

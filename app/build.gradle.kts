@@ -12,8 +12,8 @@ android {
         applicationId = "dev.gstore.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 12
-        versionName = "0.10.1"
+        versionCode = 13
+        versionName = "0.11.0"
     }
 
     // Release signing comes from environment (CI secrets or a local
@@ -97,6 +97,13 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.fluent.icons) {
+        artifact {
+            name = "fluent-system-icons"
+            type = "aar"
+            extension = "aar"
+        }
+    }
     implementation(libs.androidx.core)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
