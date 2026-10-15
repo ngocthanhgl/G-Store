@@ -6,17 +6,27 @@ import dev.gstore.common.Outcome
 import dev.gstore.data.AssetKind
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.Eligibility
+import dev.gstore.data.InstalledAppsGateway
+import dev.gstore.data.ReadmeRepository
 import dev.gstore.data.artifactOf
 import dev.gstore.data.classifyAsset
+import dev.gstore.database.DownloadRecord
 import dev.gstore.model.ApkArtifact
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
+import dev.gstore.ui.Block
+import dev.gstore.ui.parseMarkdown
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** One row of the artifact chooser — non-APKs labeled, never hidden. */
 data class AssetRow(
@@ -24,6 +34,15 @@ data class AssetRow(
     val eligibility: Eligibility,
     val artifact: ApkArtifact,
 )
+
+/** Hero download button state for the recommended APK of the selection. */
+sealed interface HeroDlState {
+    data object IdleDownload : HeroDlState
+    data class Downloading(val done: Long, val total: Long) : HeroDlState
+    data class ReadyInstall(val record: DownloadRecord) : HeroDlState
+    data class Installed(val packageName: String, val versionName: String?) : HeroDlState
+    data object FailedRetry : HeroDlState
+}
 
 data class DetailsUiState(
     val repo: Repository? = null,
@@ -33,6 +52,9 @@ data class DetailsUiState(
     val apkReleaseIds: Set<Long> = emptySet(),
     val selectedReleaseId: Long? = null,
     val assetRows: List<AssetRow> = emptyList(),
+    val hero: HeroDlState = HeroDlState.IdleDownload,
+    /** Parsed README blocks for the inline expandable preview. */
+    val readmeBlocks: List<Block> = emptyList(),
     val loadingAssets: Boolean = false,
     val isFavorite: Boolean = false,
     val syncing: Boolean = false,
@@ -63,6 +85,9 @@ class DetailsViewModel(
     private val repoId: Long,
     private val fullName: String,
     private val catalog: CatalogRepository,
+    private val tracker: DownloadTracker,
+    private val installed: InstalledAppsGateway,
+    private val readme: ReadmeRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -106,6 +131,21 @@ class DetailsViewModel(
             _state.value = _state.value.copy(syncing = false)
         }
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+        val resolved = repo
+        if (resolved != null) {
+            val parts = resolved.fullName.split('/')
+            if (parts.size == 2) loadReadme(parts[0], parts[1], resolved.fullName)
+        }
+    }
+
+    /** Inline README preview: refresh, then parse off the main thread. */
+    private fun loadReadme(owner: String, name: String, fullName: String) {
+        viewModelScope.launch {
+            runCatching { readme.refresh(owner, name) }
+            val markdown = readme.observe(fullName).first()?.markdown ?: return@launch
+            val blocks = withContext(Dispatchers.Default) { parseMarkdown(markdown) }
+            _state.value = _state.value.copy(readmeBlocks = blocks)
+        }
     }
 
     /**
@@ -149,7 +189,60 @@ class DetailsViewModel(
                 AssetRow(asset, verdict, artifactOf(asset.id, asset.filename, null, verdict.kind))
             }
             _state.value = _state.value.copy(assetRows = rows, loadingAssets = false)
+            val best = rows.firstOrNull {
+                it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
+            }?.asset
+            if (best != null) watchHero(best) else {
+                heroJob?.cancel()
+                _state.value = _state.value.copy(hero = HeroDlState.IdleDownload)
+            }
         }
+    }
+
+    private var heroJob: Job? = null
+
+    /** Track the recommended APK's record + install truth for the hero button. */
+    private fun watchHero(asset: ReleaseAsset) {
+        heroJob?.cancel()
+        heroJob = viewModelScope.launch {
+            tracker.observe(asset.id).collectLatest { record ->
+                val hero = when {
+                    record == null -> HeroDlState.IdleDownload
+                    record.status == "ACTIVE" || record.status == "QUEUED" ->
+                        HeroDlState.Downloading(record.bytesDone, record.bytesTotal)
+                    record.status == "COMPLETED" &&
+                        record.filePath?.let { File(it).exists() } == true -> {
+                        val pkg = record.packageName
+                        if (pkg == null) {
+                            HeroDlState.ReadyInstall(record)
+                        } else {
+                            val info = installed.installedPackages(setOf(pkg))[pkg]
+                            val downloadedVc = record.versionCode
+                            when {
+                                info == null -> HeroDlState.ReadyInstall(record)
+                                downloadedVc != null &&
+                                    info.versionCode < downloadedVc ->
+                                    HeroDlState.ReadyInstall(record)
+                                else -> HeroDlState.Installed(pkg, info.versionName)
+                            }
+                        }
+                    }
+                    else -> HeroDlState.FailedRetry
+                }
+                _state.value = _state.value.copy(hero = hero)
+            }
+        }
+    }
+
+    fun heroDownload(asset: ReleaseAsset) {
+        val repo = _state.value.repo ?: return
+        val tag = _state.value.releases
+            .firstOrNull { it.id == _state.value.selectedReleaseId }?.tag ?: return
+        viewModelScope.launch { tracker.start(asset, repo.fullName, tag) }
+    }
+
+    fun heroCancel(assetId: Long) {
+        viewModelScope.launch { tracker.cancel(assetId) }
     }
 
     fun toggleFavorite() {

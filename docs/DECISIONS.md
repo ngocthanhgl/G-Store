@@ -522,3 +522,19 @@ before retrying.
   DAO ordering).
 - Verification for §21: full suite green, lint clean (one new
   tools:ignore with justification), detector `[]`, assemble green.
+
+## 22 — v0.10.0 (2026-10-12, code state; release pending CI)
+- **Hero bar restored:** `HeroDownloadBar` (Idle/Downloading/ReadyInstall/
+  Installed/FailedRetry, small text, formatBytes labels) re-added to
+  DetailsScreen after an over-broad cleanup deleted it; Details scope in
+  MainActivity got its own install gate (`detailsGateFor`,
+  `fireDetailsInstall`, permission overlay) because the Downloads-scope
+  helpers are invisible there (was a compile break, fixed).
+- **Installed title:** already `titleLarge` + `maxLines = 1` + weight —
+  no change needed (verified by read).
+- **Verify:** 109 unit tests, 0 failures/errors; `:app:lintDebug` clean;
+  `:app:assembleDebug` green; impeccable detector `[]` on DetailsScreen,
+  MainActivity, DownloadsScreen, HomeScreen, SettingsScreen.
+- Lesson re-learned: PowerShell multi-line range deletion (`$l[a..b] =
+  @()`) is blind — it deleted HeroDownloadBar along with HistoryRow and
+  the loss surfaced only at compile time. Prefer exact-match edits.

@@ -70,6 +70,13 @@ data class SearchResponse(
     val items: List<RepoDto> = emptyList(),
 )
 
+/** Authenticated identity (`GET /user`) — login validation + profile chip. */
+@Serializable
+data class GitHubUser(
+    val login: String = "",
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+)
+
 /** A GET result: fresh body, or NOT_MODIFIED when the ETag still matches. */
 sealed interface ApiResponse<out T> {
     data class Fresh<T>(val data: T, val etag: String?) : ApiResponse<T>
@@ -118,6 +125,13 @@ class GitHubApi : GitHubService {
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = true }
     private val http = OkHttpClient.Builder().build()
 
+    /**
+     * User-supplied Personal Access Token (Settings → login). Never shipped
+     * in the repo/APK — it lives encrypted on-device (TokenStore) and is
+     * only ever sent to api.github.com. Null = anonymous (60 req/hour).
+     */
+    @Volatile var token: String? = null
+
     private fun request(url: String, etag: String?): Request {
         val builder = Request.Builder()
             .url(url)
@@ -125,6 +139,9 @@ class GitHubApi : GitHubService {
             .header("X-GitHub-Api-Version", API_VERSION)
             .header("User-Agent", "gstore-app/0.2.0")
         if (etag != null) builder.header("If-None-Match", etag)
+        token?.takeIf { it.isNotBlank() }?.let {
+            builder.header("Authorization", "Bearer $it")
+        }
         return builder.build()
     }
 
@@ -170,6 +187,20 @@ class GitHubApi : GitHubService {
 
     override suspend fun searchRepos(query: String, page: Int): ApiResponse<SearchResponse> =
         get("$BASE_URL/search/repositories?q=$query&per_page=100&page=$page", etag = null)
+
+    /**
+     * Validate a user-supplied token and read its identity. NOT on the
+     * [GitHubService] interface (sync engine never needs it); throws
+     * [GitHubException.Auth] for bad tokens — the login screen maps that to
+     * "check the token", never a crash.
+     */
+    suspend fun fetchUser(): GitHubUser =
+        when (val response = get<GitHubUser>("$BASE_URL/user", etag = null)) {
+            is ApiResponse.Fresh -> response.data
+            ApiResponse.NotModified -> throw GitHubException.Network(
+                IllegalStateException("unexpected 304 without etag"),
+            )
+        }
 
     override suspend fun fetchReadme(
         owner: String,

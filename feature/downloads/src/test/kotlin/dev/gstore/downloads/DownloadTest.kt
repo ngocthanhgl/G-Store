@@ -2,6 +2,8 @@ package dev.gstore.downloads
 
 import dev.gstore.database.DownloadDao
 import dev.gstore.database.DownloadRecord
+import dev.gstore.data.UpdateState
+import dev.gstore.data.resolveUpdateState
 import dev.gstore.model.VerificationResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

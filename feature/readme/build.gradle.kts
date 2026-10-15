@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:data"))
     implementation(project(":core:database"))
+    implementation(project(":core:ui"))
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
@@ -33,10 +34,5 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines)
-    implementation(libs.commonmark)
-    implementation(libs.commonmark.gfm.tables)
-    implementation(libs.commonmark.strikethrough)
-    implementation(libs.commonmark.task.list)
-    implementation(libs.coil.compose)
     testImplementation(libs.junit)
 }

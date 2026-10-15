@@ -16,9 +16,11 @@ import dev.gstore.database.MIGRATION_2_3
 import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.ReadmeRepository
+import dev.gstore.data.SignalsCache
 import dev.gstore.database.MIGRATION_3_4
 import dev.gstore.database.MIGRATION_4_5
 import dev.gstore.database.MIGRATION_5_6
+import dev.gstore.datastore.TokenStore
 import dev.gstore.downloads.ApkDownloadWorker
 import dev.gstore.downloads.DownloadRepository
 import dev.gstore.downloads.SystemWorkEnqueuer
@@ -59,6 +61,12 @@ class GStoreApp : Application(), Configuration.Provider {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             container.downloader.reconcile()
         }
+        // Restore the GitHub token (if the user logged in) and keep the API
+        // client mirroring it across login/logout for the whole process.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            container.tokens.restore()
+            container.tokens.token.collect { container.github.token = it }
+        }
     }
 
     override val workManagerConfiguration: Configuration
@@ -90,6 +98,7 @@ private class GStoreWorkerFactory(
 }
 
 class AppContainer(val app: Application) {
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val database: GStoreDatabase by lazy {
         // Explicit migrations only — silent data loss is never acceptable (M4).
         Room.databaseBuilder(app, GStoreDatabase::class.java, "gstore.db")
@@ -98,8 +107,10 @@ class AppContainer(val app: Application) {
             .build()
     }
     val preferences: PreferencesRepository by lazy { PreferencesRepository(app) }
+    val tokens: TokenStore by lazy { TokenStore(app) }
     val github: GitHubApi by lazy { GitHubApi() }
     val catalog: CatalogRepository by lazy { CatalogRepository.create(github, database) }
+    val signals: SignalsCache by lazy { SignalsCache(catalog, appScope) }
     /** Daily scanner catalog over the shared download client (flow A). */
     val catalogClient: CatalogClient by lazy { CatalogClient(downloadHttp) }
     val readme: ReadmeRepository by lazy { ReadmeRepository(github, database.readmes()) }

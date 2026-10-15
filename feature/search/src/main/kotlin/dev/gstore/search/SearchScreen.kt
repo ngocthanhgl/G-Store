@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -51,7 +52,7 @@ fun SearchScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).imePadding()) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).statusBarsPadding().imePadding()) {
         Text(
             "Search",
             style = MaterialTheme.typography.titleLarge,

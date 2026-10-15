@@ -1,6 +1,8 @@
 package dev.gstore.app
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -71,7 +73,6 @@ import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.PreferencesRepository
-import dev.gstore.ui.EdgeScrim
 import dev.gstore.data.CatalogRepository
 import dev.gstore.database.DownloadRecord
 import dev.gstore.designsystem.GStoreTheme
@@ -80,6 +81,7 @@ import dev.gstore.downloads.DownloadsViewModel
 import dev.gstore.downloads.SystemInstalledApps
 import dev.gstore.details.DetailsScreen
 import dev.gstore.details.DetailsViewModel
+import dev.gstore.details.DownloadTracker
 import dev.gstore.home.CategoryScreen
 import dev.gstore.home.HomeScreen
 import dev.gstore.home.HomeViewModel
@@ -190,12 +192,14 @@ private fun GStoreShell(container: AppContainer) {
                     current = entry?.destination,
                     navigate = { nav.navigate(it) { popToRoot(nav) } },
                     )
-                // Scrims float above every screen: legibility zones behind
-                // the status and navigation bars (see EdgeScrim).
+                // Screens own their top inset (statusBarsPadding) — except
+                // Details, whose hero bleeds under the status bar.
                 Box(
                     Modifier
                         .weight(1f)
-                        .windowInsetsPadding(WindowInsets.safeDrawing),
+                        .windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
+                        ),
                 ) {
                     Content(
                         nav = nav,
@@ -204,16 +208,14 @@ private fun GStoreShell(container: AppContainer) {
                         onOpenRepo = onOpenRepo,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    EdgeScrim(top = true, modifier = Modifier.align(Alignment.TopCenter))
-                    EdgeScrim(top = false, modifier = Modifier.align(Alignment.BottomCenter))
                 }
             }
         } else {
             Scaffold(
-                // Content takes top + horizontal safe insets; the bottom bar
-                // owns the navigation-bar area and pads itself.
+                // Screens pad their own top (statusBarsPadding); the bottom
+                // bar owns the navigation-bar area and pads itself.
                 contentWindowInsets = WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
+                    WindowInsetsSides.Horizontal,
                 ),
                 bottomBar = {
                     Column {
@@ -254,8 +256,6 @@ private fun GStoreShell(container: AppContainer) {
                         onOpenRepo = onOpenRepo,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    EdgeScrim(top = true, modifier = Modifier.align(Alignment.TopCenter))
-                    EdgeScrim(top = false, modifier = Modifier.align(Alignment.BottomCenter))
                 }
             }
         }
@@ -319,15 +319,48 @@ private fun Content(
     )
     val grid = appearance.layout == HomeLayout.GRID
     val compact = appearance.density == CardDensity.COMPACT
+    // Shared install truth + download bridge (feature modules never touch
+    // each other directly — the app module wires them).
+    val appContext = LocalContext.current
+    val installedGateway = remember(appContext) {
+        SystemInstalledApps(appContext.packageManager)
+    }
+    val downloadTracker = remember {
+        object : DownloadTracker {
+            override fun observe(assetId: Long) = container.downloader.observe(assetId)
+            override suspend fun start(
+                asset: dev.gstore.model.ReleaseAsset,
+                repoFullName: String,
+                releaseTag: String,
+            ): Boolean = container.downloader.start(
+                assetId = asset.id,
+                repoFullName = repoFullName,
+                releaseTag = releaseTag,
+                rawFilename = asset.filename,
+                url = asset.downloadUrl,
+                expectedSize = asset.size,
+                expectedDigest = asset.digest,
+            )
+            override suspend fun cancel(assetId: Long) =
+                container.downloader.cancel(assetId)
+        }
+    }
     NavHost(navController = nav, startDestination = Home, modifier = modifier) {
         composable<Home> {
             val vm: HomeViewModel = viewModel(
-                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient) },
+                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
             )
             HomeScreen(
                 vm = vm,
                 onOpenRepo = onOpenRepo,
                 onOpenCategory = { nav.navigate(Category(it.name)) },
+                onOpenLogin = { nav.navigate(Settings) },
+                onLogout = {
+                    scope.launch {
+                        container.tokens.clear()
+                        container.github.token = null
+                    }
+                },
                 snackbar = snackbar,
                 grid = grid,
                 compact = compact,
@@ -353,8 +386,9 @@ private fun Content(
                 factory = vmFactory {
                     DownloadsViewModel(
                         container.downloader,
-                        SystemInstalledApps(container.app.packageManager),
+                        installedGateway,
                         container.catalog,
+                        container.tokens,
                     )
                 },
             )
@@ -441,6 +475,8 @@ private fun Content(
                     },
                     onRefreshInstalled = vm::refreshInstalled,
                     onSort = vm::setSort,
+                    onOpenLogin = { nav.navigate(Settings) },
+                    onDismissLoginPrompt = vm::dismissLoginPrompt,
                     snackbar = snackbar,
                     onDismissNotice = vm::dismissNotice,
                 )
@@ -448,7 +484,9 @@ private fun Content(
         }
         composable<Settings> {
             val vm: SettingsViewModel = viewModel(
-                factory = vmFactory { SettingsViewModel(container.preferences) },
+                factory = vmFactory {
+                    SettingsViewModel(container.preferences, container.tokens, container.github)
+                },
             )
             SettingsScreen(
                 appearance = appearance,
@@ -465,7 +503,7 @@ private fun Content(
                 nav.popBackStack()
             } else {
                 val vm: HomeViewModel = viewModel(
-                    factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient) },
+                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
                 )
                 CategoryScreen(
                     category = category,
@@ -483,10 +521,26 @@ private fun Content(
             val vm: DetailsViewModel = viewModel(
                 key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, route.fullName, container.catalog)
+                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway, container.readme)
                 },
             )
             val state by vm.state.collectAsState()
+            val detailsContext = LocalContext.current
+            var detailsGateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            fun fireDetailsInstall(record: DownloadRecord) {
+                val path = record.filePath
+                if (path == null || !File(path).exists()) {
+                    scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                    return
+                }
+                try {
+                    detailsContext.startActivity(container.installer.installIntent(File(path)))
+                } catch (e: Exception) {
+                    scope.launch {
+                        snackbar.showSnackbar("No system installer found: ${e.message}")
+                    }
+                }
+            }
             DetailsScreen(
                 state = state,
                 snackbar = snackbar,
@@ -494,28 +548,30 @@ private fun Content(
                 onToggleFavorite = { vm.toggleFavorite() },
                 onRefresh = { vm.refresh() },
                 onSelectRelease = { vm.selectRelease(it) },
-                onDownload = { asset ->
-                    val repo = state.repo
-                    val tag = state.releases.firstOrNull { it.id == state.selectedReleaseId }?.tag
-                    if (repo != null && tag != null) {
-                        scope.launch {
-                            val started = container.downloader.start(
-                                assetId = asset.id,
-                                repoFullName = repo.fullName,
-                                releaseTag = tag,
-                                rawFilename = asset.filename,
-                                url = asset.downloadUrl,
-                                expectedSize = asset.size,
-                                expectedDigest = asset.digest,
-                            )
-                            if (started) {
-                                nav.navigate(Downloads)
-                            } else {
-                                snackbar.showSnackbar(
-                                    "Already downloading ${asset.filename}",
-                                )
-                            }
-                        }
+                // The hero button owns the whole download lifecycle in place:
+                // nothing here ever navigates away from details.
+                onHeroDownload = { asset -> vm.heroDownload(asset) },
+                onHeroCancel = { vm.heroCancel(it) },
+                onHeroInstall = { record ->
+                    val path = record.filePath
+                    if (path == null || !File(path).exists()) {
+                        scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                    } else if (container.installer.canRequestInstalls()) {
+                        fireDetailsInstall(record)
+                    } else {
+                        detailsGateFor = record
+                    }
+                },
+                onHeroUninstall = { packageName ->
+                    try {
+                        detailsContext.startActivity(
+                            Intent(
+                                Intent.ACTION_DELETE,
+                                Uri.parse("package:$packageName"),
+                            ),
+                        )
+                    } catch (e: Exception) {
+                        scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                     }
                 },
                 onOpenReadme = {
@@ -526,6 +582,18 @@ private fun Content(
                     }
                 },
             )
+            val detailsGate = detailsGateFor
+            if (detailsGate != null) {
+                InstallerPermissionScreen(
+                    fileName = detailsGate.filename,
+                    canInstall = container.installer.canRequestInstalls(),
+                    onOpenSettings = {
+                        detailsContext.startActivity(container.installer.settingsIntent())
+                    },
+                    onInstall = { fireDetailsInstall(detailsGate); detailsGateFor = null },
+                    onCancel = { detailsGateFor = null },
+                )
+            }
         }
         composable<Readme> { backStack ->
             val route = backStack.toRoute<Readme>()

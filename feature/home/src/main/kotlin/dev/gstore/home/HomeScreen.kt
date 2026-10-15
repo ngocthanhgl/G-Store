@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.categoryLabel
+import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
@@ -97,6 +100,8 @@ fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
     onOpenCategory: (AppCategory) -> Unit,
+    onOpenLogin: () -> Unit,
+    onLogout: () -> Unit,
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
@@ -118,7 +123,7 @@ fun HomeScreen(
     PullToRefreshBox(
         isRefreshing = state.syncing,
         onRefresh = vm::refreshAll,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
     ) {
         if (state.isEmpty && !state.syncing) {
             EmptyCatalog(
@@ -135,8 +140,11 @@ fun HomeScreen(
             ) {
                 item {
                     HomeHeader(
+                        identity = state.identity,
                         onAdd = { showAdd = true },
                         onCustomize = { showCustomize = true },
+                        onOpenLogin = onOpenLogin,
+                        onLogout = onLogout,
                     )
                 }
                 item(key = "catalog") {
@@ -144,9 +152,6 @@ fun HomeScreen(
                         items = state.catalog,
                         filter = state.catalogFilter,
                         onFilter = vm::setCatalogFilter,
-                        category = state.categoryFilter,
-                        onCategory = vm::setCategoryFilter,
-                        categories = state.categories,
                         favorites = state.favoriteIds,
                         syncing = state.syncingCatalog,
                         grid = grid,
@@ -178,7 +183,6 @@ fun HomeScreen(
                                 favorites = state.favoriteIds,
                                 onShowAll = {
                                     vm.setCatalogFilter(CatalogFilter.STARS)
-                                    vm.setCategoryFilter(null)
                                 },
                                 onOpen = onOpenRepo,
                                 onToggleFavorite = vm::toggleFavorite,
@@ -264,7 +268,14 @@ private fun apkBadgeOf(signals: RepoSignals): ApkBadge =
  */
 
 @Composable
-private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
+private fun HomeHeader(
+    identity: GitHubIdentity,
+    onAdd: () -> Unit,
+    onCustomize: () -> Unit,
+    onOpenLogin: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    var showProfile by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -281,6 +292,48 @@ private fun HomeHeader(onAdd: () -> Unit, onCustomize: () -> Unit) {
         IconButton(onClick = onCustomize) {
             Icon(Icons.Filled.Settings, contentDescription = "Customize sections")
         }
+        // Profile replaces nothing: logged out it opens login, logged in it
+        // shows who authenticated (avatar + login + logout).
+        if (identity.login.isBlank()) {
+            IconButton(onClick = onOpenLogin) {
+                Icon(Icons.Filled.Person, contentDescription = "Log in to GitHub")
+            }
+        } else {
+            IconButton(onClick = { showProfile = true }) {
+                AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
+            }
+        }
+    }
+    if (showProfile && identity.login.isNotBlank()) {
+        AlertDialog(
+            onDismissRequest = { showProfile = false },
+            title = { Text(identity.login) },
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppIcon(
+                        avatarUrl = identity.avatarUrl,
+                        owner = identity.login,
+                        size = 48.dp,
+                    )
+                    Text(
+                        "Logged in to GitHub. API quota is 5,000 requests/hour.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 12.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showProfile = false }) { Text("Close") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onLogout()
+                        showProfile = false
+                    },
+                ) { Text("Logout") }
+            },
+        )
     }
 }
 
@@ -517,9 +570,6 @@ private fun CatalogBlock(
     items: List<RepoSignals>,
     filter: CatalogFilter,
     onFilter: (CatalogFilter) -> Unit,
-    category: AppCategory?,
-    onCategory: (AppCategory?) -> Unit,
-    categories: List<Pair<AppCategory, Int>>,
     favorites: Set<Long>,
     syncing: Boolean,
     grid: Boolean,
@@ -530,8 +580,10 @@ private fun CatalogBlock(
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val shown = if (expanded) items else items.take(COLLAPSED_COUNT)
+    // Collapsed by default: nothing is pre-opened. Tapping a filter expands
+    // its list with animation; tapping again collapses back to chips.
+    var expanded by remember { mutableStateOf<CatalogFilter?>(null) }
+    val shown = if (expanded != null) items.take(10) else emptyList()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -547,7 +599,7 @@ private fun CatalogBlock(
     ) {
         AuroraSectionHeader(
             title = "All apps",
-            subtitle = "${items.size} in the daily catalog · ${filterLabel(filter).lowercase()} first",
+            subtitle = "${items.size} in the daily catalog",
             trailing = {
                 HeaderActions(
                     syncing = syncing,
@@ -563,12 +615,15 @@ private fun CatalogBlock(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
             CatalogFilter.entries.forEach { option ->
-                val selected = option == filter
+                val open = expanded == option
                 FilterChip(
-                    selected = selected,
-                    onClick = { onFilter(option) },
+                    selected = open,
+                    onClick = {
+                        onFilter(option)
+                        expanded = if (open) null else option
+                    },
                     label = { Text(filterLabel(option)) },
-                    leadingIcon = if (selected) {
+                    leadingIcon = if (open) {
                         {
                             Icon(
                                 Icons.Filled.Check,
@@ -585,32 +640,25 @@ private fun CatalogBlock(
                 )
             }
         }
-        if (categories.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-            ) {
-                CategoryChip(
-                    label = "All categories",
-                    selected = category == null,
-                    onClick = { onCategory(null) },
-                )
-                categories.forEach { (option, count) ->
-                    CategoryChip(
-                        label = "${categoryLabel(option)} ($count)",
-                        selected = option == category,
-                        onClick = { onCategory(if (option == category) null else option) },
-                    )
-                }
-            }
-        }
-        if (items.isEmpty()) {
+        val current = expanded
+        if (current == null) {
+            Text(
+                "Pick a filter above to browse the catalog.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (items.isEmpty()) {
             Text(
                 if (syncing) "Loading the daily catalog…" else "No catalog yet — pull to refresh.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
+            Text(
+                "${filterLabel(current)} · top ${shown.size} of ${items.size}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             RepoRows(
                 grid = grid,
                 count = shown.size,
@@ -629,11 +677,6 @@ private fun CatalogBlock(
                     )
                 },
             )
-            if (items.size > COLLAPSED_COUNT) {
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Show less" else "Show all ${items.size}")
-                }
-            }
         }
     }
 }
@@ -643,29 +686,6 @@ private fun filterLabel(filter: CatalogFilter): String = when (filter) {
     CatalogFilter.STARS -> "Top stars"
     CatalogFilter.NEW -> "New"
     CatalogFilter.UPDATED -> "Recently updated"
-}
-
-@Composable
-private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, maxLines = 1) },
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        } else null,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-    )
 }
 
 /**

@@ -5,13 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.CatalogRepository
-import dev.gstore.data.AppCategory
 import dev.gstore.data.HomeSections
-import dev.gstore.data.categoriesPresent
 import dev.gstore.data.computeSections
 import dev.gstore.data.sortedCatalog
-
+import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.datastore.PreferencesRepository
+import dev.gstore.datastore.TokenStore
 import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
@@ -34,11 +33,10 @@ data class HomeUiState(
     val sections: HomeSections = HomeSections(),
     val configs: List<SectionConfig> = emptyList(),
     val favoriteIds: Set<Long> = emptySet(),
+    val identity: GitHubIdentity = GitHubIdentity(),
     val favoriteRepos: List<Repository> = emptyList(),
     val catalog: List<RepoSignals> = emptyList(),
     val catalogFilter: CatalogFilter = CatalogFilter.TRENDING,
-    val categoryFilter: AppCategory? = null,
-    val categories: List<Pair<AppCategory, Int>> = emptyList(),
     val syncingCatalog: Boolean = false,
     val isEmpty: Boolean = true,
     val syncing: Boolean = false,
@@ -51,15 +49,15 @@ class HomeViewModel(
     private val catalog: CatalogRepository,
     private val prefs: PreferencesRepository,
     private val catalogClient: CatalogClient,
+    tokens: TokenStore,
+    cachedSignals: StateFlow<List<RepoSignals>>,
 ) : ViewModel() {
-    private val signals = MutableStateFlow<List<RepoSignals>>(emptyList())
     private val allRepos = MutableStateFlow<List<Repository>>(emptyList())
     private val syncing = MutableStateFlow(false)
     private val banner = MutableStateFlow<String?>(null)
     private val discoverResults = MutableStateFlow<List<Repository>>(emptyList())
     private val discovering = MutableStateFlow(false)
     private val catalogFilter = MutableStateFlow(CatalogFilter.TRENDING)
-    private val categoryFilter = MutableStateFlow<AppCategory?>(null)
     private val syncingCatalog = MutableStateFlow(false)
     private var catalogAutoTried = false
 
@@ -73,12 +71,13 @@ class HomeViewModel(
 
     /** Four section inputs combined separately — keeps each combine arity small. */
     private val sectionInputs = combine(
-        signals,
+        cachedSignals,
         catalog.observeFavoriteIds(),
         prefs.sectionConfigs,
         prefs.trendingWeights,
-    ) { list, favs, configs, weights ->
-        SectionInputs(list, favs, configs, weights)
+        tokens.identity,
+    ) { list, favs, configs, weights, identity ->
+        SectionInputs(list, favs, configs, weights, identity)
     }
 
     private data class SectionInputs(
@@ -86,20 +85,20 @@ class HomeViewModel(
         val favorites: Set<Long>,
         val configs: List<SectionConfig>,
         val weights: TrendingWeights,
+        val identity: GitHubIdentity,
     )
 
     private data class RefreshState(
         val syncing: Boolean,
         val banner: String?,
         val filter: CatalogFilter,
-        val category: AppCategory?,
         val syncingCatalog: Boolean,
     )
 
     private val refreshState = combine(
-        syncing, banner, catalogFilter, categoryFilter, syncingCatalog,
-    ) { s, b, f, c, cs ->
-        RefreshState(s, b, f, c, cs)
+        syncing, banner, catalogFilter, syncingCatalog,
+    ) { s, b, f, cs ->
+        RefreshState(s, b, f, cs)
     }
 
     val state: StateFlow<HomeUiState> = combine(
@@ -113,11 +112,10 @@ class HomeViewModel(
             sections = computeSections(inputs.signals, inputs.favorites, inputs.weights),
             configs = inputs.configs,
             favoriteIds = inputs.favorites,
+            identity = inputs.identity,
             favoriteRepos = favorites,
-            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights, refresh.category),
+            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights),
             catalogFilter = refresh.filter,
-            categoryFilter = refresh.category,
-            categories = categoriesPresent(inputs.signals),
             syncingCatalog = refresh.syncingCatalog,
             isEmpty = inputs.signals.isEmpty(),
             syncing = refresh.syncing,
@@ -131,12 +129,17 @@ class HomeViewModel(
         viewModelScope.launch {
             catalog.observeRepositories().collect { repos ->
                 allRepos.value = repos
-                signals.value = repos.map { catalog.signals(it) }
-                // First open with an empty DB pulls the daily scanner catalog,
-                // so Home always has a list (flow A).
-                if (!catalogAutoTried && repos.isEmpty()) {
+                // First open pulls the catalog when the DB is empty OR the
+                // last import is older than the scanner schedule — no manual
+                // button needed, offline just keeps showing cache.
+                if (!catalogAutoTried) {
                     catalogAutoTried = true
-                    syncCatalog(quiet = false)
+                    val last = prefs.catalogImportedAt.first()
+                    if (repos.isEmpty() || last == null ||
+                        System.currentTimeMillis() - last > STALE_AFTER_MILLIS
+                    ) {
+                        syncCatalog(quiet = true)
+                    }
                 }
             }
         }
@@ -162,10 +165,6 @@ class HomeViewModel(
 
     fun setCatalogFilter(filter: CatalogFilter) {
         catalogFilter.value = filter
-    }
-
-    fun setCategoryFilter(category: AppCategory?) {
-        categoryFilter.value = category
     }
 
     /**

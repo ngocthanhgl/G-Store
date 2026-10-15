@@ -1,4 +1,4 @@
-package dev.gstore.readme
+package dev.gstore.ui
 
 import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension

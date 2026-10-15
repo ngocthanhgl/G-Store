@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.gstore.data.UpdateState
 import dev.gstore.database.DownloadRecord
 import dev.gstore.model.VerificationResult
 import dev.gstore.ui.AppIcon
@@ -61,6 +63,8 @@ fun DownloadsScreen(
     onLaunch: (String) -> Unit,
     onRefreshInstalled: () -> Unit,
     onSort: (InstalledSort) -> Unit,
+    onOpenLogin: () -> Unit,
+    onDismissLoginPrompt: () -> Unit,
     snackbar: SnackbarHostState,
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
@@ -73,10 +77,33 @@ fun DownloadsScreen(
         }
     }
     LaunchedEffect(Unit) { onRefreshInstalled() }
+    if (state.showLoginPrompt) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = onDismissLoginPrompt,
+            title = { Text("Slow down") },
+            text = {
+                Text(
+                    "One update check per minute — the anonymous GitHub quota " +
+                        "is 60 requests/hour. Log in to lift it to 5,000.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDismissLoginPrompt()
+                        onOpenLogin()
+                    },
+                ) { Text("Log in to GitHub") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissLoginPrompt) { Text("Later") }
+            },
+        )
+    }
     PullToRefreshBox(
         isRefreshing = state.installedRefreshing,
         onRefresh = onRefreshInstalled,
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().statusBarsPadding(),
     ) {
         val updates = state.installed.filter {
             it.updateState == UpdateState.UPDATE_AVAILABLE ||

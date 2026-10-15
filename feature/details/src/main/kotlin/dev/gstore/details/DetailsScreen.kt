@@ -2,6 +2,7 @@ package dev.gstore.details
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,8 +27,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +34,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
@@ -42,6 +43,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -50,9 +55,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AssetKind
+import dev.gstore.database.DownloadRecord
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
+import dev.gstore.ui.Block
+import dev.gstore.ui.BlockView
 
 @Composable
 fun DetailsScreen(
@@ -62,7 +70,10 @@ fun DetailsScreen(
     onToggleFavorite: () -> Unit,
     onRefresh: () -> Unit,
     onSelectRelease: (Long) -> Unit,
-    onDownload: (ReleaseAsset) -> Unit,
+    onHeroDownload: (ReleaseAsset) -> Unit,
+    onHeroCancel: (Long) -> Unit,
+    onHeroInstall: (DownloadRecord) -> Unit,
+    onHeroUninstall: (String) -> Unit,
     onOpenReadme: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -106,19 +117,48 @@ fun DetailsScreen(
     val apkRows = state.assetRows.filter {
         it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
     }
-    val bestAsset = apkRows.firstOrNull()?.asset
-    val selectedTag = selectedRelease(state)?.tag
     Column(modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier.weight(1f).fillMaxWidth(),
         contentPadding = PaddingValues(16.dp),
     ) {
-        item { TopBar(onBack, state.isFavorite, onToggleFavorite, state.syncing, onRefresh) }
+        // The back/favorite row sits below the status bar; the hero below
+        // it bleeds edge-to-edge under the camera hole.
+        item {
+            TopBar(
+                onBack,
+                state.isFavorite,
+                onToggleFavorite,
+                state.syncing,
+                onRefresh,
+                modifier = Modifier.statusBarsPadding(),
+            )
+        }
         item { Spacer(Modifier.height(8.dp)) }
         item { Header(repo) }
         item { Spacer(Modifier.height(12.dp)) }
         item { ActionsRow(repo, onOpenReadme) }
-        item { Spacer(Modifier.height(16.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
+        selectedRelease(state)?.let { release ->
+            val asset = apkRows.firstOrNull()?.asset
+            item {
+                HeroDownloadBar(
+                    hero = state.hero,
+                    tag = release.tag,
+                    asset = asset,
+                    onDownload = onHeroDownload,
+                    onCancel = onHeroCancel,
+                    onInstall = onHeroInstall,
+                    onUninstall = onHeroUninstall,
+                )
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+        }
+        val description = repo.description
+        if (description != null) {
+            item { InfoCard(description) }
+            item { Spacer(Modifier.height(12.dp)) }
+        }
         item { SectionTitle("Releases (${apkReleases.size})") }
         item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
         item { Spacer(Modifier.height(8.dp)) }
@@ -132,37 +172,96 @@ fun DetailsScreen(
                 item { Text("No APK artifacts on this release.") }
             } else {
                 items(apkRows, key = { it.asset.id }) { row ->
-                    AssetCard(row, onDownload)
+                    AssetCard(row)
                     Spacer(Modifier.height(8.dp))
                 }
             }
         }
-        item { Spacer(Modifier.height(16.dp)) }
-        item { SectionTitle("Release history") }
-        items(apkReleases, key = { it.id }) { release ->
-            HistoryRow(release, selected = release.id == state.selectedReleaseId, onSelectRelease)
+        if (state.readmeBlocks.isNotEmpty()) {
+            item { Spacer(Modifier.height(12.dp)) }
+            item {
+                ReadmeCard(
+                    blocks = state.readmeBlocks,
+                    owner = repo.owner,
+                    name = repo.fullName.substringAfter('/'),
+                    onOpenFull = onOpenReadme,
+                )
+            }
         }
     }
-    if (bestAsset != null && selectedTag != null) {
-        Button(
-            onClick = { onDownload(bestAsset) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .heightIn(min = 56.dp),
-        ) {
-            Text(
-                "Download $selectedTag",
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-        }
-    }
-    }
+}
 }
 
 private fun selectedRelease(state: DetailsUiState): Release? =
     state.releases.firstOrNull { it.id == state.selectedReleaseId }
+
+/**
+ * Tap-to-expand info: three lines collapsed, full text expanded. The whole
+ * card is the toggle — no position, no button.
+ */
+@Composable
+private fun InfoCard(description: String) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth()) {
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = if (expanded) Int.MAX_VALUE else 3,
+            overflow = if (expanded) {
+                androidx.compose.ui.text.style.TextOverflow.Visible
+            } else {
+                androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(12.dp),
+        )
+    }
+}
+
+/**
+ * Inline README preview with the same renderer as the full screen: a short
+ * window collapsed, up to 60 blocks expanded, full screen one tap away.
+ * Tapping anywhere on the card toggles.
+ */
+@Composable
+private fun ReadmeCard(
+    blocks: List<Block>,
+    owner: String,
+    name: String,
+    onOpenFull: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = if (expanded) "README — tap to collapse" else "README — tap to expand",
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+            )
+            val shown = if (expanded) blocks.take(60) else blocks.take(4)
+            if (expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    shown.forEach { BlockView(it, owner, name) }
+                }
+                TextButton(onClick = onOpenFull) { Text("Open full README") }
+            } else {
+                Box(Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        shown.forEach { BlockView(it, owner, name) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun TopBar(
@@ -171,8 +270,9 @@ private fun TopBar(
     onToggleFavorite: () -> Unit,
     syncing: Boolean,
     onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onToggleFavorite) {
@@ -201,14 +301,14 @@ private fun Header(repo: Repository) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
             Text(
                 repo.fullName.substringAfter('/'),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
                 repo.owner,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -220,15 +320,7 @@ private fun Header(repo: Repository) {
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
-            val description = repo.description
-            if (description != null) {
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 3,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
+            // Description lives in the expandable info card below, not here.
             // Divider-separated stats in the store idiom: popularity and
             // freshness at a glance, each cell truncating, never wrapping.
             StatsRow(
@@ -433,7 +525,7 @@ private fun ReleaseNotes(release: Release) {
 }
 
 @Composable
-private fun AssetCard(row: AssetRow, onDownload: (ReleaseAsset) -> Unit) {
+private fun AssetCard(row: AssetRow) {
     val asset = row.asset
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -446,45 +538,113 @@ private fun AssetCard(row: AssetRow, onDownload: (ReleaseAsset) -> Unit) {
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
-                "${formatBytes(asset.size)}",
+                formatBytes(asset.size),
                 style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
-            // Rows are pre-filtered to eligible APKs: filename, size, action.
-            Button(
-                onClick = { onDownload(asset) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) {
-                Text("Download", maxLines = 1)
-            }
         }
     }
 }
 
+/**
+ * Hero download bar for the recommended APK of the selected release.
+ * Small text throughout; progress, install and uninstall stay on this
+ * screen — nothing navigates away except the system installer itself.
+ */
 @Composable
-private fun HistoryRow(release: Release, selected: Boolean, onSelect: (Long) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
+private fun HeroDownloadBar(
+    hero: HeroDlState,
+    tag: String,
+    asset: ReleaseAsset?,
+    onDownload: (ReleaseAsset) -> Unit,
+    onCancel: (Long) -> Unit,
+    onInstall: (DownloadRecord) -> Unit,
+    onUninstall: (String) -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                release.tag,
-                fontWeight = if (selected) FontWeight.Bold else null,
+                "Recommended APK · $tag",
+                style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
-            Text(
-                listOfNotNull(
-                    release.publishedAt?.take(10),
-                    if (release.prerelease) "prerelease" else null,
-                ).joinToString(" · ").ifEmpty { "undated" },
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-        }
-        if (!selected) {
-            AssistChip(onClick = { onSelect(release.id) }, label = { Text("View") })
+            when (hero) {
+                is HeroDlState.IdleDownload -> {
+                    val target = asset
+                    Button(
+                        onClick = { if (target != null) onDownload(target) },
+                        enabled = target != null,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text(
+                            if (target != null) "Download ${formatBytes(target.size)}"
+                            else "No APK on this release",
+                            maxLines = 1,
+                        )
+                    }
+                }
+                is HeroDlState.Downloading -> {
+                    val fraction = if (hero.total > 0) {
+                        (hero.done.toFloat() / hero.total).coerceIn(0f, 1f)
+                    } else null
+                    if (fraction != null) {
+                        LinearProgressIndicator(
+                            progress = { fraction },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "${formatBytes(hero.done)} of ${formatBytes(hero.total)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                        val target = asset
+                        TextButton(onClick = { if (target != null) onCancel(target.id) }) {
+                            Text("Cancel")
+                        }
+                    }
+                }
+                is HeroDlState.ReadyInstall -> {
+                    Button(
+                        onClick = { onInstall(hero.record) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text("Install", maxLines = 1)
+                    }
+                }
+                is HeroDlState.Installed -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Installed" + (hero.versionName?.let { " · $it" } ?: ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { onUninstall(hero.packageName) }) {
+                            Text("Uninstall")
+                        }
+                    }
+                }
+                is HeroDlState.FailedRetry -> {
+                    val target = asset
+                    OutlinedButton(
+                        onClick = { if (target != null) onDownload(target) },
+                        enabled = target != null,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text("Retry download", maxLines = 1)
+                    }
+                }
+            }
         }
     }
 }

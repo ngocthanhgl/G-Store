@@ -50,6 +50,7 @@ commonmark-task-list = { module = "org.commonmark:commonmark-ext-task-list-items
 commonmark-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil3" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version = "1.0.0" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
 

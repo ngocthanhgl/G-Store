@@ -9,23 +9,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.gstore.ui.AppIcon
 import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.HomeLayout
@@ -46,7 +58,7 @@ fun SettingsScreen(
     appVersion: String,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).statusBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -65,6 +77,65 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        item {
+            val identity by vm.identity.collectAsState()
+            val loginBusy by vm.loginBusy.collectAsState()
+            val loginError by vm.loginError.collectAsState()
+            var showLogin by remember { mutableStateOf(false) }
+            SettingGroup("GitHub") {
+                if (identity.login.isBlank()) {
+                    Text(
+                        "Anonymous browsing: 60 requests/hour. Log in to raise " +
+                            "it to 5,000 — a token with no scopes is enough.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = { showLogin = true },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text("Log in with token", maxLines = 1)
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AppIcon(
+                            avatarUrl = identity.avatarUrl,
+                            owner = identity.login,
+                            size = 40.dp,
+                        )
+                        Text(
+                            text = identity.login,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                        )
+                        TextButton(onClick = vm::logout) { Text("Logout") }
+                    }
+                }
+                val error = loginError
+                if (error != null) {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
+                }
+                if (loginBusy) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            }
+            if (showLogin) {
+                LoginDialog(
+                    onDismiss = { showLogin = false },
+                    onConfirm = {
+                        vm.loginWithToken(it)
+                        showLogin = false
+                    },
                 )
             }
         }
@@ -153,6 +224,48 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+/**
+ * Token login: the user pastes a Personal Access Token created at
+ * github.com/settings/tokens (no scopes needed). The token is validated
+ * before storage and kept encrypted on-device — it never leaves the hop
+ * to api.github.com.
+ */
+@Composable
+private fun LoginDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val uriHandler = LocalUriHandler.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Log in to GitHub") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Create a token (no scopes needed), then paste it here. " +
+                        "It stays encrypted on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedButton(onClick = {
+                    uriHandler.openUri("https://github.com/settings/tokens/new")
+                }) {
+                    Text("Open github.com/settings/tokens")
+                }
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.trim() },
+                    label = { Text("Personal access token") },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
+                Text("Log in")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
