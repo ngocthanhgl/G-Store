@@ -14,8 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -114,7 +114,7 @@ fun DownloadsScreen(
         if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty()) {
             EmptyContent(
                 message = "Nothing here yet. Pick an APK on an app's details screen.",
-                icon = Icons.Filled.KeyboardArrowDown,
+                icon = Icons.Outlined.KeyboardArrowDown,
             )
             return@PullToRefreshBox
         }
@@ -131,7 +131,7 @@ fun DownloadsScreen(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onRefreshInstalled) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Check for updates")
+                        Icon(Icons.Outlined.Refresh, contentDescription = "Check for updates")
                     }
                 }
             }
@@ -219,7 +219,10 @@ private fun InstalledRow(
     onInstall: (DownloadRecord) -> Unit,
 ) {
     val record = row.record
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        onClick = { onBrowseRepo(record.repoFullName) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,

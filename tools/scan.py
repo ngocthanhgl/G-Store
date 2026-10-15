@@ -52,6 +52,11 @@ RELEASES_PER_REPO = 10
 ENTRY_CAP = 8000
 NOTES_CAP = 2000
 ASSETS_CAP = 20
+# Slim app index: top entries by stars, repo metadata + latest APK release
+# pointer only (no notes, no per-asset rows). The app pulls this on launch;
+# full asset lists load lazily per repo via the GitHub API on demand.
+INDEX_CAP = 3000
+DESC_CAP = 240
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
@@ -242,6 +247,11 @@ def to_entry(repo, rel, assets, today):
             "created_at": repo.get("created_at"),
             "license": (spdx if spdx and spdx != "NOASSERTION"
                         else lic.get("name")),
+            "language": repo.get("language"),
+            "openIssues": repo.get("open_issues_count"),
+            "watchers": repo.get("subscribers_count"),
+            "homepage": repo.get("homepage"),
+            "pushedAt": repo.get("pushed_at"),
         },
         "release": {
             "id": rel["id"],
@@ -354,12 +364,48 @@ def main():
     return 0
 
 
+def to_index_entry(entry):
+    """Slim app-facing projection: metadata + latest-APK-release pointer."""
+    repo = entry.get("repo", {})
+    rel = entry.get("release", {}) or {}
+    desc = repo.get("description") or ""
+    return {
+        "schema": 1,
+        "last_verified": entry.get("last_verified"),
+        "repo": {
+            "id": repo.get("id"),
+            "full_name": repo.get("full_name"),
+            "owner": repo.get("owner"),
+            "avatar_url": repo.get("avatar_url"),
+            "description": desc[:DESC_CAP],
+            "stars": repo.get("stars", 0),
+            "forks": repo.get("forks", 0),
+            "topics": (repo.get("topics") or [])[:20],
+            "archived": bool(repo.get("archived", False)),
+            "default_branch": repo.get("default_branch", "main"),
+            "updated_at": repo.get("updated_at"),
+            "created_at": repo.get("created_at"),
+            "license": repo.get("license"),
+        },
+        "release": {
+            "id": rel.get("id"),
+            "tag": rel.get("tag"),
+            "published_at": rel.get("published_at"),
+            "prerelease": bool(rel.get("prerelease", False)),
+            "apk_count": len(entry.get("assets") or []),
+        },
+    }
+
+
 def write_results(entries, candidates, checked, started,
                   deadline_hit, error, set_index, queries,
                   verified_today, carried, dropped_stale):
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "apps.json"), "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=1)
+    index = [to_index_entry(e) for e in entries[:INDEX_CAP]]
+    with open(os.path.join(OUT_DIR, "index.json"), "w", encoding="utf-8") as f:
+        json.dump(index, f, ensure_ascii=False, indent=1)
     meta = {
         "schema": 1,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
@@ -372,6 +418,8 @@ def write_results(entries, candidates, checked, started,
         "carried_over": carried,
         "dropped_stale": dropped_stale,
         "matches": len(entries),
+        "index_matches": len(index),
+        "index_bytes": os.path.getsize(os.path.join(OUT_DIR, "index.json")),
         "truncated": len(entries) >= ENTRY_CAP or deadline_hit,
         "deadline_hit": deadline_hit,
         "complete": error is None and not deadline_hit,

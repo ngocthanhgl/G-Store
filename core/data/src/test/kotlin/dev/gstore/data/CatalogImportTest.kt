@@ -13,6 +13,7 @@ import dev.gstore.database.SyncCheckpoint
 import dev.gstore.network.ApiResponse
 import dev.gstore.network.CatalogAsset
 import dev.gstore.network.CatalogEntry
+import dev.gstore.network.CatalogIndexRow
 import dev.gstore.network.CatalogRelease
 import dev.gstore.network.CatalogRepo
 import dev.gstore.network.GitHubService
@@ -133,5 +134,29 @@ class CatalogImportTest {
         assertEquals("FRESH", repos.rows[7L]?.syncState)
         assertEquals(111L, repos.rows[7L]?.lastSyncedAt)
         assertEquals(10, repos.rows[7L]?.stars) // metadata still refreshed
+    }
+
+    private fun indexRow() = CatalogIndexRow(
+        id = 7, full_name = "o/app", owner = "o", stars = 10, forks = 1,
+        updated_at = "2026-10-09T00:00:00Z", tag = "v1",
+        published_at = "2026-10-08T00:00:00Z", prerelease = false, apk_count = 2,
+    )
+
+    @Test fun `importIndex stores slim rows without asset detail`() = runBlocking {
+        val repos = Repos()
+        val releases = Releases()
+        val assets = Assets()
+        assertEquals(1, catalog(repos, releases, assets).importIndex(listOf(indexRow()), 0L))
+        assertEquals("STALE", repos.rows[7L]?.syncState)
+        assertEquals("v1", releases.rows[-7L]?.tag) // synthetic id -(repoId)
+        assertTrue(assets.rows.isEmpty()) // no asset detail in the slim index
+    }
+
+    @Test fun `importIndex never clobbers fresh descriptions`() = runBlocking {
+        val repos = Repos()
+        repos.upsert(repoRow("FRESH").copy(description = "keep"))
+        catalog(repos, Releases(), Assets()).importIndex(listOf(indexRow()), 0L)
+        assertEquals("FRESH", repos.rows[7L]?.syncState)
+        assertEquals("keep", repos.rows[7L]?.description)
     }
 }

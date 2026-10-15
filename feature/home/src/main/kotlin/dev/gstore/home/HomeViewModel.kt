@@ -168,7 +168,7 @@ class HomeViewModel(
     }
 
     /**
-     * Pull the daily scanner catalog and merge it into Room. Runs on first
+     * Pull the daily scanner index and merge it into Room. Runs on first
      * open with an empty DB, on pull-to-refresh when older than 24h, and from
      * the empty-state button. ETag-kept: a 304 touches imported-at only.
      */
@@ -179,7 +179,7 @@ class HomeViewModel(
             try {
                 when (val resp = catalogClient.fetch(prefs.catalogEtag.first())) {
                     is ApiResponse.Fresh -> {
-                        val merged = catalog.importCatalog(resp.data, now)
+                        val merged = catalog.importIndex(resp.data, now)
                         prefs.setCatalogState(resp.etag, now)
                         if (!quiet) banner.value = "Loaded $merged apps from the daily catalog"
                     }

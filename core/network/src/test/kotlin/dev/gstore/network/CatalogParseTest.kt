@@ -69,4 +69,25 @@ class CatalogParseTest {
         assertEquals(0, e.repo.stars)
         assertTrue(e.assets.isEmpty())
     }
+
+    @Test fun `slim index row parses`() {
+        val rows = parseIndex(
+            """[{"schema":1,"unknown_future":"x","id":129710,"full_name":"o/app","owner":"o","stars":42,"forks":7,"archived":false,"updated_at":"2026-10-09T00:00:00Z","tag":"v1.0","published_at":"2026-10-08T00:00:00Z","prerelease":true,"apk_count":3}]""",
+        )
+        assertEquals(1, rows.size)
+        val r = rows.first()
+        assertEquals(129710L, r.id)
+        assertEquals("o/app", r.full_name)
+        assertEquals(42, r.stars)
+        assertEquals("v1.0", r.tag)
+        assertTrue(r.prerelease)
+        assertEquals(3, r.apk_count)
+    }
+
+    @Test fun `slim index row uses defaults`() {
+        val rows = parseIndex("""[{"id":1,"full_name":"a/b","owner":"a","tag":"t"}]""")
+        val r = rows.first()
+        assertEquals(0, r.stars)
+        assertEquals(0, r.apk_count)
+    }
 }

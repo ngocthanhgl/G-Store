@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +32,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
@@ -44,6 +50,7 @@ fun SearchScreen(
 ) {
     val state by vm.state.collectAsState()
     val netResults by vm.networkResults.collectAsState()
+    val focus = LocalFocusManager.current
 
     LaunchedEffect(state.banner) {
         state.banner?.let {
@@ -63,9 +70,16 @@ fun SearchScreen(
             onValueChange = vm::setQuery,
             label = { Text("Name, description, or owner") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    focus.clearFocus()
+                    vm.searchGitHub()
+                },
+            ),
             trailingIcon = {
                 IconButton(onClick = vm::searchGitHub) {
-                    Icon(Icons.Filled.Search, contentDescription = "Search GitHub")
+                    Icon(Icons.Outlined.Search, contentDescription = "Search GitHub")
                 }
             },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -145,7 +159,16 @@ fun SearchScreen(
                 }
             }
             if (state.searching) {
-                item { Text("Searching GitHub…") }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text("Searching GitHub...")
+                    }
+                }
             }
             if (netResults.isNotEmpty()) {
                 item {
@@ -184,7 +207,7 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
             )
         }
         IconButton(onClick = onAdd) {
-            Icon(Icons.Filled.Add, contentDescription = "Add ${repo.fullName}")
+            Icon(Icons.Outlined.Add, contentDescription = "Add ${repo.fullName}")
         }
     }
 }

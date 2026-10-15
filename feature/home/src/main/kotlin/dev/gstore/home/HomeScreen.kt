@@ -6,42 +6,31 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -54,52 +43,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
-import dev.gstore.data.categoryLabel
 import dev.gstore.datastore.GitHubIdentity
-import dev.gstore.model.HomeSection
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
-import dev.gstore.model.SectionConfig
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
 import dev.gstore.ui.AuroraSectionHeader
-import dev.gstore.ui.RailCard
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
+import dev.gstore.ui.SkeletonRows
 
 private const val COLLAPSED_COUNT = 5
 
-private fun titleOf(section: HomeSection): String = when (section) {
-    HomeSection.NEW -> "New apps"
-    HomeSection.TOP_CHARTS -> "Top charts"
-    HomeSection.CATEGORIES -> "Browse categories"
-    HomeSection.FAVORITES -> "Favorites"
-    HomeSection.TRENDING -> "Trending"
-    HomeSection.FAMOUS -> "Famous"
-    HomeSection.UPDATED -> "Recently updated"
-}
-
-private fun emptyOf(section: HomeSection): String = when (section) {
-    HomeSection.NEW -> "No apps first released in the last 30 days yet."
-    HomeSection.TOP_CHARTS -> "Star data will appear here once the catalog loads."
-    HomeSection.CATEGORIES -> "No categorized apps yet — topics arrive with the catalog."
-    HomeSection.FAVORITES -> "Tap the heart on any repository. Favorites work fully offline."
-    HomeSection.TRENDING -> "No recent release activity yet — sync a repository to begin."
-    HomeSection.FAMOUS -> "No established projects yet (1,000+ stars, 3+ APK releases, 1+ year)."
-    HomeSection.UPDATED -> "Nothing released in the last 30 days."
-}
-
+/**
+ * Home is the scanner catalog and nothing else: the filter chip rail on
+ * top, tapping a chip expands its list. All curated sections (Trending,
+ * Famous, Top charts, categories, ...) were removed — with the slim
+ * launch index they rendered as permanent empty shells.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
-    onOpenCategory: (AppCategory) -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
     snackbar: SnackbarHostState,
@@ -110,7 +79,6 @@ fun HomeScreen(
 ) {
     val state by vm.state.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
-    var showCustomize by remember { mutableStateOf(false) }
     var showDiscover by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.banner) {
@@ -142,7 +110,6 @@ fun HomeScreen(
                     HomeHeader(
                         identity = state.identity,
                         onAdd = { showAdd = true },
-                        onCustomize = { showCustomize = true },
                         onOpenLogin = onOpenLogin,
                         onLogout = onLogout,
                     )
@@ -162,56 +129,6 @@ fun HomeScreen(
                         onOpen = onOpenRepo,
                         onToggleFavorite = vm::toggleFavorite,
                     )
-                }
-                for (config in state.configs.filter { it.visible }) {                    item(key = config.section.name) {
-                        when (config.section) {
-                            HomeSection.FAVORITES -> FavoritesBlock(
-                                repos = state.favoriteRepos,
-                                favorites = state.favoriteIds,
-                                syncing = state.syncing,
-                                grid = grid,
-                                compact = compact,
-                                cardRadiusDp = cardRadiusDp,
-                                reduceMotion = reduceMotion,
-                                onRefresh = { vm.refreshSection(state.favoriteRepos) },
-                                onHide = { vm.setSectionVisible(config.section, false) },
-                                onOpen = onOpenRepo,
-                                onToggleFavorite = vm::toggleFavorite,
-                            )
-                            HomeSection.TOP_CHARTS -> TopChartsBlock(
-                                items = state.sections.topCharts,
-                                favorites = state.favoriteIds,
-                                onShowAll = {
-                                    vm.setCatalogFilter(CatalogFilter.STARS)
-                                },
-                                onOpen = onOpenRepo,
-                                onToggleFavorite = vm::toggleFavorite,
-                            )
-                            HomeSection.CATEGORIES -> CategoriesBlock(
-                                signals = state.catalog,
-                                onOpen = onOpenRepo,
-                                onPickCategory = onOpenCategory,
-                            )
-                            else -> SectionBlock(
-                                config = config,
-                                items = itemsOf(config.section, state),
-                                favorites = state.favoriteIds,
-                                syncing = state.syncing,
-                                grid = grid,
-                                compact = compact,
-                                cardRadiusDp = cardRadiusDp,
-                                reduceMotion = reduceMotion,
-                                onRefresh = {
-                                    vm.refreshSection(
-                                        itemsOf(config.section, state).map { it.repo },
-                                    )
-                                },
-                                onHide = { vm.setSectionVisible(config.section, false) },
-                                onOpen = onOpenRepo,
-                                onToggleFavorite = vm::toggleFavorite,
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -238,40 +155,34 @@ fun HomeScreen(
             onDismiss = { showDiscover = false },
         )
     }
-    if (showCustomize) {
-        CustomizeDialog(
-            configs = state.configs,
-            onToggle = vm::setSectionVisible,
-            onMove = vm::moveSection,
-            onDismiss = { showCustomize = false },
-        )
-    }
 }
-
-private fun itemsOf(section: HomeSection, state: HomeUiState): List<RepoSignals> =
-    when (section) {
-        HomeSection.NEW -> state.sections.new
-        HomeSection.TOP_CHARTS -> state.sections.topCharts
-        HomeSection.CATEGORIES -> emptyList() // rendered by CategoriesBlock
-        HomeSection.FAVORITES -> emptyList() // rendered by FavoritesBlock
-        HomeSection.TRENDING -> state.sections.trending
-        HomeSection.FAMOUS -> state.sections.famous
-        HomeSection.UPDATED -> state.sections.updated
-    }
 
 private fun apkBadgeOf(signals: RepoSignals): ApkBadge =
     if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.NO_APK
 
 /**
- * List/grid adaptive card lives in core:ui ([AdaptiveCard]) so home, search,
- * and favorites share one shape contract.
+ * Accepts owner/name or a full GitHub link:
+ * https://github.com/owner/repo, with optional .git or sub-path suffix.
+ * Returns the normalized owner/name, or null when unparseable.
  */
+fun parseRepoLink(input: String): String? {
+    val t = input.trim().trimEnd('/')
+    if (t.isEmpty()) return null
+    val m = Regex("""github\.com/([^/\s]+)/([^/\s?#]+)""").find(t)
+    if (m != null) {
+        val owner = m.groupValues[1]
+        val name = m.groupValues[2].removeSuffix(".git")
+        if (owner.isNotEmpty() && name.isNotEmpty()) return "$owner/$name"
+        return null
+    }
+    if ("/" in t && " " !in t) return t.trim('/')
+    return null
+}
 
 @Composable
 private fun HomeHeader(
     identity: GitHubIdentity,
     onAdd: () -> Unit,
-    onCustomize: () -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -287,16 +198,12 @@ private fun HomeHeader(
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onAdd) {
-            Icon(Icons.Filled.Add, contentDescription = "Add repository")
+            Icon(Icons.Outlined.Add, contentDescription = "Add repository")
         }
-        IconButton(onClick = onCustomize) {
-            Icon(Icons.Filled.Settings, contentDescription = "Customize sections")
-        }
-        // Profile replaces nothing: logged out it opens login, logged in it
-        // shows who authenticated (avatar + login + logout).
+        // Profile opens login when logged out, identity + logout when in.
         if (identity.login.isBlank()) {
             IconButton(onClick = onOpenLogin) {
-                Icon(Icons.Filled.Person, contentDescription = "Log in to GitHub")
+                Icon(Icons.Outlined.Person, contentDescription = "Log in to GitHub")
             }
         } else {
             IconButton(onClick = { showProfile = true }) {
@@ -355,167 +262,11 @@ private fun HeaderActions(
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         } else if (onRefresh != null) {
             IconButton(onClick = onRefresh) {
-                Icon(Icons.Filled.Refresh, contentDescription = refreshDescription)
+                Icon(Icons.Outlined.Refresh, contentDescription = refreshDescription)
             }
         }
         if (onHide != null) {
-            IconButton(onClick = onHide) {
-                Icon(Icons.Filled.Close, contentDescription = hideDescription)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionBlock(
-    config: SectionConfig,
-    items: List<RepoSignals>,
-    favorites: Set<Long>,
-    syncing: Boolean,
-    grid: Boolean,
-    compact: Boolean,
-    cardRadiusDp: Int,
-    reduceMotion: Boolean,
-    onRefresh: () -> Unit,
-    onHide: () -> Unit,
-    onOpen: (Repository) -> Unit,
-    onToggleFavorite: (Repository) -> Unit,
-) {
-    val section = config.section
-    var expanded by remember(section) { mutableStateOf(false) }
-    val shown = if (expanded) items else items.take(COLLAPSED_COUNT)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            // The show-more expand animates — unless the user asked for reduced
-            // motion, in which case the size change snaps instantly (M7).
-            .animateContentSize(
-                animationSpec = if (reduceMotion) {
-                    androidx.compose.animation.core.snap()
-                } else {
-                    androidx.compose.animation.core.spring()
-                },
-            ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AuroraSectionHeader(
-            title = titleOf(section),
-            subtitle = "${items.size} apps",
-            trailing = {
-                HeaderActions(
-                    syncing = syncing,
-                    onRefresh = onRefresh,
-                    refreshDescription = "Refresh ${titleOf(section)}",
-                    onHide = onHide,
-                    hideDescription = "Hide ${titleOf(section)}",
-                )
-            },
-        )
-        if (items.isEmpty()) {
-            Text(
-                emptyOf(section),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            RepoRows(
-                grid = grid,
-                count = shown.size,
-                keyOf = { "repo-${shown[it].repo.id}" },
-                card = { index ->
-                    val signals = shown[index]
-                    AdaptiveCard(
-                        repo = signals.repo,
-                        isFavorite = signals.repo.id in favorites,
-                        apkBadge = apkBadgeOf(signals),
-                        grid = grid,
-                        onOpen = { onOpen(signals.repo) },
-                        onToggleFavorite = { onToggleFavorite(signals.repo) },
-                        cardRadiusDp = cardRadiusDp,
-                        compact = compact,
-                    )
-                },
-            )
-            if (items.size > COLLAPSED_COUNT) {
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Show less" else "Show all ${items.size}")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FavoritesBlock(
-    repos: List<Repository>,
-    favorites: Set<Long>,
-    syncing: Boolean,
-    grid: Boolean,
-    compact: Boolean,
-    cardRadiusDp: Int,
-    reduceMotion: Boolean,
-    onRefresh: () -> Unit,
-    onHide: () -> Unit,
-    onOpen: (Repository) -> Unit,
-    onToggleFavorite: (Repository) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val shown = if (expanded) repos else repos.take(COLLAPSED_COUNT)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .animateContentSize(
-                animationSpec = if (reduceMotion) {
-                    androidx.compose.animation.core.snap()
-                } else {
-                    androidx.compose.animation.core.spring()
-                },
-            ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AuroraSectionHeader(
-            title = "Favorites",
-            trailing = {
-                HeaderActions(
-                    syncing = syncing,
-                    onRefresh = onRefresh,
-                    refreshDescription = "Refresh Favorites",
-                    onHide = onHide,
-                    hideDescription = "Hide Favorites",
-                )
-            },
-        )
-        if (repos.isEmpty()) {
-            Text(
-                emptyOf(HomeSection.FAVORITES),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            RepoRows(
-                grid = grid,
-                count = shown.size,
-                keyOf = { "fav-${shown[it].id}" },
-                card = { index ->
-                    val repo = shown[index]
-                    AdaptiveCard(
-                        repo = repo,
-                        isFavorite = repo.id in favorites,
-                        grid = grid,
-                        onOpen = { onOpen(repo) },
-                        onToggleFavorite = { onToggleFavorite(repo) },
-                        cardRadiusDp = cardRadiusDp,
-                        compact = compact,
-                    )
-                },
-            )
-            if (repos.size > COLLAPSED_COUNT) {
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Show less" else "Show all ${repos.size}")
-                }
-            }
+            // No hide affordance remains on Home; the slot stays for callers.
         }
     }
 }
@@ -534,7 +285,7 @@ private fun EmptyCatalog(
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            Icons.Filled.Add,
+            Icons.Outlined.Add,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.primary,
@@ -551,19 +302,22 @@ private fun EmptyCatalog(
             modifier = Modifier.padding(top = 16.dp),
         ) {
             Button(onClick = onAdd) { Text("Add repository") }
-            OutlinedButton(onClick = onDiscover, enabled = !discovering) {                Text(if (discovering) "Searching…" else "Discover")
+            OutlinedButton(onClick = onDiscover, enabled = !discovering) {
+                Text(if (discovering) "Searching..." else "Discover")
             }
         }
+        if (syncingCatalog) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+        }
         TextButton(onClick = onSyncCatalog, enabled = !syncingCatalog) {
-            Text(if (syncingCatalog) "Loading catalog…" else "Or load the daily app catalog")
+            Text(if (syncingCatalog) "Loading catalog..." else "Or load the daily app catalog")
         }
     }
 }
 
 /**
  * The scanner-catalog list: every app GitHub-wide with an APK release,
- * ordered by the selected filter. Sections below stay personalized views
- * over the same data (PRODUCT_SPEC §3).
+ * ordered by the selected filter.
  */
 @Composable
 private fun CatalogBlock(
@@ -626,7 +380,7 @@ private fun CatalogBlock(
                     leadingIcon = if (open) {
                         {
                             Icon(
-                                Icons.Filled.Check,
+                                Icons.Outlined.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -647,9 +401,12 @@ private fun CatalogBlock(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        } else if (items.isEmpty() && syncing) {
+            // Genuine load in flight: animated placeholders, never a blank gap.
+            SkeletonRows(count = 5, reduceMotion = reduceMotion, cardRadiusDp = cardRadiusDp)
         } else if (items.isEmpty()) {
             Text(
-                if (syncing) "Loading the daily catalog…" else "No catalog yet — pull to refresh.",
+                "No catalog yet - pull to refresh.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -688,157 +445,36 @@ private fun filterLabel(filter: CatalogFilter): String = when (filter) {
     CatalogFilter.UPDATED -> "Recently updated"
 }
 
-/**
- * Play-Store-style numbered chart: rank, icon, name, star ledger.
- * Every text truncates — long owner/name pairs must never shift the rank.
- */
-@Composable
-private fun TopChartsBlock(
-    items: List<RepoSignals>,
-    favorites: Set<Long>,
-    onShowAll: () -> Unit,
-    onOpen: (Repository) -> Unit,
-    onToggleFavorite: (Repository) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AuroraSectionHeader(
-            title = "Top charts",
-            subtitle = "Most-starred apps",
-            onClick = onShowAll,
-        )
-        if (items.isEmpty()) {
-            Text(
-                emptyOf(HomeSection.TOP_CHARTS),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            items.forEachIndexed { index, signals ->
-                val repo = signals.repo
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${index + 1}",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(32.dp),
-                        maxLines = 1,
-                    )
-                    AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 48.dp)
-                    Column(
-                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = repo.fullName,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "${formatStars(repo.stars)} stars",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                    }
-                    androidx.compose.material3.IconButton(onClick = { onToggleFavorite(repo) }) {
-                        Icon(
-                            if (repo.id in favorites) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (repo.id in favorites) "Remove favorite" else "Add favorite",
-                            tint = if (repo.id in favorites) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun formatStars(stars: Int): String = when {
-    stars >= 1_000_000 -> "%.1fM".format(stars / 1_000_000.0)
-    stars >= 1_000 -> "%.1fk".format(stars / 1_000.0)
-    else -> stars.toString()
-}
-
-/**
- * One horizontal shelf per category present in the catalog (Play-Store
- * style rails). Tapping a rail card opens the app; the CatalogBlock chips
- * above filter the whole list by the same category.
- */
-@Composable
-private fun CategoriesBlock(
-    signals: List<RepoSignals>,
-    onOpen: (Repository) -> Unit,
-    onPickCategory: (AppCategory) -> Unit,
-) {
-    val shelves = dev.gstore.data.categoriesPresent(signals)
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        // Locked shelf: no hide, no refresh — categories are always browsable.
-        AuroraSectionHeader(
-            title = "Browse categories",
-            subtitle = "${shelves.size} shelves",
-        )
-        if (shelves.isEmpty()) {
-            Text(
-                emptyOf(HomeSection.CATEGORIES),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            shelves.forEach { (category, count) ->
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AuroraSectionHeader(
-                        title = "${dev.gstore.data.categoryLabel(category)} ($count)",
-                        onClick = { onPickCategory(category) },
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val top = signals
-                            .filter { dev.gstore.data.categoryOf(it.repo.topics) == category }
-                            .sortedByDescending { it.repo.stars }
-                            .take(8)
-                        items(top, key = { "shelf-${category.name}-${it.repo.id}" }) { item ->
-                            RailCard(
-                                repo = item.repo,
-                                onOpen = { onOpen(item.repo) },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
+    val parsed = parseRepoLink(text)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add repository") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Enter owner/name, e.g. owner/app. Only this repository is fetched.",
+                    "Enter owner/name or paste a GitHub link. Only this repository is fetched.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("owner/name") },
+                    label = { Text("owner/name or link") },
                     singleLine = true,
                 )
+                if (text.isNotBlank() && parsed != null && parsed != text.trim()) {
+                    Text(
+                        "Adds $parsed",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }, enabled = text.contains("/")) {
+            TextButton(onClick = { onConfirm(parsed ?: text) }, enabled = parsed != null) {
                 Text("Add")
             }
         },
@@ -871,7 +507,7 @@ private fun DiscoverDialog(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Button(onClick = onSearch, enabled = !discovering) {
-                    Text(if (discovering) "Searching…" else "Search GitHub")
+                    Text(if (discovering) "Searching..." else "Search GitHub")
                 }
                 results.take(10).forEach { repo ->
                     RepoCard(
@@ -880,51 +516,6 @@ private fun DiscoverDialog(
                         onOpen = { onOpen(repo) },
                         onToggleFavorite = { onToggleFavorite(repo) },
                     )
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
-        dismissButton = null,
-    )
-}
-
-@Composable
-private fun CustomizeDialog(
-    configs: List<SectionConfig>,
-    onToggle: (HomeSection, Boolean) -> Unit,
-    onMove: (HomeSection, Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Sections") },
-        text = {
-            Column {
-                // Categories are locked: always browsable, never hiding.
-                val movable = configs.filter { it.section != HomeSection.CATEGORIES }
-                movable.forEachIndexed { index, config ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = config.visible,
-                            onCheckedChange = { onToggle(config.section, it) },
-                        )
-                        Text(
-                            titleOf(config.section),
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(
-                            onClick = { onMove(config.section, index - 1) },
-                            enabled = index > 0,
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move up")
-                        }
-                        IconButton(
-                            onClick = { onMove(config.section, index + 1) },
-                            enabled = index < movable.size - 1,
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move down")
-                        }
-                    }
                 }
             }
         },

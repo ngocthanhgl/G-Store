@@ -30,6 +30,11 @@ data class RepoDto(
     @SerialName("updated_at") val updatedAt: String?,
     @SerialName("created_at") val createdAt: String? = null,
     val license: LicenseDto? = null,
+    val language: String? = null,
+    @SerialName("open_issues_count") val openIssues: Int? = null,
+    @SerialName("subscribers_count") val watchers: Int? = null,
+    val homepage: String? = null,
+    @SerialName("pushed_at") val pushedAt: String? = null,
 )
 
 @Serializable

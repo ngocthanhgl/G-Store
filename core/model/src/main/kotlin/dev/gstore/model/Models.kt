@@ -20,6 +20,12 @@ data class Repository(
     val createdAt: String? = null,
     /** SPDX or license name when the API reports one — never invented. */
     val license: String? = null,
+    /** Primary language, open issue count, subscribers, homepage, last push — null when unknown. */
+    val language: String? = null,
+    val openIssues: Int? = null,
+    val watchers: Int? = null,
+    val homepage: String? = null,
+    val pushedAt: String? = null,
 )
 
 /** A published GitHub release. Drafts are never persisted. */

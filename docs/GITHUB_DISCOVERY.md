@@ -107,3 +107,12 @@ repo; the app pulls it on launch so Home always has a list.
   budget contention; catalog staleness up to 24 h + client cache;
   user-added repos and manual sync remain the escape hatches for anything
   the scan misses.
+
+
+## 7 - Slim launch index (2026-10-12)
+The app no longer pulls catalog/apps.json at launch (it passed 2.8MB and
+tripped the 2MiB response cap). The bot also writes catalog/index.json
+(top 3000 by stars, descriptions capped at 240 chars, no asset lists,
+~0.5MB); the app pulls the index and imports repo+release rows only.
+Full per-release asset lists lazy-load when a details screen opens.
+scan.yml commits both files.

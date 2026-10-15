@@ -53,6 +53,12 @@ data class RepositoryEntity(
     val createdAt: String?,
     /** License name/SPDX when reported — never invented. Added in v4. */
     val license: String? = null,
+    /** Extended repo facts (v7): populated by full GitHub syncs; null = unknown. */
+    val language: String? = null,
+    val openIssues: Int? = null,
+    val watchers: Int? = null,
+    val homepage: String? = null,
+    val pushedAt: String? = null,
     val lastSyncedAt: Long,
     /** FRESH | STALE | FAILED:<cause> — see SyncState in core:model. */
     val syncState: String,
@@ -339,6 +345,17 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/** v6 -> v7: extended repo facts; old rows keep them unknown. */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE repositories ADD COLUMN language TEXT")
+        db.execSQL("ALTER TABLE repositories ADD COLUMN openIssues INTEGER")
+        db.execSQL("ALTER TABLE repositories ADD COLUMN watchers INTEGER")
+        db.execSQL("ALTER TABLE repositories ADD COLUMN homepage TEXT")
+        db.execSQL("ALTER TABLE repositories ADD COLUMN pushedAt TEXT")
+    }
+}
+
 @Database(
     entities = [
         FavoriteEntity::class,
@@ -349,7 +366,7 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         ReadmeEntity::class,
         DownloadRecord::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class GStoreDatabase : RoomDatabase() {

@@ -17,6 +17,7 @@ import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
 import dev.gstore.network.CatalogClient
 import dev.gstore.network.CatalogEntry
+import dev.gstore.network.CatalogIndexEntry
 import dev.gstore.network.GitHubException
 import dev.gstore.network.GitHubService
 import dev.gstore.network.toDomain as dtoToDomain
@@ -124,6 +125,12 @@ class CatalogRepository(
                     updatedAt = r.updated_at,
                     createdAt = r.created_at,
                     license = r.license,
+                    // Extended facts: entry value wins, existing kept on null — never wiped.
+                    language = r.language ?: existing?.language,
+                    openIssues = r.openIssues ?: existing?.openIssues,
+                    watchers = r.watchers ?: existing?.watchers,
+                    homepage = r.homepage ?: existing?.homepage,
+                    pushedAt = r.pushedAt ?: existing?.pushedAt,
                     lastSyncedAt = existing?.lastSyncedAt ?: 0L,
                     syncState = if (existing?.syncState == "FRESH") "FRESH" else "STALE",
                 ),
@@ -160,6 +167,70 @@ class CatalogRepository(
                     )
                 },
             )
+            merged++
+        }
+        return merged
+    }
+
+    /**
+     * Merge slim launch-index entries (catalog/index.json) into Room.
+     * Only repo metadata plus one release row per repo — no assets. Full
+     * asset lists arrive later through a per-repo GitHub sync when the
+     * user opens the details screen, so sections that need release dates
+     * (New, Updated) work immediately while Downloads waits for real data.
+     * A FRESH fully-synced row keeps its full description/topics (the
+     * index truncates descriptions); stars, forks, avatar and flags are
+     * always refreshed.
+     */
+    suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int {
+        var merged = 0
+        for (e in entries) {
+            if (e.schema != 1) continue
+            val r = e.repo
+            val existing = repos.getByFullName(r.full_name)
+            val keepFull = existing?.syncState == "FRESH"
+            repos.upsert(
+                RepositoryEntity(
+                    id = r.id,
+                    fullName = r.full_name,
+                    owner = r.owner,
+                    avatarUrl = r.avatar_url,
+                    description = if (keepFull) existing.description else r.description,
+                    stars = r.stars,
+                    forks = r.forks,
+                    topicsJson = if (keepFull) existing.topicsJson else topicsJson(r.topics),
+                    archived = r.archived,
+                    defaultBranch = r.default_branch,
+                    updatedAt = r.updated_at,
+                    createdAt = r.created_at,
+                    license = r.license,
+                    // Slim rows never carry extended facts — always keep what a full sync stored.
+                    language = existing?.language,
+                    openIssues = existing?.openIssues,
+                    watchers = existing?.watchers,
+                    homepage = existing?.homepage,
+                    pushedAt = existing?.pushedAt,
+                    lastSyncedAt = existing?.lastSyncedAt ?: 0L,
+                    syncState = if (keepFull) "FRESH" else "STALE",
+                ),
+            )
+            val rel = e.release
+            if (rel != null) {
+                releases.upsertAll(
+                    listOf(
+                        ReleaseEntity(
+                            id = rel.id,
+                            repoId = r.id,
+                            tag = rel.tag,
+                            name = null,
+                            notes = null,
+                            publishedAt = rel.published_at,
+                            htmlUrl = null,
+                            prerelease = rel.prerelease,
+                        ),
+                    ),
+                )
+            }
             merged++
         }
         return merged

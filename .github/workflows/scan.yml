@@ -1,8 +1,8 @@
 name: catalog-scan
 
 # Daily GitHub APK catalog scan (24h). Results are committed to catalog/
-# and the Android app pulls catalog/apps.json on launch, so Home always
-# has a list. Each run scans one rotating query set and MERGES into the
+# and the Android app pulls catalog/index.json (slim) on launch, so Home
+# always has a list. Each run scans one rotating query set and MERGES into the
 # previous catalog — coverage accumulates day over day. See tools/scan.py
 # and docs/GITHUB_DISCOVERY.md for the documented coverage limits.
 on:
@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add catalog/apps.json catalog/meta.json || true
+          git add catalog/apps.json catalog/index.json catalog/meta.json || true
           if git diff --cached --quiet; then
             echo "catalog unchanged"
             if [ "${SCAN_EXIT:-0}" != "0" ]; then

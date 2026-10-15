@@ -30,6 +30,11 @@ fun RepoDto.toEntity(state: String, syncedAt: Long): RepositoryEntity = Reposito
     createdAt = createdAt,
     // SPDX id when GitHub knows one ("MIT", "NOASSERTION"); else the license name.
     license = license?.spdxId?.takeUnless { it == "NOASSERTION" } ?: license?.name,
+    language = language,
+    openIssues = openIssues,
+    watchers = watchers,
+    homepage = homepage,
+    pushedAt = pushedAt,
     lastSyncedAt = syncedAt,
     syncState = state,
 )
@@ -76,6 +81,11 @@ fun RepositoryEntity.toDomain(): Repository = Repository(
     updatedAt = updatedAt,
     createdAt = createdAt,
     license = license,
+    language = language,
+    openIssues = openIssues,
+    watchers = watchers,
+    homepage = homepage,
+    pushedAt = pushedAt,
 )
 
 fun ReleaseEntity.toDomain(): Release = Release(

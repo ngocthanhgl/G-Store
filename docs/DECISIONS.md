@@ -538,3 +538,36 @@ before retrying.
 - Lesson re-learned: PowerShell multi-line range deletion (`$l[a..b] =
   @()`) is blind — it deleted HeroDownloadBar along with HistoryRow and
   the loss surfaced only at compile time. Prefer exact-match edits.
+
+## 23 - Catalog-too-large fix + slim index + UI overhaul (2026-10-12, code state; release pending)
+- **Root cause (proven):** catalog/apps.json grew to 2,809,970 bytes via
+  merge-accumulation > 2MiB CATALOG_MAX_BYTES -> 'catalog pull failed,
+  respond too large'. Fix: bot also writes catalog/index.json (top 3000,
+  DESC_CAP 240, ~530KB); app launch-pulls the index (4MiB cap, parseIndex,
+  importIndex: repo+release rows, no assets, FRESH rows keep full
+  description/topics). Full asset lists stay lazy per-repo on details open.
+  parseCatalog kept for compatibility. scan.yml commits index.json.
+- **Home slimmed:** sections loop + SectionBlock/FavoritesBlock/TopChartsBlock/
+  CategoriesBlock/CustomizeDialog/titleOf/emptyOf/itemsOf deleted (~1500
+  lines); Home is the catalog block only. Category route + CategoryScreen
+  deleted from app + feature:home. AddRepoDialog accepts owner/name or
+  GitHub link via parseRepoLink() (URL/.git/sub-path tolerant).
+- **Details rewritten:** TopBar gains share (ACTION_SEND moved there);
+  ActionsRow deleted; hero Installed splits into Open (enabled only when
+  PackageManager has a launch intent, else grayed) + Uninstall side by side;
+  changelog card collapsed tag+date+chevron, expanded full markdown via
+  parseMarkdown+BlockView; AssetCard/APK-artifacts section deleted;
+  ReadmeCard always full; InfoGrid (Language/Open issues/Watchers/License/
+  Last push/Branch + Repository/Homepage rows); all cards cardShapeFor.
+- **Plus:** Search Enter-to-search (imeAction + clearFocus); InstalledRow
+  Card(onClick) -> in-app details via onBrowseRepo; nav bar 64dp + 26dp
+  icons; 14 Filled icons -> Outlined (material-icons-extended added to 6
+  modules; core ships filled-only); Skeleton card radius follows setting.
+- **Order honored:** NO unit tests run this round ('Lam full het ... khoi
+  can test'); new parseIndex/importIndex tests written but unexecuted.
+  assembleDebug + lintDebug green; detector [] on 6 files.
+- Lessons: (1) PS -replace is case-INSENSITIVE - Icons.Filled pattern hit
+  lowercase import segments (material.Icons.Outlined); fixed with .Replace.
+  (2) material-icons-core is filled-only; outlined/rounded/sharp live in
+  material-icons-extended. (3) PS -match is case-insensitive too - use
+  -cmatch for BUILD/error greps ('preBuild' matches 'BUILD').

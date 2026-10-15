@@ -17,15 +17,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -82,7 +84,7 @@ import dev.gstore.downloads.SystemInstalledApps
 import dev.gstore.details.DetailsScreen
 import dev.gstore.details.DetailsViewModel
 import dev.gstore.details.DownloadTracker
-import dev.gstore.home.CategoryScreen
+import dev.gstore.home.HomeScreen
 import dev.gstore.home.HomeScreen
 import dev.gstore.home.HomeViewModel
 import dev.gstore.installation.InstallerPermissionScreen
@@ -103,7 +105,6 @@ import kotlinx.serialization.Serializable
 @Serializable data object Search
 @Serializable data object Downloads
 @Serializable data object Settings
-@Serializable data class Category(val category: String)
 @Serializable data class Details(val repoId: Long, val fullName: String = "")
 @Serializable data class Readme(val owner: String, val name: String)
 
@@ -114,10 +115,10 @@ private data class TopDestination(
 )
 
 private val DESTINATIONS = listOf(
-    TopDestination(Home, "Home", Icons.Filled.Home),
-    TopDestination(Search, "Search", Icons.Filled.Search),
-    TopDestination(Downloads, "Installed", Icons.Filled.KeyboardArrowDown),
-    TopDestination(Settings, "Settings", Icons.Filled.Settings),
+    TopDestination(Home, "Home", Icons.Outlined.Home),
+    TopDestination(Search, "Search", Icons.Outlined.Search),
+    TopDestination(Downloads, "Installed", Icons.Outlined.KeyboardArrowDown),
+    TopDestination(Settings, "Settings", Icons.Outlined.Settings),
 )
 
 class MainActivity : ComponentActivity() {
@@ -224,6 +225,7 @@ private fun GStoreShell(container: AppContainer) {
                         )
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier.height(64.dp),
                         ) {
                             DESTINATIONS.forEach { d ->
                                 val selected = entry?.destination?.hasRoute(d.route::class) == true
@@ -232,7 +234,13 @@ private fun GStoreShell(container: AppContainer) {
                                     onClick = {
                                         nav.navigate(d.route) { popToRoot(nav) }
                                     },
-                                    icon = { Icon(d.icon, contentDescription = d.label) },
+                                    icon = {
+                                        Icon(
+                                            d.icon,
+                                            contentDescription = d.label,
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                    },
                                     label = { Text(d.label) },
                                     alwaysShowLabel = false,
                                     colors = NavigationBarItemDefaults.colors(
@@ -353,7 +361,6 @@ private fun Content(
             HomeScreen(
                 vm = vm,
                 onOpenRepo = onOpenRepo,
-                onOpenCategory = { nav.navigate(Category(it.name)) },
                 onOpenLogin = { nav.navigate(Settings) },
                 onLogout = {
                     scope.launch {
@@ -494,28 +501,6 @@ private fun Content(
                 appVersion = BuildConfig.VERSION_NAME,
             )
         }
-        composable<Category> { backStack ->
-            val route = backStack.toRoute<Category>()
-            val category = runCatching {
-                dev.gstore.data.AppCategory.valueOf(route.category)
-            }.getOrNull()
-            if (category == null) {
-                nav.popBackStack()
-            } else {
-                val vm: HomeViewModel = viewModel(
-                factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
-                )
-                CategoryScreen(
-                    category = category,
-                    vm = vm,
-                    onBack = { nav.popBackStack() },
-                    onOpenRepo = onOpenRepo,
-                    grid = grid,
-                    compact = compact,
-                    cardRadiusDp = appearance.cardRadiusDp,
-                )
-            }
-        }
         composable<Details> { backStack ->
             val route = backStack.toRoute<Details>()
             val vm: DetailsViewModel = viewModel(
@@ -574,6 +559,18 @@ private fun Content(
                         scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                     }
                 },
+                canOpenApp = { packageName ->
+                    detailsContext.packageManager.getLaunchIntentForPackage(packageName) != null
+                },
+                onOpenApp = { packageName ->
+                    try {
+                        val launch = detailsContext.packageManager.getLaunchIntentForPackage(packageName)
+                        if (launch != null) detailsContext.startActivity(launch)
+                        else scope.launch { snackbar.showSnackbar("This app cannot be opened") }
+                    } catch (e: Exception) {
+                        scope.launch { snackbar.showSnackbar("Cannot open: ${e.message}") }
+                    }
+                },
                 onOpenReadme = {
                     val repo = state.repo
                     if (repo != null) {
@@ -581,6 +578,7 @@ private fun Content(
                         if (parts.size == 2) nav.navigate(Readme(parts[0], parts[1]))
                     }
                 },
+                cardRadiusDp = appearance.cardRadiusDp,
             )
             val detailsGate = detailsGateFor
             if (detailsGate != null) {
