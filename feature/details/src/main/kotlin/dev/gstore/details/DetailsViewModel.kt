@@ -123,7 +123,7 @@ class DetailsViewModel(
                 val selected = current.selectedReleaseId
                 val includePre = prefs.appearance.first().includePrereleases
                 val next = if (selected != null && releases.any { it.id == selected }) selected
-                else defaultRelease(releases, includePre)
+                else defaultRelease(releases, includePre) ?: releases.firstOrNull()?.id
                 _state.value = current.copy(releases = releases, selectedReleaseId = next)
                 if (next != null && next != current.selectedReleaseId) loadAssets(next)
                 scanApkReleases(releases, includePre)
@@ -218,10 +218,14 @@ class DetailsViewModel(
             // not erase a valid selection and hide hero + notes with it.
             // The default pick honors the prerelease toggle; explicit taps
             // always win (kept by the first branch above).
+            // Stable-with-APK first; prerelease-with-APK fallback (labeled
+            // honestly in the UI) so the hero never idles on null while an
+            // installable artifact exists. Explicit taps always win.
             val next = if (selected != null && selected in ids) selected
             else releases.firstOrNull {
                 it.id in ids && (includePre || !it.prerelease)
             }?.id
+                ?: releases.firstOrNull { it.id in ids }?.id
                 ?: selected?.takeIf { s -> releases.any { it.id == s } }
             var updated = current.copy(
                 apkReleaseIds = ids,

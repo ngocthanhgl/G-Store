@@ -851,3 +851,23 @@ deleted. Skill invoked (impeccable context, Operate mode) as ordered.
   sortRows, chip row, onSort wiring); fixed NAME order; 4 orphan imports
   removed.
 - Version 1.0.4/vc5. Detector clean on all 4 touched UI files.
+
+## 32. Details structural redesign v3 (1.0.5/vc6)
+
+User rejected two redesign proposals, approved a structural fix: the
+download button was hidden behind the release picker because
+`selectDefaultRelease` returned null for prerelease-only repos when the
+prerelease toggle was off, and every downstream guard (`?.let`) erased
+hero + notes + README. Fixed at the source: the collector falls back to
+the first release, and the scanner falls back stable-with-APK ->
+any-with-APK (prerelease, honestly labeled) -> keep selection.
+The hero is now a bare full-width button directly under the header and
+can never be void (Finding / disabled-with-reason states). StatsRow and
+the facts grid are gone (single ellipsis meta line); changelog is always
+full markdown parsed off-main with shimmer. M3 TextAnchor.Fill pattern
+kept the meta FactsLine left-aligned beside the heart. Verified:
+`:feature:details:compileDebugKotlin` exit 0, detector clean on both
+details files.
+Lesson (corrected): `·` matches fine in the edit tool; the earlier
+non-ASCII breakage was mojibake from a Get-Content/Set-Content splice,
+not the matcher. Byte-safe `[char]` round-trips for all file surgery.
