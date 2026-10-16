@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 
 /** APK availability as known from cached catalog metadata — never a guarantee. */
-enum class ApkBadge { HAS_APK, NO_APK, UNKNOWN }
+enum class ApkBadge { HAS_APK, UNKNOWN }
 
 private val TouchTarget = 48.dp
 
@@ -71,7 +71,6 @@ private fun ledgerOf(repo: Repository, apkBadge: ApkBadge): String {
     val status = when {
         repo.archived -> "Archived"
         apkBadge == ApkBadge.HAS_APK -> "APK available"
-        apkBadge == ApkBadge.NO_APK -> "No APK"
         else -> null
     }
     // No description here: it never fits beside popularity and always

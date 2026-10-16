@@ -692,3 +692,36 @@ assert the old behavior - see MarkdownTest below).
 - Lessons: (1) Set-Content fails when the parent dir is missing - New-Item
   it first. (2) Dropping a resource AAR requires vendoring every
   referenced resource (here: the tint color), not just the drawables.
+
+## 27. v1.0.1 record - No-APK removal, HOME padding standard, minimal details
+
+- "No APK" deleted everywhere: ApkBadge.NO_APK enum value removed
+  ({HAS_APK, UNKNOWN}); RepoCard ledger falls through to bare popularity
+  (separator was already conditional - no dangling dot); GridCard status
+  slot falls through to its designed empty string; apkBadgeOf returns
+  UNKNOWN for zero-eligible repos (silences CategoryFullScreen x2 +
+  Home catalog in one line). Search already used UNKNOWN - untouched.
+- Details hero: when the scan finished with nothing installable
+  (IdleDownload + null asset + not finding), the whole download card is
+  hidden instead of a dead disabled button. Downloading/ReadyInstall/
+  Installed/FailedRetry states unaffected (asset non-null there).
+  Remaining "no APK" hits are code comments only - zero user-facing text.
+- HOME padding standard adopted repo-wide: titleLarge + container
+  horizontal 16dp + title 0dp + no header vertical. AuroraSectionHeader
+  lost its internal horizontal 16dp (was double-padding to 32dp inside
+  CatalogBlock; single call site verified before removal). CategoryRail
+  shelf: header row 16dp + LazyRow contentPadding 16dp (was full-bleed
+  0dp). CategoryFullScreen container +16dp (was 0dp). Details list and
+  TopBar +16dp horizontal (TopBar was edge-to-edge). Readme content
+  16-all became 16-horizontal. Search/Downloads/Settings already
+  compliant - untouched.
+- Details minimal redesign: header is now a centered Column (72dp icon,
+  centered bold name, centered accent owner); fullName line and duplicate
+  license line deleted (license already lives in InfoGrid - verified
+  before deleting). StatsRow is its own padded block below the header.
+  "Releases (n)" titleLarge became titleMedium. README FilterChip pill
+  gained shape CircleShape.
+- Version 1.0.1 / versionCode 2. Shipped with NO local build or test run
+  per explicit user order - CI is the only gate; edits are confined to
+  standard APIs (CircleShape, textAlign, branch deletions, padding
+  modifiers) to keep that risk minimal.

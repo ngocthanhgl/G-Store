@@ -106,7 +106,6 @@ fun GridCard(
             val status = when {
                 repo.archived -> "Archived" to MaterialTheme.colorScheme.error
                 apkBadge == ApkBadge.HAS_APK -> "APK available" to MaterialTheme.colorScheme.primary
-                apkBadge == ApkBadge.NO_APK -> "No APK" to MaterialTheme.colorScheme.onSurfaceVariant
                 else -> "" to MaterialTheme.colorScheme.onSurfaceVariant
             }
             Text(

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AssetKind
 import dev.gstore.database.DownloadRecord
@@ -121,7 +123,7 @@ fun DetailsScreen(
     LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
         // Back / share / favorite / refresh live in one top row; the hero
         // below it bleeds edge-to-edge under the camera hole.
@@ -140,11 +142,20 @@ fun DetailsScreen(
                 onToggleFavorite = onToggleFavorite,
                 syncing = state.syncing,
                 onRefresh = onRefresh,
-                modifier = Modifier.statusBarsPadding(),
+                modifier = Modifier.statusBarsPadding().padding(horizontal = 16.dp),
             )
         }
         item { Spacer(Modifier.height(8.dp)) }
         item { Header(repo) }
+        item { Spacer(Modifier.height(12.dp)) }
+        item {
+            StatsRow(
+                stars = formatCount(repo.stars),
+                forks = "${formatCount(repo.forks)} forks",
+                updated = repo.updatedAt?.take(10),
+                archived = repo.archived,
+            )
+        }
         item { Spacer(Modifier.height(12.dp)) }
         selectedRelease(state)?.let { release ->
             item {
@@ -184,6 +195,7 @@ fun DetailsScreen(
                 onClick = onOpenReadme,
                 label = { Text("README", maxLines = 1) },
                 trailingIcon = { Icon(Fluent.ChevronRight, contentDescription = null) },
+                shape = CircleShape,
             )
         }
     }
@@ -309,55 +321,36 @@ private fun TopBar(
 
 @Composable
 private fun Header(repo: Repository) {
-    // Store hero: big squircle icon, app name, owner in the theme accent,
-    // full coordinates in gray — the Play-shelf reading order.
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    // Minimal centered hero: artwork, name, owner. Stats live in their own
+    // padded block below so nothing crowds the title; the license row moved
+    // to the info grid (it was duplicated here).
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         dev.gstore.ui.AppIcon(
             avatarUrl = repo.avatarUrl,
             owner = repo.owner,
             size = 72.dp,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-            Text(
-                repo.fullName.substringAfter('/'),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-            Text(
-                repo.owner,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-            Text(
-                repo.fullName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-            // Description lives in the expandable info card below, not here.
-            // Divider-separated stats in the store idiom: popularity and
-            // freshness at a glance, each cell truncating, never wrapping.
-            StatsRow(
-                stars = formatCount(repo.stars),
-                forks = "${formatCount(repo.forks)} forks",
-                updated = repo.updatedAt?.take(10),
-                archived = repo.archived,
-            )
-            repo.license?.let {
-                Text(
-                    "License $it",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
-        }
+        Text(
+            repo.fullName.substringAfter('/'),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            repo.owner,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -425,7 +418,7 @@ private fun formatCount(n: Int): String = when {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleLarge)
+    Text(text, style = MaterialTheme.typography.titleMedium)
 }
 
 @Composable
@@ -546,6 +539,9 @@ private fun HeroDownloadBar(
     /** True while assets are still arriving — show progress, never "no APK". */
     findingApk: Boolean = false,
 ) {
+    // The "no APK" state was removed: when the scan finished with nothing
+    // installable, the whole card stays hidden instead of a dead button.
+    if (hero == HeroDlState.IdleDownload && asset == null && !findingApk) return
     Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -567,14 +563,13 @@ private fun HeroDownloadBar(
                         )
                         return@Column
                     }
+                    if (target == null) return@Column
                     Button(
-                        onClick = { if (target != null) onDownload(target) },
-                        enabled = target != null,
+                        onClick = { onDownload(target) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
                         Text(
-                            if (target != null) "Download ${formatBytes(target.size)}"
-                            else "No APK on this release",
+                            "Download ${formatBytes(target.size)}",
                             maxLines = 1,
                         )
                     }

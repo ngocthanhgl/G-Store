@@ -3,9 +3,11 @@ import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -32,7 +34,7 @@ import dev.gstore.ui.RailCard
 import dev.gstore.ui.SkeletonRows
 
 internal fun apkBadgeOf(signals: RepoSignals): ApkBadge =
-    if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.NO_APK
+    if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.UNKNOWN
 
 /**
  * Aurora-style shelf: one horizontal rail of the top 5 apps per category.
@@ -51,7 +53,10 @@ fun CategoryRail(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
             Text(
                 text = categoryLabel(category),
                 style = MaterialTheme.typography.titleMedium,
@@ -70,7 +75,10 @@ fun CategoryRail(
                 Icon(Fluent.ChevronRight, contentDescription = null)
             }
         }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+        ) {
             items(top, key = { it.repo.id }) { signals ->
                 RailCard(
                     repo = signals.repo,
@@ -100,7 +108,7 @@ fun CategoryFullScreen(
     onToggleFavorite: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
+    Column(modifier = modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Fluent.ArrowLeft, contentDescription = "Back")
