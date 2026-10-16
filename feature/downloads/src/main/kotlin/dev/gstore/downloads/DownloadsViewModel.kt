@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class InstalledSort { NAME, RECENT, SIZE }
-
 data class InstalledRow(
     val record: DownloadRecord,
     val label: String,
@@ -41,7 +39,6 @@ data class DownloadsUiState(
     val favorites: List<Repository> = emptyList(),
     val manual: List<Repository> = emptyList(),
     val installedRefreshing: Boolean = false,
-    val sort: InstalledSort = InstalledSort.NAME,
     val showLoginPrompt: Boolean = false,
     val notice: String? = null,
 )
@@ -55,7 +52,6 @@ class DownloadsViewModel(
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
-    private val sort = MutableStateFlow(InstalledSort.NAME)
     private val showLoginPrompt = MutableStateFlow(false)
     private val notice = MutableStateFlow<String?>(null)
     private var lastRefreshMillis = 0L
@@ -97,10 +93,9 @@ class DownloadsViewModel(
     val state: StateFlow<DownloadsUiState> = combine(
         repository.observeAll(),
         installed,
-        sort,
         refreshUi,
         shelves,
-    ) { records, rows, order, ui, shelfPair ->
+    ) { records, rows, ui, shelfPair ->
         val (running, done) = records.partition {
             it.status == "QUEUED" || it.status == "ACTIVE"
         }
@@ -115,19 +110,16 @@ class DownloadsViewModel(
         DownloadsUiState(
             active = running,
             history = history,
-            installed = sortRows(rows, order),
+            // Single fixed order: alphabetical by label. The sort chips were
+            // removed — one predictable order beats three forgotten ones.
+            installed = rows.sortedBy { it.label.lowercase() },
             favorites = shelfPair.first,
             manual = shelfPair.second,
             installedRefreshing = ui.refreshing,
-            sort = order,
             showLoginPrompt = ui.prompt,
             notice = ui.message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState())
-
-    fun setSort(order: InstalledSort) {
-        sort.value = order
-    }
 
     fun dismissNotice() {
         notice.value = null
@@ -295,10 +287,3 @@ class DownloadsViewModel(
 
     fun recordFor(assetId: Long) = repository.observe(assetId)
 }
-
-private fun sortRows(rows: List<InstalledRow>, order: InstalledSort): List<InstalledRow> =
-    when (order) {
-        InstalledSort.NAME -> rows.sortedBy { it.label.lowercase() }
-        InstalledSort.RECENT -> rows.sortedByDescending { it.lastUpdateTime }
-        InstalledSort.SIZE -> rows.sortedByDescending { it.record.bytesTotal }
-    }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -337,12 +338,18 @@ private fun TopBar(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Optical 16dp alignment: an IconButton centers its 24dp glyph in a
+    // 48dp box, so edge buttons shift 12dp outward to put the glyph edge
+    // exactly on the list's 16dp inset. Offsets don't move siblings.
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onBack) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.offset(x = (-12).dp),
+        ) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
         IconButton(onClick = onToggleFavorite) {
@@ -357,7 +364,10 @@ private fun TopBar(
             Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(Modifier.size(24.dp))
             }
-        } else IconButton(onClick = onRefresh) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
+        } else IconButton(
+            onClick = onRefresh,
+            modifier = Modifier.offset(x = 12.dp),
+        ) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
     }
 }
 

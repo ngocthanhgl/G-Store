@@ -824,3 +824,30 @@ assert the old behavior - see MarkdownTest below).
 - Search NetworkRow gains stars line (data was already in DTO).
 - No test files touched; eligibility loosening keeps old assertions
   green by inspection. CI is the only gate per order.
+
+## 31. 1.0.4 header-ergonomics round (2026-10-13, vc5)
+
+User drove pixel-level: Details TopBar gaps too wide, back-button glyph
+not on the 16dp grid, trailing cluster same; see-all icon + padding;
+Downloads icons not forced to the common squircle; sort chips deleted;
+Home vertical rhythm too loose; count/refresh placement; hint line
+deleted. Skill invoked (impeccable context, Operate mode) as ordered.
+- Optical rule (all header IconButton rows): a 48dp IconButton centers
+  its 24dp glyph = 12dp built-in inset, so edge buttons take
+  `Modifier.offset(x = +/-12.dp)` to land glyph edges exactly on the
+  16dp list inset; offsets don't move siblings. Details TopBar gaps
+  16dp -> 8dp; HomeHeader trailing profile button +12dp; Downloads
+  header refresh +12dp (same treatment for consistency).
+- Home: title becomes `Home · N`; refresh moves into the header row
+  (spinner-while-syncing like TopBar); CatalogBlock loses its
+  "All apps" header (HeaderActions fn deleted - single caller) and the
+  hint line; collapsed chips now show nothing below. Trending chips sit
+  directly under the title.
+- See-all: chevron dropped, TextButton contentPadding zeroed so the
+  label starts exactly at 16dp.
+- PackageIcon: overlay AsyncImage gains the AppIcon squircle clip
+  (Surface clips its own content but not the overlay drawn above it).
+  InstalledSort deleted end-to-end (enum, state field, flow, setSort,
+  sortRows, chip row, onSort wiring); fixed NAME order; 4 orphan imports
+  removed.
+- Version 1.0.4/vc5. Detector clean on all 4 touched UI files.

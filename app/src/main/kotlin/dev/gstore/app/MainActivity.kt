@@ -551,7 +551,6 @@ private fun Content(
                     onDownloadUpdate = vm::downloadUpdate,
                     onRemoveManual = vm::removeManualRepo,
                     onRefreshInstalled = vm::refreshInstalled,
-                    onSort = vm::setSort,
                     onOpenLogin = { nav.navigate(Settings) },
                     onDismissLoginPrompt = vm::dismissLoginPrompt,
                     snackbar = snackbar,

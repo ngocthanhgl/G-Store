@@ -2,8 +2,7 @@ package dev.gstore.downloads
 import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,11 +16,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -70,7 +67,6 @@ fun DownloadsScreen(
     onDownloadFavorite: (Repository) -> Unit,
     onRemoveManual: (String) -> Unit,
     onRefreshInstalled: () -> Unit,
-    onSort: (InstalledSort) -> Unit,
     onOpenLogin: () -> Unit,
     onDismissLoginPrompt: () -> Unit,
     snackbar: SnackbarHostState,
@@ -165,30 +161,6 @@ fun DownloadsScreen(
                     )
                     IconButton(onClick = onRefreshInstalled) {
                         Icon(Fluent.ArrowSync, contentDescription = "Check for updates")
-                    }
-                }
-            }
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                ) {
-                    InstalledSort.entries.forEach { option ->
-                        FilterChip(
-                            selected = state.sort == option,
-                            onClick = { onSort(option) },
-                            shape = CircleShape,
-                            label = {
-                                Text(
-                                    when (option) {
-                                        InstalledSort.NAME -> "Name"
-                                        InstalledSort.RECENT -> "Recent"
-                                        InstalledSort.SIZE -> "Size"
-                                    },
-                                )
-                            },
-                        )
                     }
                 }
             }
@@ -504,10 +476,14 @@ private fun PackageIcon(packageName: String, label: String) {
     Box(contentAlignment = Alignment.Center) {
         AppIcon(avatarUrl = null, owner = label, size = 56.dp)
         if (drawable != null) {
+            // Forced to the common squircle: the overlay must carry the same
+            // clip as the AppIcon well beneath it, or square corners show.
             AsyncImage(
                 model = drawable,
                 contentDescription = null,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(56.dp).clip(
+                    androidx.compose.foundation.shape.RoundedCornerShape(56.dp * 0.28f),
+                ),
                 contentScale = ContentScale.Crop,
             )
         }

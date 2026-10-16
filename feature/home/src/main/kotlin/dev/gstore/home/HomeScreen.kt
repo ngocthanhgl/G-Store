@@ -1,4 +1,5 @@
-package dev.gstore.home
+﻿package dev.gstore.home
+
 import dev.gstore.ui.Fluent
 
 import androidx.compose.animation.animateContentSize
@@ -6,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -57,7 +59,6 @@ import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
-import dev.gstore.ui.AuroraSectionHeader
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
 import dev.gstore.ui.ShimmerRows
@@ -67,7 +68,7 @@ private const val COLLAPSED_COUNT = 5
 /**
  * Home is the scanner catalog and nothing else: the filter chip rail on
  * top, tapping a chip expands its list. All curated sections (Trending,
- * Famous, Top charts, categories, ...) were removed — with the slim
+ * Famous, Top charts, categories, ...) were removed â€” with the slim
  * launch index they rendered as permanent empty shells.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,6 +148,9 @@ fun HomeScreen(
                 item {
                     HomeHeader(
                         identity = state.identity,
+                        count = state.catalog.size,
+                        syncing = state.syncingCatalog,
+                        onRefresh = { vm.syncCatalog() },
                         onAdd = { showAdd = true },
                         onOpenLogin = onOpenLogin,
                         onLogout = onLogout,
@@ -163,7 +167,6 @@ fun HomeScreen(
                         compact = compact,
                         cardRadiusDp = cardRadiusDp,
                         reduceMotion = reduceMotion,
-                        onRefresh = { vm.syncCatalog() },
                         onOpen = onOpenRepo,
                         onToggleFavorite = vm::toggleFavorite,
                     )
@@ -229,6 +232,9 @@ fun parseRepoLink(input: String): String? {
 @Composable
 private fun HomeHeader(
     identity: GitHubIdentity,
+    count: Int,
+    syncing: Boolean,
+    onRefresh: () -> Unit,
     onAdd: () -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
@@ -239,21 +245,36 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            "Home",
+            "Home Â· $count",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             modifier = Modifier.weight(1f),
         )
+        if (syncing) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(24.dp))
+            }
+        } else IconButton(onClick = onRefresh) {
+            Icon(Fluent.ArrowSync, contentDescription = "Refresh app catalog")
+        }
         IconButton(onClick = onAdd) {
             Icon(Fluent.Add, contentDescription = "Add repository")
         }
         // Profile opens login when logged out, identity + logout when in.
+        // The trailing control shifts 12dp outward so its glyph edge lands
+        // exactly on the 16dp inset (same optical rule as Details TopBar).
         if (identity.login.isBlank()) {
-            IconButton(onClick = onOpenLogin) {
+            IconButton(
+                onClick = onOpenLogin,
+                modifier = Modifier.offset(x = 12.dp),
+            ) {
                 Icon(Fluent.Person, contentDescription = "Log in to GitHub")
             }
         } else {
-            IconButton(onClick = { showProfile = true }) {
+            IconButton(
+                onClick = { showProfile = true },
+                modifier = Modifier.offset(x = 12.dp),
+            ) {
                 AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
             }
         }
@@ -294,36 +315,6 @@ private fun HomeHeader(
                 ) { Text("Logout") }
             },
         )
-    }
-}
-
-/**
- * Small header actions shared by section headers: an optional refresh
- * button (spinner while syncing) plus an optional hide button, rendered in
- * AuroraSectionHeader's trailing slot.
- */
-@Composable
-private fun HeaderActions(
-    syncing: Boolean,
-    onRefresh: (() -> Unit)?,
-    refreshDescription: String,
-    onHide: (() -> Unit)?,
-    hideDescription: String,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (syncing) {
-            // Fixed 48dp slot: the spinner aligns with sibling icon buttons.
-            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            }
-        } else if (onRefresh != null) {
-            IconButton(onClick = onRefresh) {
-                Icon(Fluent.ArrowSync, contentDescription = refreshDescription)
-            }
-        }
-        if (onHide != null) {
-            // No hide affordance remains on Home; the slot stays for callers.
-        }
     }
 }
 
@@ -386,7 +377,6 @@ private fun CatalogBlock(
     compact: Boolean,
     cardRadiusDp: Int,
     reduceMotion: Boolean,
-    onRefresh: () -> Unit,
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
@@ -408,19 +398,8 @@ private fun CatalogBlock(
             ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        AuroraSectionHeader(
-            title = "All apps",
-            subtitle = "${items.size} in the daily catalog",
-            trailing = {
-                HeaderActions(
-                    syncing = syncing,
-                    onRefresh = onRefresh,
-                    refreshDescription = "Refresh app catalog",
-                    onHide = null,
-                    hideDescription = "",
-                )
-            },
-        )
+        // No section header: the count lives in the Home title above and the
+        // refresh action moved to the header row, so the filter chips lead.
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -454,13 +433,8 @@ private fun CatalogBlock(
             }
         }
         val current = expanded
-        if (current == null) {
-            Text(
-                "Pick a filter above to browse the catalog.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else if (items.isEmpty() && syncing) {
+        // Collapsed chips show nothing below: no hint line, no blank box.
+        if (items.isEmpty() && syncing && current != null) {
             // Genuine load in flight: Aurora sweep placeholders, never blank.
             ShimmerRows(count = 5, reduceMotion = reduceMotion)
         } else if (items.isEmpty()) {
@@ -471,7 +445,7 @@ private fun CatalogBlock(
             )
         } else {
             Text(
-                "${filterLabel(current)} · top ${shown.size} of ${items.size}",
+                "${filterLabel(current)} Â· top ${shown.size} of ${items.size}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -580,7 +554,7 @@ private fun DiscoverDialog(
                 }
                 if (!discovering && results.isEmpty()) {
                     Text(
-                        "No matches — try a different query.",
+                        "No matches â€” try a different query.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

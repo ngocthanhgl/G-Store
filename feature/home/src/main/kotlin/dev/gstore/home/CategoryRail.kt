@@ -70,13 +70,17 @@ fun CategoryRail(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
-            TextButton(onClick = { onOpenCategory(category) }) {
+            // Text-only action: no icon, no internal padding — the label's
+            // left edge sits exactly on the row's 16dp inset.
+            TextButton(
+                onClick = { onOpenCategory(category) },
+                contentPadding = PaddingValues(0.dp),
+            ) {
                 Text(
                     "See all",
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
-                Icon(Fluent.ChevronRight, contentDescription = null)
             }
         }
         LazyRow(
