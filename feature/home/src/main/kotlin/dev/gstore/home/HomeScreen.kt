@@ -1,4 +1,4 @@
-﻿package dev.gstore.home
+package dev.gstore.home
 
 import dev.gstore.ui.Fluent
 
@@ -133,6 +133,9 @@ fun HomeScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 HomeHeader(
                     identity = state.identity,
+                    count = state.catalog.size,
+                    syncing = state.syncingCatalog,
+                    onRefresh = { vm.syncCatalog() },
                     onAdd = { showAdd = true },
                     onOpenLogin = onOpenLogin,
                     onLogout = onLogout,
@@ -245,7 +248,7 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            "Home Â· $count",
+            "Home · $count",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
             modifier = Modifier.weight(1f),
@@ -434,7 +437,9 @@ private fun CatalogBlock(
         }
         val current = expanded
         // Collapsed chips show nothing below: no hint line, no blank box.
-        if (items.isEmpty() && syncing && current != null) {
+        // The null branch stays first so `current` smart-casts below.
+        if (current == null) {
+        } else if (items.isEmpty() && syncing) {
             // Genuine load in flight: Aurora sweep placeholders, never blank.
             ShimmerRows(count = 5, reduceMotion = reduceMotion)
         } else if (items.isEmpty()) {
@@ -445,7 +450,7 @@ private fun CatalogBlock(
             )
         } else {
             Text(
-                "${filterLabel(current)} Â· top ${shown.size} of ${items.size}",
+                "${filterLabel(current)} · top ${shown.size} of ${items.size}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
