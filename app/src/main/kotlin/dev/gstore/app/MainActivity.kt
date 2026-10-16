@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -191,7 +192,7 @@ private fun GStoreShell(container: AppContainer) {
     // Double-back to exit: one back press from a top-level tab used to quit
     // instantly with no hint. First press shows a snackbar, second within
     // 2s finishes. Non-Home destinations keep their own back behavior.
-    val activity = LocalContext.current as? ComponentActivity
+    val activity = LocalActivity.current
     val shellScope = rememberCoroutineScope()
     var lastBack by rememberSaveable { mutableStateOf(0L) }
     BackHandler(enabled = entry?.destination?.hasRoute(Home::class) == true) {
