@@ -67,11 +67,11 @@ fun SettingsScreen(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).statusBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             Column(
-                modifier = Modifier.padding(top = 8.dp),
+                // No own top gap: the screen starts at the status-bar inset.
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
@@ -119,7 +119,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                            modifier = Modifier.weight(1f),
                         )
                         TextButton(onClick = vm::logout) { Text("Logout") }
                     }
@@ -259,7 +259,7 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
         onDismissRequest = onDismiss,
         title = { Text("Log in to GitHub") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     "Create a token (no scopes needed), then paste it here. " +
                         "It stays encrypted on this device.",
@@ -310,7 +310,7 @@ private fun SettingGroup(title: String, content: @Composable () -> Unit) {
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 title,
@@ -345,8 +345,8 @@ private fun <T> ChoiceRow(
     // FlowRow wraps on narrow screens instead of pushing chips off-screen.
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         options.forEach { option ->
             FilterChip(

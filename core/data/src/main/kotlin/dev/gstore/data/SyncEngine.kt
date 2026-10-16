@@ -76,6 +76,11 @@ class SyncEngine(
 
         var page = checkpoint?.nextPage ?: 1
         var etag = if (page == 1) checkpoint?.etag else null
+        // Prune only with a complete in-run id set: a resumed run (page > 1)
+        // must not delete releases synced on earlier runs when it hits an
+        // empty page. A resumed run that finishes resets the checkpoint to
+        // page 1, so the next sync is full and prunes then.
+        val pruneAllowed = page == 1
         val seenReleaseIds = mutableListOf<Long>()
         while (true) {
             val resp = try {
@@ -92,9 +97,16 @@ class SyncEngine(
             }
             when (resp) {
                 ApiResponse.NotModified -> {
-                    // Page 1 unchanged → catalog is current.
-                    repos.upsert(repoDto.toEntity("FRESH", now))
-                    checkpoints.put(SyncCheckpoint(fullName, 1, etag, now))
+                    // Page 1 unchanged → catalog is current. Guard the degenerate
+                    // case: a checkpoint with an etag but zero local releases
+                    // (interrupted first sync) must restart full instead of
+                    // reporting an empty catalog as success.
+                    if (releases.listByRepo(repoDto.id).isEmpty()) {
+                        checkpoints.clear(fullName)
+                    } else {
+                        repos.upsert(repoDto.toEntity("FRESH", now))
+                        checkpoints.put(SyncCheckpoint(fullName, 1, etag, now))
+                    }
                     return Outcome.Ok(Unit)
                 }
                 is ApiResponse.Fresh -> {
@@ -104,7 +116,7 @@ class SyncEngine(
                     assets.upsertAll(visible.flatMap { r -> r.assets.map { it.toEntity(r.id) } })
                     seenReleaseIds += visible.map { it.id }
                     if (resp.data.size < PAGE_SIZE) {
-                        releases.pruneExcept(repoDto.id, seenReleaseIds)
+                        if (pruneAllowed) releases.pruneExcept(repoDto.id, seenReleaseIds)
                         repos.upsert(repoDto.toEntity("FRESH", now))
                         checkpoints.put(SyncCheckpoint(fullName, 1, resp.etag, now))
                         return Outcome.Ok(Unit)

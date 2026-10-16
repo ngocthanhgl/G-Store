@@ -50,12 +50,12 @@ fun ReadmeScreen(
 @Composable
 private fun EmptyReadme(onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(32.dp),
+        Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text("No README on the default branch", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
             "This repository does not publish a README where G Store looks for one.",
             style = MaterialTheme.typography.bodyMedium,
@@ -68,12 +68,12 @@ private fun EmptyReadme(onRetry: () -> Unit) {
 @Composable
 private fun ErrorReadme(notice: String?, onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(32.dp),
+        Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text("README unavailable", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
         if (notice != null) Text(notice, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         Button(onClick = onRetry) { Text("Retry") }
@@ -87,13 +87,13 @@ private fun BlocksList(state: ReadmeUiState, modifier: Modifier = Modifier) {
             "Offline copy — may be outdated",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
         )
     }
     LazyColumn(modifier, contentPadding = PaddingValues(horizontal = 16.dp)) {
         itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
             BlockView(block, state.owner, state.repo, state.branch)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

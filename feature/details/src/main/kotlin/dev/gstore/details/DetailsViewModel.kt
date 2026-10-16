@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +58,8 @@ data class DetailsUiState(
     val scanningApks: Boolean = false,
     val isFavorite: Boolean = false,
     val syncing: Boolean = false,
+    /** Last on-demand sync failure — shown inline, not just a snackbar. */
+    val syncError: String? = null,
     val notice: String? = null,
 )
 
@@ -89,12 +93,19 @@ class DetailsViewModel(
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
 
+    /**
+     * The id actually observed. Entry points may synthesize id 0 (Downloads
+     * "browse repo"); after on-demand sync the real GitHub id is known and
+     * the collectors must follow it, or the release list stays empty forever.
+     */
+    private val resolvedId = MutableStateFlow(repoId)
+
     init {
         viewModelScope.launch { load() }
         viewModelScope.launch {
             // GitHub repository IDs are stable across search and sync
             // (DATA_MODEL.md), so the passed id stays valid after on-demand sync.
-            catalog.observeReleases(repoId).collectLatest { releases ->
+            resolvedId.flatMapLatest { id -> catalog.observeReleases(id) }.collectLatest { releases ->
                 val current = _state.value
                 val selected = current.selectedReleaseId
                 val next = if (selected != null && releases.any { it.id == selected }) selected
@@ -105,9 +116,10 @@ class DetailsViewModel(
             }
         }
         viewModelScope.launch {
-            catalog.observeFavoriteIds().collectLatest { ids ->
-                _state.value = _state.value.copy(isFavorite = repoId in ids)
-            }
+            combine(resolvedId, catalog.observeFavoriteIds()) { id, ids -> id in ids }
+                .collectLatest { fav ->
+                    _state.value = _state.value.copy(isFavorite = fav)
+                }
         }
     }
 
@@ -117,13 +129,19 @@ class DetailsViewModel(
      * Previously this left repo null and the screen spun forever.
      */
     private suspend fun load() {
-        _state.value = _state.value.copy(loadingRepo = true, notice = null)
+        _state.value = _state.value.copy(loadingRepo = true, notice = null, syncError = null)
         var repo = catalog.getRepository(repoId)
         if (repo == null && fullName.isNotBlank()) {
             _state.value = _state.value.copy(syncing = true)
             when (val result = catalog.sync(fullName)) {
-                is Outcome.Ok -> repo = catalog.getByFullName(fullName)
-                is Outcome.Err -> _state.value = _state.value.copy(notice = result.failure)
+                is Outcome.Ok -> {
+                    repo = catalog.getByFullName(fullName)
+                    _state.value = _state.value.copy(syncError = null)
+                }
+                is Outcome.Err -> _state.value = _state.value.copy(
+                    notice = result.failure,
+                    syncError = result.failure,
+                )
             }
             _state.value = _state.value.copy(syncing = false)
         }
@@ -134,11 +152,18 @@ class DetailsViewModel(
         if (repo != null && resolvedName.isNotBlank() && catalog.needsFullSync(resolvedName)) {
             _state.value = _state.value.copy(syncing = true)
             when (val result = catalog.sync(resolvedName)) {
-                is Outcome.Ok -> repo = catalog.getByFullName(resolvedName)
-                is Outcome.Err -> _state.value = _state.value.copy(notice = result.failure)
+                is Outcome.Ok -> {
+                    repo = catalog.getByFullName(resolvedName)
+                    _state.value = _state.value.copy(syncError = null)
+                }
+                is Outcome.Err -> _state.value = _state.value.copy(
+                    notice = result.failure,
+                    syncError = result.failure,
+                )
             }
             _state.value = _state.value.copy(syncing = false)
         }
+        if (repo != null) resolvedId.value = repo.id
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
     }
 
@@ -175,14 +200,19 @@ class DetailsViewModel(
                 return@launch // superseded
             }
             val selected = current.selectedReleaseId
+            // Never downgrade: an empty scan (or a scan racing a sync) must
+            // not erase a valid selection and hide hero + notes with it.
             val next = if (selected != null && selected in ids) selected
             else releases.firstOrNull { it.id in ids }?.id
+                ?: selected?.takeIf { s -> releases.any { it.id == s } }
             var updated = current.copy(
                 apkReleaseIds = ids,
                 selectedReleaseId = next,
                 scanningApks = false,
             )
-            if (next == null) updated = updated.copy(assetRows = emptyList(), loadingAssets = false)
+            if (releases.isEmpty()) {
+                updated = updated.copy(assetRows = emptyList(), loadingAssets = false)
+            }
             _state.value = updated
             if (next != null && next != selected) loadAssets(next)
         }
@@ -271,10 +301,13 @@ class DetailsViewModel(
                 load()
                 return@launch
             }
-            _state.value = _state.value.copy(syncing = true, notice = null)
+            _state.value = _state.value.copy(syncing = true, notice = null, syncError = null)
             when (val result = catalog.sync(repo.fullName)) {
                 is Outcome.Ok -> Unit
-                is Outcome.Err -> _state.value = _state.value.copy(notice = result.failure)
+                is Outcome.Err -> _state.value = _state.value.copy(
+                    notice = result.failure,
+                    syncError = result.failure,
+                )
             }
             _state.value = _state.value.copy(syncing = false)
         }

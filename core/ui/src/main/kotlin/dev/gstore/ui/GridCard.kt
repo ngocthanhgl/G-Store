@@ -42,8 +42,8 @@ fun GridCard(
         shape = dev.gstore.designsystem.cardShapeFor(cardRadiusDp),
     ) {
         Column(
-            modifier = Modifier.padding(if (compact) 8.dp else 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -85,7 +85,7 @@ fun GridCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(

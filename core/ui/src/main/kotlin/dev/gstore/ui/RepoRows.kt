@@ -27,7 +27,7 @@ fun RepoRows(
         return
     }
     for (rowStart in (0 until count) step 2) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             for (index in rowStart until minOf(rowStart + 2, count)) {
                 key(keyOf(index)) {
                     Box(Modifier.weight(1f)) { card(index) }

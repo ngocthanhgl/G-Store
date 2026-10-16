@@ -73,7 +73,7 @@ private fun ShimmerTextStack(
     fractions: List<Float>,
     reduceMotion: Boolean,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         fractions.forEach { fraction ->
             ShimmerBlock(
                 modifier = Modifier.fillMaxWidth(fraction).height(14.dp),
@@ -91,12 +91,12 @@ fun ShimmerRows(
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         repeat(count.coerceIn(1, 10)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ShimmerBlock(modifier = Modifier.size(56.dp), reduceMotion = reduceMotion)
                 ShimmerTextStack(
@@ -123,9 +123,9 @@ fun ShimmerTiles(
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         repeat(count.coerceIn(1, 8)) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ShimmerBlock(
                     modifier = Modifier.size(80.dp),
                     radiusDp = 12,
@@ -151,7 +151,7 @@ fun ShimmerCategoryRows(
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         repeat(count.coerceIn(1, 10)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

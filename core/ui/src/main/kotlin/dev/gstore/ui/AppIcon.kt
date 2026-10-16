@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -36,7 +37,7 @@ fun AppIcon(
     Surface(
         modifier = modifier.size(size),
         shape = RoundedCornerShape(size * 0.28f),
-        color = MaterialTheme.colorScheme.tertiaryContainer,
+        color = Color.White,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -46,7 +47,7 @@ fun AppIcon(
                 } else {
                     MaterialTheme.typography.titleMedium
                 },
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = Color(0xFF1B1B1B),
             )
             if (!avatarUrl.isNullOrBlank()) {
                 // Downsample to the drawn size: avatars arrive as large

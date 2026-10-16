@@ -1,7 +1,10 @@
-package dev.gstore.search
+package dev.gstore.search
+
 import dev.gstore.ui.Fluent
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,9 +19,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
+import dev.gstore.ui.AppIcon
 
 @Composable
 fun SearchScreen(
@@ -86,32 +88,14 @@ fun SearchScreen(
                     Icon(Fluent.Search, contentDescription = "Search GitHub")
                 }
             },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = state.sort == SortOrder.STARS,
-                onClick = { vm.setSort(SortOrder.STARS) },
-                label = { Text("Stars") },
-            )
-            FilterChip(
-                selected = state.sort == SortOrder.UPDATED,
-                onClick = { vm.setSort(SortOrder.UPDATED) },
-                label = { Text("Recently updated") },
-            )
-            FilterChip(
-                selected = state.apkOnly,
-                onClick = { vm.setApkOnly(!state.apkOnly) },
-                label = { Text("Has APK") },
-            )
-        }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         // Chunk once per result set, not on every recomposition.
         val rows = remember(state.results) { state.results.chunked(2) }
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (state.query.isBlank()) {
                 item {
@@ -136,7 +120,7 @@ fun SearchScreen(
                     AdaptiveCard(
                         repo = repo,
                         isFavorite = repo.id in state.favoriteIds,
-                        apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
+                        apkBadge = ApkBadge.UNKNOWN,
                         grid = false,
                         onOpen = { onOpenRepo(repo) },
                         onToggleFavorite = { vm.toggleFavorite(repo) },
@@ -147,14 +131,14 @@ fun SearchScreen(
             } else {
                 items(rows, key = { it.first().id }) { row ->
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
                         row.forEach { repo ->
                             AdaptiveCard(
                                 repo = repo,
                                 isFavorite = repo.id in state.favoriteIds,
-                                apkBadge = if (repo.id in state.apkOnlyIds) ApkBadge.HAS_APK else ApkBadge.UNKNOWN,
+                                apkBadge = ApkBadge.UNKNOWN,
                                 grid = true,
                                 onOpen = { onOpenRepo(repo) },
                                 onToggleFavorite = { vm.toggleFavorite(repo) },
@@ -173,11 +157,21 @@ fun SearchScreen(
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(vertical = 16.dp),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Text("Searching GitHub...", maxLines = 1)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        }
+                        Text(
+                            "Searching GitHub...",
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
@@ -186,7 +180,9 @@ fun SearchScreen(
                     Text(
                         "GitHub results (not saved)",
                         style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 8.dp),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 16.dp),
                     )
                 }
                 items(netResults, key = { "net-${it.id}" }) { repo ->
@@ -203,7 +199,15 @@ fun SearchScreen(
 
 @Composable
 private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(vertical = 16.dp),
+    ) {
+        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 48.dp)
         Column(Modifier.weight(1f)) {
             Text(
                 repo.fullName,
@@ -212,7 +216,7 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
-                "★ ${repo.stars}",
+                repo.description?.takeIf { it.isNotBlank() } ?: "by ${repo.owner}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -224,6 +228,3 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
         }
     }
 }
-
-
-

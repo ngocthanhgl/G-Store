@@ -13,7 +13,6 @@ package dev.gstore.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,10 +33,11 @@ fun RailCard(
     modifier: Modifier = Modifier,
 ) {
     Column(
+        // No inner padding: the 80dp tile holds a 72dp icon, so insets come
+        // from the rail's 16dp contentPadding + gaps, never the tile itself.
         modifier = modifier
             .width(80.dp)
-            .clickable(onClick = onOpen)
-            .padding(all = 4.dp),
+            .clickable(onClick = onOpen),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {

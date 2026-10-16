@@ -273,7 +273,7 @@ private fun HomeHeader(
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                        modifier = Modifier.weight(1f).padding(start = 16.dp),
                     )
                 }
             },
@@ -349,7 +349,7 @@ private fun EmptyCatalog(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(top = 16.dp),
         ) {
             Button(onClick = onAdd) { Text("Add repository") }
@@ -385,10 +385,10 @@ private fun CatalogBlock(
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
-    // Open on TRENDING by default: the catalog is visible on every fresh
-    // open with zero taps. Tapping a filter switches; tapping again
-    // collapses back to chips (choice survives rotation via saveable).
-    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(CatalogFilter.TRENDING) }
+    // Collapsed by default: chips only, no auto-expanded section.
+    // Tapping a filter expands; tapping again collapses back to chips
+    // (choice survives rotation via saveable).
+    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(null) }
     val shown = if (expanded != null) items.take(10) else emptyList()
     Column(
         modifier = Modifier
@@ -401,7 +401,7 @@ private fun CatalogBlock(
                     androidx.compose.animation.core.spring()
                 },
             ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         AuroraSectionHeader(
             title = "All apps",
@@ -417,7 +417,7 @@ private fun CatalogBlock(
             },
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
@@ -506,7 +506,7 @@ private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text("Add repository") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     "Enter owner/name or paste a GitHub link. Only this repository is fetched.",
                     style = MaterialTheme.typography.bodySmall,
@@ -552,7 +552,7 @@ private fun DiscoverDialog(
         title = { Text("Discover Android projects") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 // Up to 10 cards must scroll inside the dialog on compact screens.
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {

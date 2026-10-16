@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -45,6 +46,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -118,7 +120,7 @@ private data class TopDestination(
 private val DESTINATIONS = listOf(
     TopDestination(Home, "Home", UiRes.drawable.ic_fluent_home_24_regular),
     TopDestination(Search, "Search", UiRes.drawable.ic_fluent_search_24_regular),
-    TopDestination(Downloads, "Installed", UiRes.drawable.ic_fluent_arrow_download_24_regular),
+    TopDestination(Downloads, "Downloads", UiRes.drawable.ic_fluent_arrow_download_24_regular),
     TopDestination(Settings, "Settings", UiRes.drawable.ic_fluent_settings_24_regular),
 )
 
@@ -186,7 +188,26 @@ private fun GStoreShell(container: AppContainer) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val snackbar = remember { SnackbarHostState() }
-    val onOpenRepo: (Repository) -> Unit = { nav.navigate(Details(it.id, it.fullName)) }
+    // Double-back to exit: one back press from a top-level tab used to quit
+    // instantly with no hint. First press shows a snackbar, second within
+    // 2s finishes. Non-Home destinations keep their own back behavior.
+    val activity = LocalContext.current as? ComponentActivity
+    val shellScope = rememberCoroutineScope()
+    var lastBack by rememberSaveable { mutableStateOf(0L) }
+    BackHandler(enabled = entry?.destination?.hasRoute(Home::class) == true) {
+        val now = System.currentTimeMillis()
+        if (now - lastBack < 2_000) {
+            activity?.finish()
+        } else {
+            lastBack = now
+            shellScope.launch { snackbar.showSnackbar("Press back again to exit") }
+        }
+    }
+    // Same repo twice must not stack duplicate details entries (Back would
+    // land on the same screen and every entry runs its own sync leg).
+    val onOpenRepo: (Repository) -> Unit = {
+        nav.navigate(Details(it.id, it.fullName)) { launchSingleTop = true }
+    }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val expanded = maxWidth >= 600.dp
         if (expanded) {

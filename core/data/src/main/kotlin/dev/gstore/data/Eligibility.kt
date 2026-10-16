@@ -9,26 +9,19 @@ enum class AssetKind { APK, BUNDLE, ARCHIVE, OTHER }
 
 data class Eligibility(val eligible: Boolean, val kind: AssetKind)
 
-private val APK_TYPES = setOf(
-    "application/vnd.android.package-archive",
-    "application/zip",
-    "application/octet-stream",
-    "binary/octet-stream",
-)
-
 /**
  * Metadata-only filter (GITHUB_DISCOVERY §4). Structural APK validation happens
- * at download time (M6) — a `.apk` name alone never proves installability.
+ * at download time (M6) — a `.apk` name alone never proves installability, and
+ * a strange content-type alone never disproves it: GitHub serves the same APK
+ * under tooling-dependent types (x-zip-compressed, java-archive, ...), so any
+ * non-empty `.apk` is eligible and the structural check is the real gate.
  */
 fun classifyAsset(filename: String, contentType: String?, size: Long): Eligibility {
     if (size <= 0L) return Eligibility(false, AssetKind.OTHER)
     val lower = filename.lowercase()
     val ext = lower.substringAfterLast('.', "")
     return when (ext) {
-        "apk" -> Eligibility(
-            contentType == null || contentType.lowercase() in APK_TYPES,
-            AssetKind.APK,
-        )
+        "apk" -> Eligibility(true, AssetKind.APK)
         "apks", "xapk", "aab" -> Eligibility(false, AssetKind.BUNDLE)
         "zip", "tar", "gz", "tgz", "rar", "7z", "jar" -> Eligibility(false, AssetKind.ARCHIVE)
         else -> Eligibility(false, AssetKind.OTHER)

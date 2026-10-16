@@ -36,7 +36,7 @@ fun LoadingContent(modifier: Modifier = Modifier) {
 
 @Composable
 fun ErrorContent(failure: CatalogFailure, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.layout.Column(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -51,7 +51,7 @@ fun ErrorContent(failure: CatalogFailure, onRetry: () -> Unit, modifier: Modifie
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Button(onClick = onRetry, modifier = Modifier.padding(top = 12.dp)) {
+            Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
                 Text("Retry")
             }
         }
@@ -64,10 +64,10 @@ fun EmptyContent(
     modifier: Modifier = Modifier,
     icon: Painter? = null,
 ) {
-    Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (icon != null) {
                 Icon(

@@ -745,3 +745,38 @@ assert the old behavior - see MarkdownTest below).
   Bearer attached (quota hole closed).
 - Verify: 113 tests 0 fail, lint clean, assembleDebug+Release green,
   impeccable detect [] on 8 UI files. Version 1.0.2 / versionCode 3.
+
+## 29. Feedback round (9 items, 3 agents, no local build)
+- Order: full A-Z, NO local build (laggy machine - CI is the only gate),
+  skip test runs; dev-avatar instead of APK icons.
+- Agent findings: padding audit (~40 file:line fixes, only real structural
+  violation was pre-existing double-insets); details failures ranked
+  (slim-rendered-as-complete, scan wipes selection, narrow eligibility,
+  id-0 observer mismatch, duplicate entries + sync storm, resume-prune
+  loss, dead NetworkRow tap); back exits instantly (no BackHandler).
+- Details robustness: inline SyncErrorCard + Retry when sync fails (never
+  render failure as empty); scan never downgrades a valid selection;
+  `.apk` + size>0 always eligible (content-type advisory only; structural
+  check at download stays the real gate); resolvedId flow follows the real
+  id after on-demand sync (fixes Downloads id-0 empty list); Details
+  navigation launchSingleTop (no duplicate stacks); prune only on full
+  in-run page 1 + 304-with-empty-cache restarts full.
+- Search: sort/filter chips deleted (VM slimmed - SortOrder/apKOnly gone,
+  stars-desc default); NetworkRow has 48dp dev avatar + clickable (opens
+  details via on-demand sync) + description line. True APK icons are
+  impossible without downloading (stated honestly, avatar is the max).
+- Downloads tab renamed Installed->Downloads (title + tab); InstalledRow
+  gains installed->latest version line, size, update date, release tag,
+  source repo line.
+- Uniform 16dp: screen inset 16 once, card content 16 once, gaps 16.
+  Rows go cardless (Installed/Favorite/Manual/Active/History); content
+  panels keep Card@16dp. Deliberate exceptions (typographic, not layout):
+  2-4dp text ledgers, 4dp rail-tile rhythm (80dp tile/72dp icon physics),
+  8dp inline icon-text gaps, control heights, elevations.
+- AppIcon well: tertiaryContainer (pink) -> pure white + near-black
+  monogram (explicit user ask beats theme purity).
+- TRENDING no longer auto-expands (chips collapsed by default).
+- Double-back to exit on Home (snackbar hint, 2 s window).
+- Existing eligibility tests all still pass under loosened rule by
+  inspection (exe/zip/apks/aab/size-0/case cases unaffected) - no test
+  files touched. CI builds untested code; risk accepted per order.

@@ -1,6 +1,7 @@
 package dev.gstore.downloads
 import dev.gstore.ui.Fluent
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -123,7 +123,7 @@ fun DownloadsScreen(
             state.favorites.isEmpty() && state.manual.isEmpty()
         ) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -145,12 +145,12 @@ fun DownloadsScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Installed",
+                        "Downloads",
                         style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -163,7 +163,7 @@ fun DownloadsScreen(
             }
             item {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
@@ -270,22 +270,21 @@ private fun InstalledRow(
     onInstall: (DownloadRecord) -> Unit,
 ) {
     val record = row.record
-    Card(
-        onClick = { onBrowseRepo(record.repoFullName) },
-        modifier = Modifier.fillMaxWidth(),
+    // Cardless row: the list already insets 16dp, so the row only pads vertically.
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = { onBrowseRepo(record.repoFullName) })
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        PackageIcon(
+            packageName = record.packageName ?: record.repoFullName,
+            label = row.label,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            PackageIcon(
-                packageName = record.packageName ?: record.repoFullName,
-                label = row.label,
-            )
-            Column(
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
                 Text(
                     text = row.label,
                     style = MaterialTheme.typography.titleMedium,
@@ -295,6 +294,46 @@ private fun InstalledRow(
                 Text(
                     text = record.packageName ?: record.repoFullName,
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                val versionLine = if (row.installedVersionName != null) {
+                    val latest = row.latestTag?.let { " → $it" } ?: ""
+                    "${row.installedVersionName}${row.installedVersionCode?.let { " ($it)" } ?: ""}$latest"
+                } else {
+                    "Not installed on this device"
+                }
+                Text(
+                    text = versionLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                val sizeBytes = record.bytesTotal.takeIf { it > 0 }
+                    ?: record.expectedSize.takeIf { it > 0 }
+                val metaParts = buildList {
+                    sizeBytes?.let { add(formatBytes(it)) }
+                    if (row.lastUpdateTime > 0) {
+                        add(
+                            java.text.DateFormat.getDateInstance()
+                                .format(java.util.Date(row.lastUpdateTime)),
+                        )
+                    }
+                    if (record.releaseTag.isNotBlank()) add(record.releaseTag)
+                }
+                if (metaParts.isNotEmpty()) {
+                    Text(
+                        text = metaParts.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+                Text(
+                    text = record.repoFullName,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -320,7 +359,7 @@ private fun InstalledRow(
                 )
             }
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.End,
             ) {
                 when (row.updateState) {
@@ -354,7 +393,6 @@ private fun InstalledRow(
                 }
             }
         }
-    }
 }
 
 /** Hearted repo with a one-tap APK download (latest stable eligible asset wins). */
@@ -364,16 +402,18 @@ private fun FavoriteRow(
     onBrowse: () -> Unit,
     onDownload: () -> Unit,
 ) {
-    Card(onClick = onBrowse, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    // Cardless row (see InstalledRow): vertical padding only.
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onBrowse)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
-            Column(
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
                 Text(
                     text = repo.fullName,
                     style = MaterialTheme.typography.titleMedium,
@@ -393,7 +433,6 @@ private fun FavoriteRow(
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text("Download") }
         }
-    }
 }
 
 /** Hand-added repo (link or owner/name): browseable, removable, no download yet. */
@@ -403,16 +442,18 @@ private fun ManualRow(
     onBrowse: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Card(onClick = onBrowse, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    // Cardless row (see InstalledRow): vertical padding only.
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onBrowse)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
-            Column(
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
                 Text(
                     text = repo.fullName,
                     style = MaterialTheme.typography.titleMedium,
@@ -432,7 +473,6 @@ private fun ManualRow(
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text("Remove") }
         }
-    }
 }
 
 /** Real app icon from PackageManager, monogram tile while it resolves. */
@@ -457,13 +497,17 @@ private fun PackageIcon(packageName: String, label: String) {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
+    // No own top gap: the list separates items with a uniform 16dp gap.
+    Text(text, style = MaterialTheme.typography.titleSmall)
 }
 
 @Composable
 private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    // Cardless status block: vertical padding only, 16dp rhythm inside.
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
             Text(
                 record.filename,
                 style = MaterialTheme.typography.titleSmall,
@@ -501,7 +545,6 @@ private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
                 ) { Text("Cancel") }
             }
         }
-    }
 }
 
 @Composable
@@ -511,8 +554,11 @@ private fun HistoryRow(
     onForget: () -> Unit,
     onInstall: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    // Cardless status block (see ActiveRow): vertical padding only.
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
             Text(
                 record.filename,
                 style = MaterialTheme.typography.titleSmall,
@@ -539,7 +585,7 @@ private fun HistoryRow(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Button(
                             onClick = onInstall,
                             modifier = Modifier.heightIn(min = 48.dp),
@@ -558,7 +604,7 @@ private fun HistoryRow(
                         maxLines = 3,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedButton(
                             onClick = onRetry,
                             modifier = Modifier.heightIn(min = 48.dp),
