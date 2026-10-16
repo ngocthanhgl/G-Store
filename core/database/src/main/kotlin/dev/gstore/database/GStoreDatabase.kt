@@ -3,6 +3,7 @@ package dev.gstore.database
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
@@ -35,7 +36,10 @@ interface FavoriteDao {
 }
 
 /** Cached repository metadata — single source of truth for catalog UI (flow F). */
-@Entity(tableName = "repositories")
+@Entity(
+    tableName = "repositories",
+    indices = [Index("fullName"), Index("description"), Index("owner")],
+)
 data class RepositoryEntity(
     @PrimaryKey val id: Long,
     val fullName: String,
@@ -64,7 +68,7 @@ data class RepositoryEntity(
     val syncState: String,
 )
 
-@Entity(tableName = "releases")
+@Entity(tableName = "releases", indices = [Index("repoId")])
 data class ReleaseEntity(
     @PrimaryKey val id: Long,
     val repoId: Long,
@@ -77,7 +81,7 @@ data class ReleaseEntity(
     val prerelease: Boolean,
 )
 
-@Entity(tableName = "assets")
+@Entity(tableName = "assets", indices = [Index("releaseId")])
 data class AssetEntity(
     @PrimaryKey val id: Long,
     val releaseId: Long,
@@ -356,6 +360,17 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/** v7 -> v8: indices on the hot query columns (join keys + search LIKE). */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_repositories_fullName ON repositories(fullName)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_repositories_description ON repositories(description)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_repositories_owner ON repositories(owner)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_releases_repoId ON releases(repoId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_assets_releaseId ON assets(releaseId)")
+    }
+}
+
 @Database(
     entities = [
         FavoriteEntity::class,
@@ -366,7 +381,7 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         ReadmeEntity::class,
         DownloadRecord::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class GStoreDatabase : RoomDatabase() {

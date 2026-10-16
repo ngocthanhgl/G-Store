@@ -29,6 +29,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,12 +66,14 @@ fun SearchScreen(
             "Search",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::setQuery,
             label = { Text("Name, description, or owner") },
             singleLine = true,
+            shape = CircleShape,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(
                 onSearch = {
@@ -102,6 +106,8 @@ fun SearchScreen(
             )
         }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+        // Chunk once per result set, not on every recomposition.
+        val rows = remember(state.results) { state.results.chunked(2) }
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -139,8 +145,11 @@ fun SearchScreen(
                     )
                 }
             } else {
-                items(state.results.chunked(2), key = { it.first().id }) { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(rows, key = { it.first().id }) { row ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
                         row.forEach { repo ->
                             AdaptiveCard(
                                 repo = repo,
@@ -168,7 +177,7 @@ fun SearchScreen(
                         modifier = Modifier.padding(vertical = 8.dp),
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Text("Searching GitHub...")
+                        Text("Searching GitHub...", maxLines = 1)
                     }
                 }
             }
@@ -206,6 +215,8 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
                 "★ ${repo.stars}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
         IconButton(onClick = onAdd) {

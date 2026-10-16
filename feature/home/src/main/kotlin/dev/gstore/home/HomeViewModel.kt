@@ -1,5 +1,6 @@
 package dev.gstore.home
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
@@ -18,17 +19,21 @@ import dev.gstore.model.SectionConfig
 import dev.gstore.model.TrendingWeights
 import dev.gstore.network.ApiResponse
 import dev.gstore.network.CatalogClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Catalog counts as stale after 24h — matches the scanner schedule. */
 private const val STALE_AFTER_MILLIS = 24L * 60 * 60 * 1000
 
+@Immutable
 data class HomeUiState(
     val sections: HomeSections = HomeSections(),
     val configs: List<SectionConfig> = emptyList(),
@@ -39,6 +44,7 @@ data class HomeUiState(
     val catalogFilter: CatalogFilter = CatalogFilter.TRENDING,
     val syncingCatalog: Boolean = false,
     val isEmpty: Boolean = true,
+    val signalsLoading: Boolean = false,
     val syncing: Boolean = false,
     val banner: String? = null,
     val discoverResults: List<Repository> = emptyList(),
@@ -52,6 +58,7 @@ class HomeViewModel(
     tokens: TokenStore,
     cachedSignals: StateFlow<List<RepoSignals>>,
 ) : ViewModel() {
+    private val tokensRef = tokens
     private val allRepos = MutableStateFlow<List<Repository>>(emptyList())
     private val syncing = MutableStateFlow(false)
     private val banner = MutableStateFlow<String?>(null)
@@ -93,12 +100,14 @@ class HomeViewModel(
         val banner: String?,
         val filter: CatalogFilter,
         val syncingCatalog: Boolean,
+        val reposEmpty: Boolean,
     )
 
     private val refreshState = combine(
         syncing, banner, catalogFilter, syncingCatalog,
-    ) { s, b, f, cs ->
-        RefreshState(s, b, f, cs)
+        catalog.observeRepositories().map { it.isEmpty() },
+    ) { s, b, f, cs, empty ->
+        RefreshState(s, b, f, cs, empty)
     }
 
     val state: StateFlow<HomeUiState> = combine(
@@ -117,13 +126,18 @@ class HomeViewModel(
             catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights),
             catalogFilter = refresh.filter,
             syncingCatalog = refresh.syncingCatalog,
-            isEmpty = inputs.signals.isEmpty(),
+            // The empty gate reads cheap raw rows; signals only order/sort.
+            // Non-empty rows + empty signals = pipeline still assembling.
+            isEmpty = refresh.reposEmpty,
+            signalsLoading = !refresh.reposEmpty && inputs.signals.isEmpty(),
             syncing = refresh.syncing,
             banner = refresh.banner,
             discoverResults = discovered,
             discovering = isDiscovering,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+    // Section scoring + full-catalog sorts run off the main thread.
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     init {
         viewModelScope.launch {
@@ -206,7 +220,10 @@ class HomeViewModel(
             syncing.value = true
             if (withCatalog) {
                 val last = prefs.catalogImportedAt.first()
-                if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS) {
+                // Explicit user pulls bypass the 24h gate when logged in
+                // (5,000 req/h quota); auto-pull and anonymous stay gated.
+                val loggedIn = tokensRef.token.value?.isNotBlank() == true
+                if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS || loggedIn) {
                     syncCatalog(quiet = true)
                 }
             }

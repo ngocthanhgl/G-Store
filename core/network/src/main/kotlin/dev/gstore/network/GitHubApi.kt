@@ -218,6 +218,10 @@ class GitHubApi : GitHubService {
             .header("Accept", "application/vnd.github.raw")
             .header("X-GitHub-Api-Version", API_VERSION)
             .header("User-Agent", "gstore-app/0.2.0")
+        // Same auth as request(): logged-in README fetches share the quota.
+        token?.takeIf { it.isNotBlank() }?.let {
+            builder.header("Authorization", "Bearer $it")
+        }
         if (etag != null) builder.header("If-None-Match", etag)
         val call = try {
             http.newCall(builder.build()).execute()

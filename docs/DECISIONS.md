@@ -725,3 +725,23 @@ assert the old behavior - see MarkdownTest below).
   per explicit user order - CI is the only gate; edits are confined to
   standard APIs (CircleShape, textAlign, branch deletions, padding
   modifiers) to keep that risk minimal.
+
+## 28. Unity round (7-item order, 5 agents, release 1.0.2/vc3)
+- Order: behavior audit, Aurora shimmer, catalog-stays-cached, unified
+  16dp padding, pill sliders/fields, Installed manual, unlimited login.
+- Catalog root cause (agent C): no wipe vector exists - import is
+  upsert-only. The vanish was an observation gap: Home gated on slow
+  SignalsCache N+1 emission while auto-pull watched fast raw rows, plus a
+  default-collapsed CatalogBlock. Fix: gate on raw repos + skeletons +
+  default-expand TRENDING + per-repo runCatching.
+- Shimmer (agent E): Aurora Shimmer.kt sweep port (gradient 0.08/0.20/0.08,
+  1000 ms Linear Restart, 1200f sweep 400f band; static when reduceMotion
+  - stricter than Aurora); replaces alpha-pulse Skeleton.kt (deleted).
+- Padding truth (agent A): only real violation was my own v1.0.1 TopBar
+  double-32dp; subs already comply. remember() inside LazyList DSL does
+  NOT compile - shelves hoisted to Triple list in composable scope.
+- Limits (agent D): only throttle is Downloads 60 s (now anonymous-only);
+  Home never had a minute throttle (24 h staleness only); fetchReadme
+  Bearer attached (quota hole closed).
+- Verify: 113 tests 0 fail, lint clean, assembleDebug+Release green,
+  impeccable detect [] on 8 UI files. Version 1.0.2 / versionCode 3.

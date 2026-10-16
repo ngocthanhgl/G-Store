@@ -18,6 +18,9 @@ class SignalsCache(
     scope: CoroutineScope,
 ) {
     val signals: StateFlow<List<RepoSignals>> = catalog.observeRepositories()
-        .mapLatest { repos -> repos.map { catalog.signals(it) } }
+        .mapLatest { repos ->
+            // One bad repo must never zero the whole Home: drop failures.
+            repos.mapNotNull { repo -> runCatching { catalog.signals(repo) }.getOrNull() }
+        }
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }

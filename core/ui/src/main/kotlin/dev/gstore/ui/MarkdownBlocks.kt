@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -31,6 +32,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.size.Size
 
 /**
  * Shared Markdown block renderer (moved from :feature:readme so the details
@@ -126,6 +129,8 @@ private fun CodeBlockView(block: Block.CodeBlock) {
                         block.language,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                 } else {
@@ -155,7 +160,7 @@ private fun SpanText(
             when (span) {
                 is Span.Text -> append(span.text)
                 is Span.Code -> withStyle(
-                    SpanStyle(fontFamily = FontFamily.Monospace, background = androidx.compose.ui.graphics.Color.Transparent),
+                    SpanStyle(fontFamily = FontFamily.Monospace),
                 ) { append(span.code) }
                 is Span.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                     span.children.forEach(::append)
@@ -202,8 +207,13 @@ private fun SpanText(
             // explicit tap-to-open link so the app never silently fetches
             // cleartext or non-web content on the user's behalf.
             if (url.startsWith("https://")) {
+                // Cap decoded size: README screenshots are often 4K and
+                // would otherwise sit in memory at full resolution.
                 AsyncImage(
-                    model = url,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(url)
+                        .size(Size(1600, 1600))
+                        .build(),
                     contentDescription = picture.alt,
                     modifier = Modifier.fillMaxWidth(),
                 )

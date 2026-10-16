@@ -31,7 +31,7 @@ import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.RailCard
-import dev.gstore.ui.SkeletonRows
+import dev.gstore.ui.ShimmerRows
 
 internal fun apkBadgeOf(signals: RepoSignals): ApkBadge =
     if (signals.eligibleReleaseCount > 0) ApkBadge.HAS_APK else ApkBadge.UNKNOWN
@@ -71,7 +71,11 @@ fun CategoryRail(
                 maxLines = 1,
             )
             TextButton(onClick = { onOpenCategory(category) }) {
-                Text("See all", maxLines = 1)
+                Text(
+                    "See all",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
                 Icon(Fluent.ChevronRight, contentDescription = null)
             }
         }
@@ -122,7 +126,7 @@ fun CategoryFullScreen(
             )
         }
         if (items.isEmpty() && syncing) {
-            SkeletonRows(count = 8, reduceMotion = reduceMotion, cardRadiusDp = cardRadiusDp)
+            ShimmerRows(count = 8, reduceMotion = reduceMotion)
         } else if (items.isEmpty()) {
             Text(
                 text = "No apps in this category yet.",

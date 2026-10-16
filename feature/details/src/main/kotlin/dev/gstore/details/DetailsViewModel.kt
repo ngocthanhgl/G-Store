@@ -1,5 +1,6 @@
 package dev.gstore.details
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
@@ -20,7 +21,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** One row of the artifact chooser — non-APKs labeled, never hidden. */
 data class AssetRow(
@@ -38,6 +41,7 @@ sealed interface HeroDlState {
     data object FailedRetry : HeroDlState
 }
 
+@Immutable
 data class DetailsUiState(
     val repo: Repository? = null,
     val loadingRepo: Boolean = true,
@@ -152,14 +156,18 @@ class DetailsViewModel(
         val gen = ++scanGen
         _state.value = _state.value.copy(scanningApks = true)
         viewModelScope.launch {
-            val ids = releases.filter { rel ->
-                runCatching {
-                    catalog.allAssets(rel.id).any {
-                        val e = classifyAsset(it.filename, it.contentType, it.size)
-                        e.eligible && e.kind == AssetKind.APK
-                    }
-                }.getOrDefault(false)
-            }.map { it.id }.toSet()
+            // Per-release asset scan off the collector; the generation guard
+            // below keeps overlapping scans from clearing each other's flag.
+            val ids = withContext(Dispatchers.Default) {
+                releases.filter { rel ->
+                    runCatching {
+                        catalog.allAssets(rel.id).any {
+                            val e = classifyAsset(it.filename, it.contentType, it.size)
+                            e.eligible && e.kind == AssetKind.APK
+                        }
+                    }.getOrDefault(false)
+                }.map { it.id }.toSet()
+            }
             if (gen != scanGen) return@launch // superseded by a newer scan
             val current = _state.value
             if (current.releases != releases) {

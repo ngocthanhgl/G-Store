@@ -11,9 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 
 /**
  * Repository / developer icon: the owner's GitHub avatar when a URL is known,
@@ -46,8 +49,14 @@ fun AppIcon(
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             if (!avatarUrl.isNullOrBlank()) {
+                // Downsample to the drawn size: avatars arrive as large
+                // PNGs and the full bitmap would sit in memory per row.
+                val px = with(LocalDensity.current) { size.roundToPx() }
                 AsyncImage(
-                    model = avatarUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(avatarUrl)
+                        .size(px, px)
+                        .build(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,

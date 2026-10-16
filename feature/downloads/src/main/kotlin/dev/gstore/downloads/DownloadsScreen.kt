@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -80,7 +81,10 @@ fun DownloadsScreen(
             onDismissNotice()
         }
     }
-    LaunchedEffect(Unit) { onRefreshInstalled() }
+    // Manual-only refresh: entering this screen never fires a check on its
+    // own. Pull-to-refresh, the header button, or the empty-state button
+    // below are the only triggers (throttled when anonymous, free when
+    // logged in).
     if (state.showLoginPrompt) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = onDismissLoginPrompt,
@@ -118,10 +122,23 @@ fun DownloadsScreen(
         if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty() &&
             state.favorites.isEmpty() && state.manual.isEmpty()
         ) {
-            EmptyContent(
-                message = "Nothing here yet. Pick an APK on an app's details screen.",
-                icon = Fluent.ArrowDownload,
-            )
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                EmptyContent(
+                    message = "Nothing here yet. Pick an APK on an app's details screen.",
+                    icon = Fluent.ArrowDownload,
+                )
+                OutlinedButton(
+                    onClick = onRefreshInstalled,
+                    enabled = !state.installedRefreshing,
+                    modifier = Modifier.padding(top = 16.dp),
+                ) {
+                    Text(if (state.installedRefreshing) "Checking..." else "Check now")
+                }
+            }
             return@PullToRefreshBox
         }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
@@ -136,6 +153,7 @@ fun DownloadsScreen(
                         "Installed",
                         style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onRefreshInstalled) {
@@ -146,6 +164,7 @@ fun DownloadsScreen(
             item {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
                     InstalledSort.entries.forEach { option ->
@@ -300,24 +319,36 @@ private fun InstalledRow(
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
                 when (row.updateState) {
                     UpdateState.UPDATE_AVAILABLE -> Button(
                         onClick = { onBrowseRepo(record.repoFullName) },
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Update") }
                     UpdateState.READY_TO_INSTALL -> Button(
                         onClick = { onInstall(record) },
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Install") }
                     UpdateState.NOT_INSTALLED -> Button(
                         onClick = { onInstall(record) },
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Install") }
                     UpdateState.UP_TO_DATE -> Unit
                 }
                 if (row.installedVersionCode != null) {
-                    TextButton(onClick = { onLaunch(record.packageName ?: "") }) {
+                    TextButton(
+                        onClick = { onLaunch(record.packageName ?: "") },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         Text("Open")
                     }
-                    TextButton(onClick = { onUninstall(record.packageName ?: "") }) {
+                    TextButton(
+                        onClick = { onUninstall(record.packageName ?: "") },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
                         Text("Uninstall")
                     }
                 }
@@ -354,9 +385,13 @@ private fun FavoriteRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
-            Button(onClick = onDownload) { Text("Download") }
+            Button(
+                onClick = onDownload,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Download") }
         }
     }
 }
@@ -389,9 +424,13 @@ private fun ManualRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
-            TextButton(onClick = onRemove) { Text("Remove") }
+            TextButton(
+                onClick = onRemove,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Remove") }
         }
     }
 }
@@ -452,8 +491,14 @@ private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text("${formatBytes(record.bytesDone)} downloaded", style = MaterialTheme.typography.bodySmall)
             }
-            Row {
-                TextButton(onClick = onCancel) { Text("Cancel") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Cancel") }
             }
         }
     }
@@ -495,8 +540,14 @@ private fun HistoryRow(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onInstall) { Text("Install") }
-                        TextButton(onClick = onForget) { Text("Remove") }
+                        Button(
+                            onClick = onInstall,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Install") }
+                        TextButton(
+                            onClick = onForget,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Remove") }
                     }
                 }
                 "FAILED" -> {
@@ -508,14 +559,26 @@ private fun HistoryRow(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onRetry) { Text("Retry") }
-                        TextButton(onClick = onForget) { Text("Remove") }
+                        OutlinedButton(
+                            onClick = onRetry,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Retry") }
+                        TextButton(
+                            onClick = onForget,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Remove") }
                     }
                 }
                 else -> {
                     Text(record.status.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall)
-                    Row {
-                        TextButton(onClick = onForget) { Text("Remove") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(
+                            onClick = onForget,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Remove") }
                     }
                 }
             }

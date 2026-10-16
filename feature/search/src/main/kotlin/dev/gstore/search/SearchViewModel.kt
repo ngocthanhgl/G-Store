@@ -1,5 +1,6 @@
 package dev.gstore.search
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
@@ -13,10 +14,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class SortOrder { STARS, UPDATED }
 
+@Immutable
 data class SearchUiState(
     val query: String = "",
     val results: List<Repository> = emptyList(),
@@ -80,11 +84,14 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
             combine(localMatches, apkOnly) { matches, only -> matches to only }
                 .collect { (matches, only) ->
                     if (only) {
-                        val ids = matches.take(50)
-                            .mapNotNull { repo ->
-                                if (catalog.signals(repo).eligibleReleaseCount > 0) repo.id
-                                else null
-                            }.toSet()
+                        // DB fan-out off the collector: 4 queries per repo.
+                        val ids = withContext(Dispatchers.Default) {
+                            matches.take(50)
+                                .mapNotNull { repo ->
+                                    if (catalog.signals(repo).eligibleReleaseCount > 0) repo.id
+                                    else null
+                                }.toSet()
+                        }
                         apkIds.value = ids
                     } else {
                         apkIds.value = emptySet()

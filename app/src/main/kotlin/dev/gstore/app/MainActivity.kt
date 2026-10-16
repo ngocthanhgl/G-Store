@@ -644,6 +644,7 @@ private fun Content(
                     }
                 },
                 cardRadiusDp = appearance.cardRadiusDp,
+                reduceMotion = appearance.reduceMotion,
             )
             val detailsGate = detailsGateFor
             if (detailsGate != null) {

@@ -56,8 +56,12 @@ import dev.gstore.designsystem.cardShapeFor
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
+import dev.gstore.ui.Block
 import dev.gstore.ui.BlockView
+import dev.gstore.ui.ShimmerRows
 import dev.gstore.ui.parseMarkdown
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DetailsScreen(
@@ -75,6 +79,7 @@ fun DetailsScreen(
     onOpenApp: (String) -> Unit,
     onOpenReadme: () -> Unit,
     cardRadiusDp: Int = 12,
+    reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val notice = state.notice
@@ -142,7 +147,8 @@ fun DetailsScreen(
                 onToggleFavorite = onToggleFavorite,
                 syncing = state.syncing,
                 onRefresh = onRefresh,
-                modifier = Modifier.statusBarsPadding().padding(horizontal = 16.dp),
+                // No horizontal padding: the list already insets 16dp.
+                modifier = Modifier.statusBarsPadding(),
             )
         }
         item { Spacer(Modifier.height(8.dp)) }
@@ -186,14 +192,20 @@ fun DetailsScreen(
         item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
         item { Spacer(Modifier.height(8.dp)) }
         selectedRelease(state)?.let { release ->
-            item { ReleaseNotes(release, cardRadiusDp) }
+            item { ReleaseNotes(release, cardRadiusDp, reduceMotion) }
             item { Spacer(Modifier.height(12.dp)) }
         }
         item {
             FilterChip(
                 selected = false,
                 onClick = onOpenReadme,
-                label = { Text("README", maxLines = 1) },
+                label = {
+                    Text(
+                        "README",
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                },
                 trailingIcon = { Icon(Fluent.ChevronRight, contentDescription = null) },
                 shape = CircleShape,
             )
@@ -314,8 +326,11 @@ private fun TopBar(
                 else MaterialTheme.colorScheme.onSurface,
             )
         }
-        if (syncing) CircularProgressIndicator(Modifier.size(24.dp))
-        else IconButton(onClick = onRefresh) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
+        if (syncing) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(24.dp))
+            }
+        } else IconButton(onClick = onRefresh) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
     }
 }
 
@@ -396,6 +411,7 @@ private fun StatCell(
         else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
         modifier = modifier,
     )
 }
@@ -418,7 +434,13 @@ private fun formatCount(n: Int): String = when {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
+    // Same top gap as the Downloads screen's SectionTitle: count labels
+    // start at the same height for identical hierarchy on both screens.
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(top = 12.dp),
+    )
 }
 
 @Composable
@@ -441,6 +463,7 @@ private fun ReleasePicker(
                     Text(
                         release.tag + if (release.prerelease) " · pre" else "",
                         maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
@@ -457,7 +480,7 @@ private fun ReleasePicker(
  * The whole card is the toggle.
  */
 @Composable
-private fun ReleaseNotes(release: Release, cardRadiusDp: Int) {
+private fun ReleaseNotes(release: Release, cardRadiusDp: Int, reduceMotion: Boolean) {
     val uriHandler = LocalUriHandler.current
     var expanded by rememberSaveable(release.id) { mutableStateOf(false) }
     Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
@@ -504,9 +527,18 @@ private fun ReleaseNotes(release: Release, cardRadiusDp: Int) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    val blocks = remember(release.id, notes) { parseMarkdown(notes) }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        blocks.forEach { BlockView(it, "", "") }
+                    // Parsed off the main thread; shimmer until ready.
+                    var blocks by remember(release.id) { mutableStateOf<List<Block>?>(null) }
+                    LaunchedEffect(release.id, notes) {
+                        blocks = withContext(Dispatchers.Default) { parseMarkdown(notes) }
+                    }
+                    val parsed = blocks
+                    if (parsed == null) {
+                        ShimmerRows(count = 2, reduceMotion = reduceMotion)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            parsed.forEach { BlockView(it, "", "") }
+                        }
                     }
                 }
                 release.htmlUrl?.let { url ->

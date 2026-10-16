@@ -54,6 +54,7 @@ fun RailCard(
             maxLines = 2,
             minLines = 2,
             overflow = TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
 }

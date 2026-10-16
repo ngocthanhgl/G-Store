@@ -3,6 +3,7 @@ import dev.gstore.ui.Fluent
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -42,6 +44,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AppCategory
 import dev.gstore.data.CatalogFilter
@@ -56,7 +59,7 @@ import dev.gstore.ui.AppIcon
 import dev.gstore.ui.AuroraSectionHeader
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
-import dev.gstore.ui.SkeletonRows
+import dev.gstore.ui.ShimmerRows
 
 private const val COLLAPSED_COUNT = 5
 
@@ -93,12 +96,28 @@ fun HomeScreen(
         }
     }
 
+    // Aurora-style shelves: one horizontal rail of the top 5 per category,
+    // only for categories present in the catalog. Computed once per catalog
+    // emission in composable scope (never inside the LazyList DSL), not per
+    // recomposition or per row.
+    val shelves = remember(state.catalog) {
+        categoriesPresent(state.catalog).map { (category, count) ->
+            Triple(
+                category,
+                count,
+                state.catalog
+                    .filter { categoryOf(it.repo.topics) == category }
+                    .sortedByDescending { it.repo.stars }
+                    .take(5),
+            )
+        }
+    }
     PullToRefreshBox(
         isRefreshing = state.syncing,
         onRefresh = vm::refreshAll,
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
     ) {
-        if (state.isEmpty && !state.syncing) {
+        if (state.isEmpty && !state.syncing && !state.signalsLoading) {
             EmptyCatalog(
                 onAdd = { showAdd = true },
                 onDiscover = { showDiscover = true },
@@ -106,6 +125,18 @@ fun HomeScreen(
                 onSyncCatalog = { vm.syncCatalog() },
                 syncingCatalog = state.syncingCatalog,
             )
+        } else if (state.isEmpty) {
+            // Rows exist but signals are still assembling (or a sync runs):
+            // skeleton placeholders, never a blank screen or a false empty.
+            Column(modifier = Modifier.fillMaxSize()) {
+                HomeHeader(
+                    identity = state.identity,
+                    onAdd = { showAdd = true },
+                    onOpenLogin = onOpenLogin,
+                    onLogout = onLogout,
+                )
+                ShimmerRows(count = 8, reduceMotion = reduceMotion)
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -136,14 +167,7 @@ fun HomeScreen(
                         onToggleFavorite = vm::toggleFavorite,
                     )
                 }
-                // Aurora-style shelves: one horizontal rail of the top 5 per
-                // category, only for categories present in the catalog.
-                val shelves = categoriesPresent(state.catalog)
-                items(shelves, key = { it.first }) { (category, count) ->
-                    val top = state.catalog
-                        .filter { categoryOf(it.repo.topics) == category }
-                        .sortedByDescending { it.repo.stars }
-                        .take(5)
+                items(shelves, key = { it.first }) { (category, count, top) ->
                     CategoryRail(
                         category = category,
                         count = count,
@@ -236,7 +260,7 @@ private fun HomeHeader(
     if (showProfile && identity.login.isNotBlank()) {
         AlertDialog(
             onDismissRequest = { showProfile = false },
-            title = { Text(identity.login) },
+            title = { Text(identity.login, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AppIcon(
@@ -247,7 +271,9 @@ private fun HomeHeader(
                     Text(
                         "Logged in to GitHub. API quota is 5,000 requests/hour.",
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 12.dp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
                     )
                 }
             },
@@ -281,7 +307,10 @@ private fun HeaderActions(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (syncing) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            // Fixed 48dp slot: the spinner aligns with sibling icon buttons.
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
         } else if (onRefresh != null) {
             IconButton(onClick = onRefresh) {
                 Icon(Fluent.ArrowSync, contentDescription = refreshDescription)
@@ -356,9 +385,10 @@ private fun CatalogBlock(
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
-    // Collapsed by default: nothing is pre-opened. Tapping a filter expands
-    // its list with animation; tapping again collapses back to chips.
-    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(null) }
+    // Open on TRENDING by default: the catalog is visible on every fresh
+    // open with zero taps. Tapping a filter switches; tapping again
+    // collapses back to chips (choice survives rotation via saveable).
+    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(CatalogFilter.TRENDING) }
     val shown = if (expanded != null) items.take(10) else emptyList()
     Column(
         modifier = Modifier
@@ -388,6 +418,7 @@ private fun CatalogBlock(
         )
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
             CatalogFilter.entries.forEach { option ->
@@ -424,8 +455,8 @@ private fun CatalogBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else if (items.isEmpty() && syncing) {
-            // Genuine load in flight: animated placeholders, never a blank gap.
-            SkeletonRows(count = 5, reduceMotion = reduceMotion, cardRadiusDp = cardRadiusDp)
+            // Genuine load in flight: Aurora sweep placeholders, never blank.
+            ShimmerRows(count = 5, reduceMotion = reduceMotion)
         } else if (items.isEmpty()) {
             Text(
                 "No catalog yet - pull to refresh.",
@@ -485,6 +516,7 @@ private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                     onValueChange = { text = it },
                     label = { Text("owner/name or link") },
                     singleLine = true,
+                    shape = CircleShape,
                 )
                 if (text.isNotBlank() && parsed != null && parsed != text.trim()) {
                     Text(
@@ -530,6 +562,13 @@ private fun DiscoverDialog(
                 )
                 Button(onClick = onSearch, enabled = !discovering) {
                     Text(if (discovering) "Searching..." else "Search GitHub")
+                }
+                if (!discovering && results.isEmpty()) {
+                    Text(
+                        "No matches — try a different query.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 results.take(10).forEach { repo ->
                     RepoCard(

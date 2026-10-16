@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package dev.gstore.settings
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,25 +9,30 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -34,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -130,12 +138,15 @@ fun SettingsScreen(
                 }
             }
             if (showLogin) {
+                // The dialog stays mounted while the login round-trip is in
+                // flight and closes itself the moment an identity lands.
+                LaunchedEffect(identity) {
+                    if (identity != null) showLogin = false
+                }
                 LoginDialog(
-                    onDismiss = { showLogin = false },
-                    onConfirm = {
-                        vm.loginWithToken(it)
-                        showLogin = false
-                    },
+                    busy = loginBusy,
+                    onDismiss = { if (!loginBusy) showLogin = false },
+                    onConfirm = { vm.loginWithToken(it) },
                 )
             }
         }
@@ -200,6 +211,14 @@ fun SettingsScreen(
                     onValueChangeFinished = { vm.setCardRadius(radius.toInt()) },
                     valueRange = 4f..20f,
                     steps = 15,
+                    // Pill track: Slider has no shape param, so the track
+                    // slot carries the rounded bar instead of M3's thin line.
+                    track = { state ->
+                        SliderDefaults.Track(
+                            sliderState = state,
+                            modifier = Modifier.height(12.dp).clip(CircleShape),
+                        )
+                    },
                 )
             }
         }
@@ -233,7 +252,7 @@ fun SettingsScreen(
  * to api.github.com.
  */
 @Composable
-private fun LoginDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     val uriHandler = LocalUriHandler.current
     AlertDialog(
@@ -249,19 +268,32 @@ private fun LoginDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 OutlinedButton(onClick = {
                     uriHandler.openUri("https://github.com/settings/tokens/new")
                 }) {
-                    Text("Open github.com/settings/tokens")
+                    Text(
+                        "Open github.com/settings/tokens",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it.trim() },
                     label = { Text("Personal access token") },
                     singleLine = true,
+                    shape = CircleShape,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
-                Text("Log in")
+            TextButton(
+                onClick = { onConfirm(text) },
+                enabled = text.isNotBlank() && !busy,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                if (busy) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Log in")
+                }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },

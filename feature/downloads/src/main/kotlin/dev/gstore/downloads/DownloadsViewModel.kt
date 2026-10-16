@@ -136,17 +136,13 @@ class DownloadsViewModel(
      * Re-read PackageManager for every tracked package and re-check the
      * catalog for newer tags on the tracked repos. User-triggered and
      * bounded by the installed count (usually a handful) — never a scan.
-     * Throttled to one check per minute: faster taps show the login prompt
-     * (anonymous quota) or a wait notice (logged in).
+     * Logged-in users are never throttled (5,000/hr quota): the 60 s gate
+     * and its prompt apply to anonymous taps only.
      */
     fun refreshInstalled() {
         val now = System.currentTimeMillis()
-        if (now - lastRefreshMillis < 60_000) {
-            if (tokens.token.value.isNullOrBlank()) showLoginPrompt.value = true
-            else {
-                val wait = ((60_000 - (now - lastRefreshMillis)) / 1000).toInt() + 1
-                notice.value = "Checked just now — next check in ${wait}s."
-            }
+        if (tokens.token.value.isNullOrBlank() && now - lastRefreshMillis < 60_000) {
+            showLoginPrompt.value = true
             return
         }
         lastRefreshMillis = now
@@ -216,27 +212,30 @@ class DownloadsViewModel(
      */
     fun downloadFavorite(repo: Repository) {
         viewModelScope.launch {
-            val started = runCatching {
-                val releases = catalog.observeReleases(repo.id).first()
-                val ordered = releases.filter { !it.prerelease } + releases.filter { it.prerelease }
-                for (rel in ordered) {
-                    val apk = catalog.allAssets(rel.id).firstOrNull {
-                        classifyAsset(it.filename, it.contentType, it.size).eligible
+            // Release walk off the main thread; only the notice lands on it.
+            val started = withContext(Dispatchers.Default) {
+                runCatching {
+                    val releases = catalog.observeReleases(repo.id).first()
+                    val ordered = releases.filter { !it.prerelease } + releases.filter { it.prerelease }
+                    for (rel in ordered) {
+                        val apk = catalog.allAssets(rel.id).firstOrNull {
+                            classifyAsset(it.filename, it.contentType, it.size).eligible
+                        }
+                        if (apk != null) {
+                            return@runCatching repository.start(
+                                assetId = apk.id,
+                                repoFullName = repo.fullName,
+                                releaseTag = rel.tag,
+                                rawFilename = apk.filename,
+                                url = apk.downloadUrl,
+                                expectedSize = apk.size,
+                                expectedDigest = apk.digest,
+                            )
+                        }
                     }
-                    if (apk != null) {
-                        return@runCatching repository.start(
-                            assetId = apk.id,
-                            repoFullName = repo.fullName,
-                            releaseTag = rel.tag,
-                            rawFilename = apk.filename,
-                            url = apk.downloadUrl,
-                            expectedSize = apk.size,
-                            expectedDigest = apk.digest,
-                        )
-                    }
-                }
                 false
-            }.getOrDefault(false)
+                }.getOrDefault(false)
+            }
             if (!started) notice.value = "No downloadable APK found for ${repo.fullName}"
         }
     }
