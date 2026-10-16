@@ -46,8 +46,14 @@ OUT_DIR = os.environ.get("OUT_DIR", "catalog")
 # everything if files were only written at the end. Stop starting new repos
 # after DEADLINE_S and commit whatever we have (meta flags it as partial).
 DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(200 * 60)))
-PER_PAGE = 100
-SEARCH_PAGES = 10  # GitHub caps search pagination at 1,000 results
+# Search pages carry full repo objects (~7 KB each): a 100-item page is a
+# ~1.4 MB body that truncates mid-stream (IncompleteRead) often enough to
+# survive all 4 transport retries and kill the whole search phase (seen
+# 2026-10-16, query_set 5: 0 candidates, catalog frozen at carry-over).
+# Halve the page size and double the page count for the same 1,000-result
+# cap with bodies small enough to survive.
+SEARCH_PER_PAGE = 50
+SEARCH_PAGES = 20  # GitHub caps search pagination at 1,000 results
 RELEASES_PER_REPO = 10
 ENTRY_CAP = 12000
 NOTES_CAP = 2000
@@ -214,24 +220,32 @@ def api_get(path):
 def search_candidates(queries):
     seen = {}
     for q in queries:
-        for page in range(1, SEARCH_PAGES + 1):
-            params = urllib.parse.urlencode(
-                {"q": q, "sort": "stars", "order": "desc",
-                 "per_page": PER_PAGE, "page": page}
-            )
-            status, data, _ = api_get("/search/repositories?" + params)
-            if status != 200 or not data:
-                break
-            items = data.get("items", [])
-            for repo in items:
-                if repo.get("archived") or repo.get("disabled"):
-                    continue
-                seen.setdefault(repo["id"], repo)
-            print(f"query {q!r} page {page}: {len(items)} items, {len(seen)} unique",
-                  flush=True)
-            if len(items) < PER_PAGE:
-                break
-            time.sleep(2.5)  # secondary rate-limit courtesy (search: 30/min)
+        try:
+            for page in range(1, SEARCH_PAGES + 1):
+                params = urllib.parse.urlencode(
+                    {"q": q, "sort": "stars", "order": "desc",
+                     "per_page": SEARCH_PER_PAGE, "page": page}
+                )
+                status, data, _ = api_get("/search/repositories?" + params)
+                if status != 200 or not data:
+                    break
+                items = data.get("items", [])
+                for repo in items:
+                    if repo.get("archived") or repo.get("disabled"):
+                        continue
+                    seen.setdefault(repo["id"], repo)
+                print(f"query {q!r} page {page}: {len(items)} items, {len(seen)} unique",
+                      flush=True)
+                if len(items) < SEARCH_PER_PAGE:
+                    break
+                time.sleep(2.5)  # secondary rate-limit courtesy (search: 30/min)
+        except Exception as e:
+            # One poisoned query (a page that truncates through every
+            # retry) must not nuke the other queries: skip it and keep
+            # whatever candidates the healthy queries returned.
+            print(f"query {q!r} aborted ({type(e).__name__}: {e}), "
+                  f"continuing with {len(seen)} candidates", flush=True)
+            continue
     ranked = sorted(seen.values(), key=lambda r: r.get("stargazers_count", 0),
                     reverse=True)
     return ranked[:MAX_CHECK]

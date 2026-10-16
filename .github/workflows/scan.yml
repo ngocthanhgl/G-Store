@@ -9,10 +9,6 @@ on:
   schedule:
     - cron: "0 2 * * *" # 02:00 UTC daily
   workflow_dispatch:
-  push:
-    paths:
-      - tools/scan.py
-      - .github/workflows/scan.yml
 
 permissions:
   contents: write

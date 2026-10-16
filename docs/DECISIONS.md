@@ -871,3 +871,25 @@ details files.
 Lesson (corrected): `·` matches fine in the edit tool; the earlier
 non-ASCII breakage was mojibake from a Get-Content/Set-Content splice,
 not the matcher. Byte-safe `[char]` round-trips for all file surgery.
+
+## 33. Catalog stuck at ~772: search-phase IncompleteRead + push trigger removed
+
+Symptom: daily scans ran green but the catalog never grew past the
+low-700s. Meta.json of 2026-10-16 proved it: `candidates: 0,
+checked: 0, carried_over: 772` with an IncompleteRead traceback from
+`search_candidates` — a ~1.4 MB search page (100 full repo objects)
+truncated mid-stream through all 4 transport retries, and the raise
+killed the whole search phase, so the run committed pure carry-over.
+Two compounding defects: (a) search pages too big to survive the
+runner network; (b) one poisoned query nuked all four queries of the
+set (no isolation). Fixes in tools/scan.py: SEARCH_PER_PAGE 100 -> 50
+with SEARCH_PAGES 10 -> 20 (same 1,000-result cap, bodies halved);
+per-query try/except that logs and continues with healthy queries'
+candidates; dead PER_PAGE constant removed. Per user order, the
+push-paths trigger is deleted from scan.yml (schedule 02:00 UTC +
+manual dispatch only) — code pushes no longer burn API quota on scan
+runs. Structural ceiling unchanged and documented: ~1,000 req/hr token
+budget + search throttling vs 14 rotating sets, so coverage still
+accumulates day over day rather than all at once; `dropped_stale`
+has never fired (corpses accumulate — a future pass should prune
+repos whose APK releases vanish).
