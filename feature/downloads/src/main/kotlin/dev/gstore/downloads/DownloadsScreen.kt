@@ -629,7 +629,6 @@ private fun HistoryRow(
                 }
             }
         }
-    }
 }
 
 /**
