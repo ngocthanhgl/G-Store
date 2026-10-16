@@ -71,8 +71,8 @@ fun AppIcon(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    onSuccess = { loaded = true },
-                    onError = { loaded = false },
+                    onSuccess = { _ -> loaded = true },
+                    onError = { _ -> loaded = false },
                 )
             }
         }
