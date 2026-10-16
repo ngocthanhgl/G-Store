@@ -77,6 +77,14 @@ fun cardShapeFor(radiusDp: Int): androidx.compose.ui.graphics.Shape =
     androidx.compose.foundation.shape.RoundedCornerShape(radiusDp.coerceIn(4, 20).dp)
 
 /**
+ * Content-panel shape: fixed strong pill-adjacent 20dp. Panels are large
+ * surfaces where a full stadium would read as a capsule; buttons and chips
+ * use the M3 stadium/CircleShape directly.
+ */
+fun panelShape(): androidx.compose.ui.graphics.Shape =
+    androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+
+/**
  * App theme. A custom accent overrides the seed only when it preserves
  * contrast; dynamic color applies on API 31+.
  */

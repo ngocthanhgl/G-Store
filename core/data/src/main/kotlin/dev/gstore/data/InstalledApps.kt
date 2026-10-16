@@ -32,8 +32,9 @@ enum class UpdateState {
 
 /**
  * Pure update verdict. Version codes compare reliably; tags are cosmetic
- * (maintainers rename schemes freely), so a tag mismatch only counts when
- * the installed version name doesn't already equal the latest tag.
+ * (maintainers rename schemes freely: v1.2.3 vs 1.2.3 vs 1.2.3-stable), so a
+ * tag only counts as newer when it parses as a HIGHER version. Anything
+ * unknown — null names, unparseable tags — is UP_TO_DATE, never an update.
  */
 fun resolveUpdateState(
     installedVc: Long?,
@@ -46,8 +47,38 @@ fun resolveUpdateState(
     if (downloadedVc != null && installedVc < downloadedVc) {
         return UpdateState.READY_TO_INSTALL
     }
-    if (latestTag != null && latestTag != recordTag && installedVn != latestTag) {
-        return UpdateState.UPDATE_AVAILABLE
+    if (latestTag != null && installedVn != null) {
+        val cmp = compareTags(normalizeTag(latestTag), normalizeTag(installedVn))
+        if (cmp != null && cmp > 0) return UpdateState.UPDATE_AVAILABLE
     }
     return UpdateState.UP_TO_DATE
+}
+
+/** Lowercase, trimmed, leading v/V stripped: "v1.2.3" and "1.2.3" are equal. */
+fun normalizeTag(tag: String): String =
+    tag.trim().trimStart('v', 'V').lowercase()
+
+/**
+ * Segment-wise version compare on [.\-_] boundaries: numeric segments beat
+ * lexical ones only by value ("1.10" > "1.9"); non-numeric segments compare
+ * lexically; first difference wins. Null when a segment pair is
+ * unparseable-mixed (unknown ordering — caller treats as no update).
+ */
+fun compareTags(a: String, b: String): Int? {
+    if (a == b) return 0
+    val split = Regex("[.\\-_]")
+    val pa = a.split(split)
+    val pb = b.split(split)
+    val n = maxOf(pa.size, pb.size)
+    for (i in 0 until n) {
+        val sa = pa.getOrElse(i) { "0" }
+        val sb = pb.getOrElse(i) { "0" }
+        val na = sa.toLongOrNull()
+        val nb = sb.toLongOrNull()
+        val cmp = if (na != null && nb != null) na.compareTo(nb)
+        else if (na == null && nb == null) sa.compareTo(sb)
+        else return null
+        if (cmp != 0) return cmp
+    }
+    return 0
 }

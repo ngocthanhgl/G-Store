@@ -23,6 +23,7 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
+    implementation(project(":core:designsystem"))
     implementation(libs.androidx.core)
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.compose.ui)

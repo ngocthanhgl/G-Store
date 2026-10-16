@@ -55,15 +55,15 @@ fun BlockView(block: Block, owner: String, repo: String, branch: String = "main"
         }
         is Block.Paragraph -> SpanText(block.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
         is Block.CodeBlock -> CodeBlockView(block)
-        is Block.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        is Block.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             block.items.forEach { item -> ListItemView(item, block.ordered, owner, repo, branch) }
         }
         is Block.Quote -> Surface(
             tonalElevation = 1.dp,
-            shape = MaterialTheme.shapes.small,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 block.children.forEach { BlockView(it, owner, repo, branch) }
             }
         }
@@ -75,13 +75,13 @@ fun BlockView(block: Block, owner: String, repo: String, branch: String = "main"
 
 @Composable
 private fun ListItemView(item: MdListItem, ordered: Boolean, owner: String, repo: String, branch: String) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (item.checked != null) {
             Checkbox(checked = item.checked, onCheckedChange = null, enabled = false)
         } else {
             Text(if (ordered) "•" else "•", style = MaterialTheme.typography.bodyLarge)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (item.spans.isNotEmpty()) SpanText(item.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
             item.children.forEach { BlockView(it, owner, repo, branch) }
         }
@@ -102,7 +102,7 @@ private fun TableView(table: Block.Table) {
 
 @Composable
 private fun TableRowView(cells: List<String>, header: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(vertical = 16.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 16.dp)) {
         cells.forEach { cell ->
             Text(
                 cell,
@@ -119,10 +119,10 @@ private fun CodeBlockView(block: Block.CodeBlock) {
     val clipboard = LocalClipboardManager.current
     Surface(
         tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.small,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (block.language != null) {
                     Text(
@@ -191,7 +191,7 @@ private fun SpanText(
         spans.forEach(::append)
     }
     // Image spans render beneath the text line that references them.
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ClickableText(
             text = annotated,
             style = style.copy(color = MaterialTheme.colorScheme.onSurface),

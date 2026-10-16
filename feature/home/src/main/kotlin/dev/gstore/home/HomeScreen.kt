@@ -141,7 +141,7 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
                     HomeHeader(
@@ -278,7 +278,10 @@ private fun HomeHeader(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showProfile = false }) { Text("Close") }
+                TextButton(
+                    onClick = { showProfile = false },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Close") }
             },
             dismissButton = {
                 TextButton(
@@ -286,6 +289,7 @@ private fun HomeHeader(
                         onLogout()
                         showProfile = false
                     },
+                    modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text("Logout") }
             },
         )
@@ -349,7 +353,7 @@ private fun EmptyCatalog(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(top = 16.dp),
         ) {
             Button(onClick = onAdd) { Text("Add repository") }
@@ -401,7 +405,7 @@ private fun CatalogBlock(
                     androidx.compose.animation.core.spring()
                 },
             ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AuroraSectionHeader(
             title = "All apps",
@@ -417,7 +421,7 @@ private fun CatalogBlock(
             },
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
@@ -444,6 +448,7 @@ private fun CatalogBlock(
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
+                    shape = CircleShape,
                 )
             }
         }
@@ -506,7 +511,7 @@ private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text("Add repository") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "Enter owner/name or paste a GitHub link. Only this repository is fetched.",
                     style = MaterialTheme.typography.bodySmall,
@@ -528,11 +533,20 @@ private fun AddRepoDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(parsed ?: text) }, enabled = parsed != null) {
+            TextButton(
+                onClick = { onConfirm(parsed ?: text) },
+                enabled = parsed != null,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
                 Text("Add")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Cancel") }
+        },
     )
 }
 
@@ -552,7 +566,7 @@ private fun DiscoverDialog(
         title = { Text("Discover Android projects") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 // Up to 10 cards must scroll inside the dialog on compact screens.
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {

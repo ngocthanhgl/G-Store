@@ -95,7 +95,7 @@ fun SearchScreen(
         val rows = remember(state.results) { state.results.chunked(2) }
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (state.query.isBlank()) {
                 item {
@@ -131,7 +131,7 @@ fun SearchScreen(
             } else {
                 items(rows, key = { it.first().id }) { row ->
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
                         row.forEach { repo ->
@@ -157,8 +157,8 @@ fun SearchScreen(
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -201,11 +201,11 @@ fun SearchScreen(
 private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
-            .padding(vertical = 16.dp),
+            .padding(vertical = 4.dp),
     ) {
         AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 48.dp)
         Column(Modifier.weight(1f)) {
@@ -217,6 +217,13 @@ private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) 
             )
             Text(
                 repo.description?.takeIf { it.isNotBlank() } ?: "by ${repo.owner}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                "${repo.stars} stars",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

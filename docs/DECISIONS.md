@@ -780,3 +780,47 @@ assert the old behavior - see MarkdownTest below).
 - Existing eligibility tests all still pass under loosened rule by
   inspection (exe/zip/apks/aab/size-0/case cases unaffected) - no test
   files touched. CI builds untested code; risk accepted per order.
+
+## 30. Polish + bug round (13 items, code-by-code plan, no local build)
+- Vertical ladder from Aurora (Agent B measured: rows 4 / intra 8 /
+  inter-section 12; horizontal stays ours at 16): section spacers 16->12,
+  card padding horiz 16 + vert 12, card inner 16->8 (hero 12, action
+  emphasis), list gaps 16->8, chip rails 12, row vertical pad 16->4 +
+  icon-text gap 12, markdown inner 16->8. Deliberate keeps: text ledgers
+  2-4dp, tile rhythm 4dp (80dp/72dp physics), inline icon gaps 8dp,
+  control heights, elevations.
+- Downloads rows: Update/Install Button48 -> OutlinedButton40;
+  TextButton secondaries 40dp + tight contentPadding; hero Install keeps
+  48. Row gaps added (icon-text glue fixed).
+- Phantom Update killed in InstalledApps.resolveUpdateState: tags
+  normalized (trim/strip v) + segment-wise compareTags; unknown ->
+  UP_TO_DATE, never an update. recordTag param now unused (kept for API).
+- One-tap update: DownloadsViewModel.downloadUpdate resolves newest
+  allowed eligible asset and starts directly; Update button no longer
+  detours through details. Silent install stated impossible (needs
+  system privileges) - one-tap to system installer is the max.
+- Staleness: COMPLETED rows stay in history until the Installed shelf has
+  a row for that assetId; refreshInstalled(auto) silent on resume;
+  ON_RESUME triggers catch-up; heroDownload re-watches the tapped asset.
+- Uninstall (both sites): blank-package guard + Uri.fromParts; silent
+  absorbs (not-installed packages) now impossible to misread.
+- Monogram renders only when no URL / not loaded / load failed (Coil
+  onSuccess/onError state) - transparent avatars sit on the white well.
+- Prerelease toggle, default OFF per order: INCLUDE_PRERELEASES key +
+  AppearanceSettings field + Releases settings group; gates in
+  DetailsVM default/scan, downloadFavorite/downloadUpdate, latestTagFor.
+  Manual chip taps stay unrestricted (explicit intent, documented).
+- Details: SyncError moved after picker; hero label shows size
+  ("Recommended APK - 12.0 MB"); star char -> Fluent.Star icon in
+  StatCell (new optional icon param); Last-push cell dropped (dup of
+  Updated); owner primary->onSurfaceVariant (was fake link affordance);
+  release name shown only when != tag.
+- Pill: chips CircleShape x4; panels -> panelShape() fixed 20dp
+  (GridCard included per approved plan - radius setting now affects only
+  shimmer clip); quote/code surfaces 12dp; AppIcon squircle kept.
+  Buttons already stadium by M3 default.
+- Gaps/touch: TopBar spacedBy 16; Cancel/InfoGrid/release-page/empty/
+  dialog buttons heightIn 48; chips keep 32dp M3 (not stretched to 48).
+- Search NetworkRow gains stars line (data was already in DTO).
+- No test files touched; eligibility loosening keeps old assertions
+  green by inspection. CI is the only gate per order.

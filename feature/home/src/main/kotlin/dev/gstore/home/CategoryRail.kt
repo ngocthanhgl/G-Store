@@ -52,7 +52,7 @@ fun CategoryRail(
     onToggleFavorite: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -80,7 +80,7 @@ fun CategoryRail(
             }
         }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
         ) {
             items(top, key = { it.repo.id }) { signals ->
@@ -154,7 +154,7 @@ fun CategoryFullScreen(
             }
         } else {
             androidx.compose.foundation.lazy.LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items, key = { it.repo.id }) { signals ->
                     AdaptiveCard(

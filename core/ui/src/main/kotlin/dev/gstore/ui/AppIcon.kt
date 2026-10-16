@@ -8,6 +8,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,15 +44,21 @@ fun AppIcon(
         color = Color.White,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = owner.take(1).uppercase(),
-                style = if (size >= monogramSize) {
-                    MaterialTheme.typography.titleLarge
-                } else {
-                    MaterialTheme.typography.titleMedium
-                },
-                color = Color(0xFF1B1B1B),
-            )
+            // The monogram shows only while there is no image to cover it:
+            // no URL, still loading, or load failed. A loaded avatar (even a
+            // transparent PNG over the white well) never shows the letter.
+            var loaded by remember(avatarUrl) { mutableStateOf(false) }
+            if (avatarUrl.isNullOrBlank() || !loaded) {
+                Text(
+                    text = owner.take(1).uppercase(),
+                    style = if (size >= monogramSize) {
+                        MaterialTheme.typography.titleLarge
+                    } else {
+                        MaterialTheme.typography.titleMedium
+                    },
+                    color = Color(0xFF1B1B1B),
+                )
+            }
             if (!avatarUrl.isNullOrBlank()) {
                 // Downsample to the drawn size: avatars arrive as large
                 // PNGs and the full bitmap would sit in memory per row.
@@ -61,6 +71,8 @@ fun AppIcon(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                    onSuccess = { loaded = true },
+                    onError = { loaded = false },
                 )
             }
         }

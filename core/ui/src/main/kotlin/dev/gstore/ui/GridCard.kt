@@ -39,7 +39,7 @@ fun GridCard(
     Card(
         onClick = onOpen,
         modifier = modifier.fillMaxWidth(),
-        shape = dev.gstore.designsystem.cardShapeFor(cardRadiusDp),
+        shape = dev.gstore.designsystem.panelShape(),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

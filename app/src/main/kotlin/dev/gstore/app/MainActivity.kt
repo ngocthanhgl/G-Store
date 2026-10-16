@@ -460,6 +460,9 @@ private fun Content(
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
                         canInstall = container.installer.canRequestInstalls()
+                        // Coming back from the system installer/uninstaller:
+                        // silent catch-up, never a login prompt.
+                        vm.refreshInstalled(auto = true)
                     }
                 }
                 lifecycle.addObserver(observer)
@@ -529,18 +532,23 @@ private fun Content(
                         else scope.launch { snackbar.showSnackbar("No launcher entry") }
                     },
                     onUninstall = { packageName ->
-                        runCatching {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_DELETE,
-                                    Uri.parse("package:$packageName"),
-                                ),
-                            )
-                        }.onFailure {
-                            scope.launch { snackbar.showSnackbar("Could not open uninstall") }
+                        if (packageName.isBlank()) {
+                            scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
+                        } else {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_DELETE,
+                                        Uri.fromParts("package", packageName, null),
+                                    ),
+                                )
+                            }.onFailure {
+                                scope.launch { snackbar.showSnackbar("Could not open uninstall") }
+                            }
                         }
                     },
                     onDownloadFavorite = vm::downloadFavorite,
+                    onDownloadUpdate = vm::downloadUpdate,
                     onRemoveManual = vm::removeManualRepo,
                     onRefreshInstalled = vm::refreshInstalled,
                     onSort = vm::setSort,
@@ -593,7 +601,7 @@ private fun Content(
             val vm: DetailsViewModel = viewModel(
                 key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway)
+                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway, container.preferences)
                 },
             )
             val state by vm.state.collectAsState()
@@ -635,15 +643,19 @@ private fun Content(
                     }
                 },
                 onHeroUninstall = { packageName ->
-                    try {
-                        detailsContext.startActivity(
-                            Intent(
-                                Intent.ACTION_DELETE,
-                                Uri.parse("package:$packageName"),
-                            ),
-                        )
-                    } catch (e: Exception) {
-                        scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
+                    if (packageName.isBlank()) {
+                        scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
+                    } else {
+                        try {
+                            detailsContext.startActivity(
+                                Intent(
+                                    Intent.ACTION_DELETE,
+                                    Uri.fromParts("package", packageName, null),
+                                ),
+                            )
+                        } catch (e: Exception) {
+                            scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
+                        }
                     }
                 },
                 canOpenApp = { packageName ->

@@ -55,12 +55,12 @@ private fun EmptyReadme(onRetry: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text("No README on the default branch", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             "This repository does not publish a README where G Store looks for one.",
             style = MaterialTheme.typography.bodyMedium,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         Button(onClick = onRetry) { Text("Retry") }
     }
 }
@@ -73,9 +73,9 @@ private fun ErrorReadme(notice: String?, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Text("README unavailable", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         if (notice != null) Text(notice, style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         Button(onClick = onRetry) { Text("Retry") }
     }
 }
@@ -93,7 +93,7 @@ private fun BlocksList(state: ReadmeUiState, modifier: Modifier = Modifier) {
     LazyColumn(modifier, contentPadding = PaddingValues(horizontal = 16.dp)) {
         itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
             BlockView(block, state.owner, state.repo, state.branch)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
         }
     }
 }

@@ -11,6 +11,7 @@ import dev.gstore.data.InstalledAppsGateway
 import dev.gstore.data.artifactOf
 import dev.gstore.data.classifyAsset
 import dev.gstore.database.DownloadRecord
+import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.model.ApkArtifact
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -70,6 +72,16 @@ data class DetailsUiState(
 fun selectDefaultRelease(releases: List<Release>): Long? =
     (releases.firstOrNull { !it.prerelease } ?: releases.firstOrNull())?.id
 
+/**
+ * Stable-aware default pick: with prereleases excluded and no stable
+ * release present, there is no default (strict — never silently fall back
+ * to a beta). Explicit chip taps stay unrestricted user intent.
+ */
+private fun DetailsViewModel.defaultRelease(releases: List<Release>, includePre: Boolean): Long? {
+    val pool = if (includePre) releases else releases.filter { !it.prerelease }
+    return pool.firstOrNull()?.id
+}
+
 /** 12.0 MB / 1.5 GB — binary units, one decimal. */
 fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "0 B"
@@ -89,6 +101,7 @@ class DetailsViewModel(
     private val catalog: CatalogRepository,
     private val tracker: DownloadTracker,
     private val installed: InstalledAppsGateway,
+    private val prefs: PreferencesRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -108,11 +121,12 @@ class DetailsViewModel(
             resolvedId.flatMapLatest { id -> catalog.observeReleases(id) }.collectLatest { releases ->
                 val current = _state.value
                 val selected = current.selectedReleaseId
+                val includePre = prefs.appearance.first().includePrereleases
                 val next = if (selected != null && releases.any { it.id == selected }) selected
-                else selectDefaultRelease(releases)
+                else defaultRelease(releases, includePre)
                 _state.value = current.copy(releases = releases, selectedReleaseId = next)
                 if (next != null && next != current.selectedReleaseId) loadAssets(next)
-                scanApkReleases(releases)
+                scanApkReleases(releases, includePre)
             }
         }
         viewModelScope.launch {
@@ -177,7 +191,7 @@ class DetailsViewModel(
      */
     private var scanGen = 0
 
-    private fun scanApkReleases(releases: List<Release>) {
+    private fun scanApkReleases(releases: List<Release>, includePre: Boolean) {
         val gen = ++scanGen
         _state.value = _state.value.copy(scanningApks = true)
         viewModelScope.launch {
@@ -202,8 +216,12 @@ class DetailsViewModel(
             val selected = current.selectedReleaseId
             // Never downgrade: an empty scan (or a scan racing a sync) must
             // not erase a valid selection and hide hero + notes with it.
+            // The default pick honors the prerelease toggle; explicit taps
+            // always win (kept by the first branch above).
             val next = if (selected != null && selected in ids) selected
-            else releases.firstOrNull { it.id in ids }?.id
+            else releases.firstOrNull {
+                it.id in ids && (includePre || !it.prerelease)
+            }?.id
                 ?: selected?.takeIf { s -> releases.any { it.id == s } }
             var updated = current.copy(
                 apkReleaseIds = ids,
@@ -280,6 +298,9 @@ class DetailsViewModel(
         val repo = _state.value.repo ?: return
         val tag = _state.value.releases
             .firstOrNull { it.id == _state.value.selectedReleaseId }?.tag ?: return
+        // Watch the tapped asset, not just the scanned best: otherwise the
+        // hero stays on "Download" for a row that is already downloading.
+        watchHero(asset)
         viewModelScope.launch { tracker.start(asset, repo.fullName, tag) }
     }
 

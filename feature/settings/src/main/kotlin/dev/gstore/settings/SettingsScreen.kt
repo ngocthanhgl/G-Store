@@ -233,6 +233,16 @@ fun SettingsScreen(
             }
         }
         item {
+            SettingGroup("Releases") {
+                SwitchRow(
+                    label = "Include prereleases",
+                    supporting = "Off means stable releases only for download and update checks",
+                    checked = appearance.includePrereleases,
+                    onChecked = vm::setIncludePrereleases,
+                )
+            }
+        }
+        item {
             SettingGroup("About") {
                 Text(
                     "G Store $appVersion — GitHub-hosted APK releases. Stars and " +
@@ -265,9 +275,12 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
                         "It stays encrypted on this device.",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                OutlinedButton(onClick = {
-                    uriHandler.openUri("https://github.com/settings/tokens/new")
-                }) {
+                OutlinedButton(
+                    onClick = {
+                        uriHandler.openUri("https://github.com/settings/tokens/new")
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
                     Text(
                         "Open github.com/settings/tokens",
                         maxLines = 1,
@@ -304,6 +317,7 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
 private fun SettingGroup(title: String, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = dev.gstore.designsystem.panelShape(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -352,6 +366,7 @@ private fun <T> ChoiceRow(
             FilterChip(
                 selected = option == selected,
                 onClick = { onSelect(option) },
+                shape = CircleShape,
                 label = { Text(labelOf(option), maxLines = 1) },
             )
         }

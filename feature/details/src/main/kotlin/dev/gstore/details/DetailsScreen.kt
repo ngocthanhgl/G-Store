@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -52,7 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AssetKind
 import dev.gstore.database.DownloadRecord
-import dev.gstore.designsystem.cardShapeFor
+import dev.gstore.designsystem.panelShape
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
@@ -95,8 +96,8 @@ fun DetailsScreen(
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Text(
                         "Could not load this repository.",
@@ -108,8 +109,14 @@ fun DetailsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        TextButton(onClick = onBack) { Text("Back") }
-                        Button(onClick = onRefresh) { Text("Retry") }
+                        TextButton(
+                            onClick = onBack,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Back") }
+                        Button(
+                            onClick = onRefresh,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Retry") }
                     }
                 }
             }
@@ -151,9 +158,9 @@ fun DetailsScreen(
                 modifier = Modifier.statusBarsPadding(),
             )
         }
-        item { Spacer(Modifier.height(16.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
         item { Header(repo) }
-        item { Spacer(Modifier.height(16.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
         item {
             StatsRow(
                 stars = formatCount(repo.stars),
@@ -162,7 +169,7 @@ fun DetailsScreen(
                 archived = repo.archived,
             )
         }
-        item { Spacer(Modifier.height(16.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
         selectedRelease(state)?.let { release ->
             item {
                 HeroDownloadBar(
@@ -179,23 +186,17 @@ fun DetailsScreen(
                     findingApk = state.syncing || state.loadingAssets || state.scanningApks,
                 )
             }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(12.dp)) }
         }
         val description = repo.description
         if (description != null) {
             item { InfoCard(description, cardRadiusDp) }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(12.dp)) }
         }
         item { InfoGrid(repo, cardRadiusDp) }
-        item { Spacer(Modifier.height(16.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
         val busy = state.syncing || state.loadingRepo || state.scanningApks
         val syncError = state.syncError
-        if (syncError != null) {
-            item {
-                SyncErrorCard(syncError, onRefresh, cardRadiusDp)
-            }
-            item { Spacer(Modifier.height(16.dp)) }
-        }
         item { SectionTitle("Releases (${apkReleases.size})") }
         if (apkReleases.isEmpty() && busy && syncError == null) {
             // Still arriving: shimmer instead of "no releases" copy.
@@ -203,10 +204,16 @@ fun DetailsScreen(
         } else {
             item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
         }
-        item { Spacer(Modifier.height(16.dp)) }
+        if (syncError != null) {
+            item { Spacer(Modifier.height(12.dp)) }
+            item {
+                SyncErrorCard(syncError, onRefresh, cardRadiusDp)
+            }
+        }
+        item { Spacer(Modifier.height(12.dp)) }
         selectedRelease(state)?.let { release ->
             item { ReleaseNotes(release, cardRadiusDp, reduceMotion) }
-            item { Spacer(Modifier.height(16.dp)) }
+            item { Spacer(Modifier.height(12.dp)) }
         }
         item {
             FilterChip(
@@ -237,7 +244,7 @@ private fun selectedRelease(state: DetailsUiState): Release? =
 @Composable
 private fun InfoCard(description: String, cardRadiusDp: Int) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
+    Card(shape = panelShape(), modifier = Modifier.fillMaxWidth()) {
         Text(
             text = description,
             style = MaterialTheme.typography.bodyMedium,
@@ -250,7 +257,7 @@ private fun InfoCard(description: String, cardRadiusDp: Int) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
 }
@@ -268,16 +275,15 @@ private fun InfoGrid(repo: Repository, cardRadiusDp: Int) {
         repo.openIssues?.let { "Open issues" to it.toString() },
         repo.watchers?.let { "Watchers" to it.toString() },
         repo.license?.let { "License" to it },
-        repo.pushedAt?.take(10)?.let { "Last push" to it },
         "Branch" to repo.defaultBranch,
     )
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
+    Card(shape = panelShape(), modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             cells.chunked(2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { (label, value) ->
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -300,12 +306,16 @@ private fun InfoGrid(repo: Repository, cardRadiusDp: Int) {
             }
             TextButton(
                 onClick = { uriHandler.openUri("https://github.com/${repo.fullName}") },
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text("Repository on GitHub", maxLines = 1)
             }
             repo.homepage?.takeIf { it.isNotBlank() }?.let { home ->
                 val url = if (home.startsWith("http")) home else "https://$home"
-                TextButton(onClick = { uriHandler.openUri(url) }) {
+                TextButton(
+                    onClick = { uriHandler.openUri(url) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
                     Text(
                         home,
                         maxLines = 1,
@@ -327,7 +337,11 @@ private fun TopBar(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         IconButton(onClick = onBack) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
@@ -354,7 +368,7 @@ private fun Header(repo: Repository) {
     // to the info grid (it was duplicated here).
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         dev.gstore.ui.AppIcon(
             avatarUrl = repo.avatarUrl,
@@ -373,7 +387,7 @@ private fun Header(repo: Repository) {
         Text(
             repo.owner,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -389,8 +403,9 @@ private fun StatsRow(stars: String, forks: String, updated: String?, archived: B
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatCell(
-            text = "★ $stars",
+            text = stars,
             modifier = Modifier.weight(1f),
+            icon = Fluent.Star,
         )
         StatDivider()
         StatCell(
@@ -415,17 +430,32 @@ private fun StatCell(
     text: String,
     modifier: Modifier = Modifier,
     alert: Boolean = false,
+    icon: Painter? = null,
 ) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = if (alert) MaterialTheme.colorScheme.error
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center,
+    Row(
         modifier = modifier,
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        if (icon != null) {
+            Icon(
+                painter = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (alert) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable
@@ -465,7 +495,7 @@ private fun ReleasePicker(
         Text("No releases synced yet.")
         return
     }
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(releases, key = { it.id }) { release ->
             val selected = release.id == selectedId
             FilterChip(
@@ -478,6 +508,7 @@ private fun ReleasePicker(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 },
+                shape = CircleShape,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -493,10 +524,10 @@ private fun ReleasePicker(
  */
 @Composable
 private fun SyncErrorCard(message: String, onRetry: () -> Unit, cardRadiusDp: Int) {
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
+    Card(shape = panelShape(), modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 "Could not refresh release data.",
@@ -526,13 +557,13 @@ private fun SyncErrorCard(message: String, onRetry: () -> Unit, cardRadiusDp: In
 private fun ReleaseNotes(release: Release, cardRadiusDp: Int, reduceMotion: Boolean) {
     val uriHandler = LocalUriHandler.current
     var expanded by rememberSaveable(release.id) { mutableStateOf(false) }
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
+    Card(shape = panelShape(), modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -554,7 +585,9 @@ private fun ReleaseNotes(release: Release, cardRadiusDp: Int, reduceMotion: Bool
             }
             if (expanded) {
                 val releaseName = release.name
-                if (releaseName != null) {
+                // The tag already heads this card: repeat the name only when
+                // it actually says something different.
+                if (releaseName != null && releaseName != release.tag) {
                     Text(
                         releaseName,
                         style = MaterialTheme.typography.bodyMedium,
@@ -579,13 +612,16 @@ private fun ReleaseNotes(release: Release, cardRadiusDp: Int, reduceMotion: Bool
                     if (parsed == null) {
                         ShimmerRows(count = 2, reduceMotion = reduceMotion)
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             parsed.forEach { BlockView(it, "", "") }
                         }
                     }
                 }
                 release.htmlUrl?.let { url ->
-                    TextButton(onClick = { uriHandler.openUri(url) }) { Text("Open release page") }
+                    TextButton(
+                        onClick = { uriHandler.openUri(url) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Open release page") }
                 }
             }
         }
@@ -617,10 +653,11 @@ private fun HeroDownloadBar(
     // The "no APK" state was removed: when the scan finished with nothing
     // installable, the whole card stays hidden instead of a dead button.
     if (hero == HeroDlState.IdleDownload && asset == null && !findingApk) return
-    Card(shape = cardShapeFor(cardRadiusDp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Card(shape = panelShape(), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                "Recommended APK · $tag",
+                asset?.let { "Recommended APK · ${formatBytes(it.size)}" }
+                    ?: "Recommended APK · $tag",
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -670,7 +707,10 @@ private fun HeroDownloadBar(
                             modifier = Modifier.weight(1f),
                         )
                         val target = asset
-                        TextButton(onClick = { if (target != null) onCancel(target.id) }) {
+                        TextButton(
+                            onClick = { if (target != null) onCancel(target.id) },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) {
                             Text("Cancel")
                         }
                     }
@@ -691,7 +731,7 @@ private fun HeroDownloadBar(
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         val launchable = canOpenApp(hero.packageName)
                         OutlinedButton(
                             onClick = { onOpenApp(hero.packageName) },

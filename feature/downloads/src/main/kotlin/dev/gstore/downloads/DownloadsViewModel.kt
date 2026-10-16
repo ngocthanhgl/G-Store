@@ -104,9 +104,14 @@ class DownloadsViewModel(
         val (running, done) = records.partition {
             it.status == "QUEUED" || it.status == "ACTIVE"
         }
-        // COMPLETED rows with a package live on the Installed shelf now —
-        // history keeps failures, cancellations, and package-less files.
-        val history = done.filter { it.status != "COMPLETED" || it.packageName == null }
+        // COMPLETED rows with a package live on the Installed shelf — but only
+        // once the shelf actually has a row for them. Until the next installed
+        // refresh, a fresh download stays visible in history instead of
+        // vanishing into a shelf that has not caught up yet.
+        val history = done.filter { record ->
+            record.status != "COMPLETED" || record.packageName == null ||
+                rows.none { it.record.assetId == record.assetId }
+        }
         DownloadsUiState(
             active = running,
             history = history,
@@ -137,12 +142,13 @@ class DownloadsViewModel(
      * catalog for newer tags on the tracked repos. User-triggered and
      * bounded by the installed count (usually a handful) — never a scan.
      * Logged-in users are never throttled (5,000/hr quota): the 60 s gate
-     * and its prompt apply to anonymous taps only.
+     * and its prompt apply to anonymous taps only. Automatic calls (app
+     * resume) pass [auto] and return silently instead of prompting.
      */
-    fun refreshInstalled() {
+    fun refreshInstalled(auto: Boolean = false) {
         val now = System.currentTimeMillis()
         if (tokens.token.value.isNullOrBlank() && now - lastRefreshMillis < 60_000) {
-            showLoginPrompt.value = true
+            if (!auto) showLoginPrompt.value = true
             return
         }
         lastRefreshMillis = now
@@ -186,7 +192,9 @@ class DownloadsViewModel(
         val repo = catalog.getByFullName(fullName) ?: catalog.sync(fullName).let {
             catalog.getByFullName(fullName)
         } ?: return null
-        catalog.observeReleases(repo.id).first().firstOrNull()?.tag
+        val includePre = prefs.appearance.first().includePrereleases
+        catalog.observeReleases(repo.id).first()
+            .firstOrNull { includePre || !it.prerelease }?.tag
     }.getOrNull()
 
     fun cancel(assetId: Long) {
@@ -216,7 +224,12 @@ class DownloadsViewModel(
             val started = withContext(Dispatchers.Default) {
                 runCatching {
                     val releases = catalog.observeReleases(repo.id).first()
-                    val ordered = releases.filter { !it.prerelease } + releases.filter { it.prerelease }
+                    val includePre = prefs.appearance.first().includePrereleases
+                    val ordered = if (includePre) {
+                        releases.filter { !it.prerelease } + releases.filter { it.prerelease }
+                    } else {
+                        releases.filter { !it.prerelease }
+                    }
                     for (rel in ordered) {
                         val apk = catalog.allAssets(rel.id).firstOrNull {
                             classifyAsset(it.filename, it.contentType, it.size).eligible
@@ -237,6 +250,46 @@ class DownloadsViewModel(
                 }.getOrDefault(false)
             }
             if (!started) notice.value = "No downloadable APK found for ${repo.fullName}"
+        }
+    }
+
+    /**
+     * One-tap update from the Installed shelf: resolves the newest
+     * stable-or-allowed release carrying an eligible APK and starts it
+     * directly — no detour through details. Respects the prerelease toggle.
+     */
+    fun downloadUpdate(record: DownloadRecord) {
+        viewModelScope.launch {
+            val started = withContext(Dispatchers.Default) {
+                runCatching {
+                    val repo = catalog.getByFullName(record.repoFullName) ?: return@runCatching false
+                    val includePre = prefs.appearance.first().includePrereleases
+                    val releases = catalog.observeReleases(repo.id).first()
+                    val ordered = if (includePre) {
+                        releases.filter { !it.prerelease } + releases.filter { it.prerelease }
+                    } else {
+                        releases.filter { !it.prerelease }
+                    }
+                    for (rel in ordered) {
+                        val apk = catalog.allAssets(rel.id).firstOrNull {
+                            classifyAsset(it.filename, it.contentType, it.size).eligible
+                        }
+                        if (apk != null) {
+                            return@runCatching repository.start(
+                                assetId = apk.id,
+                                repoFullName = repo.fullName,
+                                releaseTag = rel.tag,
+                                rawFilename = apk.filename,
+                                url = apk.downloadUrl,
+                                expectedSize = apk.size,
+                                expectedDigest = apk.digest,
+                            )
+                        }
+                    }
+                    false
+                }.getOrDefault(false)
+            }
+            if (!started) notice.value = "No downloadable APK found for ${record.repoFullName}"
         }
     }
 

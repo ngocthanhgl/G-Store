@@ -2,6 +2,7 @@ package dev.gstore.downloads
 import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -64,6 +66,7 @@ fun DownloadsScreen(
     onBrowseRepo: (String) -> Unit,
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
+    onDownloadUpdate: (DownloadRecord) -> Unit,
     onDownloadFavorite: (Repository) -> Unit,
     onRemoveManual: (String) -> Unit,
     onRefreshInstalled: () -> Unit,
@@ -101,10 +104,14 @@ fun DownloadsScreen(
                         onDismissLoginPrompt()
                         onOpenLogin()
                     },
+                    modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text("Log in to GitHub") }
             },
             dismissButton = {
-                TextButton(onClick = onDismissLoginPrompt) { Text("Later") }
+                TextButton(
+                    onClick = onDismissLoginPrompt,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text("Later") }
             },
         )
     }
@@ -145,7 +152,7 @@ fun DownloadsScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -163,7 +170,7 @@ fun DownloadsScreen(
             }
             item {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
@@ -171,6 +178,7 @@ fun DownloadsScreen(
                         FilterChip(
                             selected = state.sort == option,
                             onClick = { onSort(option) },
+                            shape = CircleShape,
                             label = {
                                 Text(
                                     when (option) {
@@ -213,6 +221,7 @@ fun DownloadsScreen(
                         onLaunch = onLaunch,
                         onUninstall = onUninstall,
                         onInstall = onInstall,
+                        onDownloadUpdate = onDownloadUpdate,
                     )
                 }
             }
@@ -225,6 +234,7 @@ fun DownloadsScreen(
                         onLaunch = onLaunch,
                         onUninstall = onUninstall,
                         onInstall = onInstall,
+                        onDownloadUpdate = onDownloadUpdate,
                     )
                 }
             }
@@ -237,6 +247,7 @@ fun DownloadsScreen(
                         onLaunch = onLaunch,
                         onUninstall = onUninstall,
                         onInstall = onInstall,
+                        onDownloadUpdate = onDownloadUpdate,
                     )
                 }
             }
@@ -268,14 +279,16 @@ private fun InstalledRow(
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
     onInstall: (DownloadRecord) -> Unit,
+    onDownloadUpdate: (DownloadRecord) -> Unit,
 ) {
     val record = row.record
     // Cardless row: the list already insets 16dp, so the row only pads vertically.
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = { onBrowseRepo(record.repoFullName) })
-            .padding(vertical = 16.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PackageIcon(
             packageName = record.packageName ?: record.repoFullName,
@@ -363,30 +376,33 @@ private fun InstalledRow(
                 horizontalAlignment = Alignment.End,
             ) {
                 when (row.updateState) {
-                    UpdateState.UPDATE_AVAILABLE -> Button(
-                        onClick = { onBrowseRepo(record.repoFullName) },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                    // Row actions stay compact (40dp): the hero owns the 48dp CTA.
+                    UpdateState.UPDATE_AVAILABLE -> OutlinedButton(
+                        onClick = { onDownloadUpdate(record) },
+                        modifier = Modifier.heightIn(min = 40.dp),
                     ) { Text("Update") }
-                    UpdateState.READY_TO_INSTALL -> Button(
+                    UpdateState.READY_TO_INSTALL -> OutlinedButton(
                         onClick = { onInstall(record) },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     ) { Text("Install") }
-                    UpdateState.NOT_INSTALLED -> Button(
+                    UpdateState.NOT_INSTALLED -> OutlinedButton(
                         onClick = { onInstall(record) },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     ) { Text("Install") }
                     UpdateState.UP_TO_DATE -> Unit
                 }
                 if (row.installedVersionCode != null) {
                     TextButton(
                         onClick = { onLaunch(record.packageName ?: "") },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
+                        contentPadding = ButtonDefaults.TextButtonContentPadding,
                     ) {
                         Text("Open")
                     }
                     TextButton(
                         onClick = { onUninstall(record.packageName ?: "") },
-                        modifier = Modifier.heightIn(min = 48.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
+                        contentPadding = ButtonDefaults.TextButtonContentPadding,
                     ) {
                         Text("Uninstall")
                     }
@@ -406,8 +422,9 @@ private fun FavoriteRow(
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onBrowse)
-            .padding(vertical = 16.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
         Column(
@@ -430,7 +447,7 @@ private fun FavoriteRow(
             }
             Button(
                 onClick = onDownload,
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 40.dp),
             ) { Text("Download") }
         }
 }
@@ -446,8 +463,9 @@ private fun ManualRow(
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onBrowse)
-            .padding(vertical = 16.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
         Column(
@@ -470,7 +488,8 @@ private fun ManualRow(
             }
             TextButton(
                 onClick = onRemove,
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = 40.dp),
+                contentPadding = ButtonDefaults.TextButtonContentPadding,
             ) { Text("Remove") }
         }
 }
@@ -503,10 +522,10 @@ private fun SectionTitle(text: String) {
 
 @Composable
 private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
-    // Cardless status block: vertical padding only, 16dp rhythm inside.
+    // Cardless status block: vertical padding only, 12dp rhythm inside.
     Column(
         Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
             Text(
                 record.filename,
@@ -541,7 +560,8 @@ private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
             ) {
                 TextButton(
                     onClick = onCancel,
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = 40.dp),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
                 ) { Text("Cancel") }
             }
         }
@@ -592,7 +612,8 @@ private fun HistoryRow(
                         ) { Text("Install") }
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
                         ) { Text("Remove") }
                     }
                 }
@@ -607,11 +628,12 @@ private fun HistoryRow(
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedButton(
                             onClick = onRetry,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
                         ) { Text("Retry") }
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
                         ) { Text("Remove") }
                     }
                 }
@@ -623,7 +645,8 @@ private fun HistoryRow(
                     ) {
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
                         ) { Text("Remove") }
                     }
                 }

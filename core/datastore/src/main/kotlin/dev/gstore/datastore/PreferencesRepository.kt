@@ -34,6 +34,8 @@ data class AppearanceSettings(
     val layout: HomeLayout = HomeLayout.LIST,
     val cardRadiusDp: Int = 12,
     val reduceMotion: Boolean = false,
+    /** Beta builds participate in pick/download/update. Off = stable only. */
+    val includePrereleases: Boolean = false,
 )
 
 class PreferencesRepository(private val context: Context) {
@@ -45,6 +47,7 @@ class PreferencesRepository(private val context: Context) {
         val LAYOUT = stringPreferencesKey("layout")
         val RADIUS = intPreferencesKey("card_radius_dp")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
+    val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
         val SECTION_ORDER = stringPreferencesKey("section_order")
         val SECTION_HIDDEN = stringSetPreferencesKey("section_hidden")
         val W_STARS = floatPreferencesKey("w_stars")
@@ -101,6 +104,7 @@ class PreferencesRepository(private val context: Context) {
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).
             cardRadiusDp = (p[Keys.RADIUS] ?: 12).coerceIn(4, 20),
             reduceMotion = p[Keys.REDUCE_MOTION] ?: false,
+            includePrereleases = p[Keys.INCLUDE_PRERELEASES] ?: false,
         )
     }
 
@@ -132,6 +136,10 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setReduceMotion(enabled: Boolean) {
         context.store.edit { it[Keys.REDUCE_MOTION] = enabled }
+    }
+
+    suspend fun setIncludePrereleases(enabled: Boolean) {
+        context.store.edit { it[Keys.INCLUDE_PRERELEASES] = enabled }
     }
 
     /**

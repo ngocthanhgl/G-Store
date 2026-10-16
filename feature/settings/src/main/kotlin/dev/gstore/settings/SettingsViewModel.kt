@@ -64,6 +64,7 @@ class SettingsViewModel(
     fun setDensity(density: CardDensity) = launch { prefs.setDensity(density) }
     fun setCardRadius(radiusDp: Int) = launch { prefs.setCardRadiusDp(radiusDp) }
     fun setReduceMotion(enabled: Boolean) = launch { prefs.setReduceMotion(enabled) }
+    fun setIncludePrereleases(enabled: Boolean) = launch { prefs.setIncludePrereleases(enabled) }
 
     /**
      * Log in with a user-supplied Personal Access Token (no scopes needed).
