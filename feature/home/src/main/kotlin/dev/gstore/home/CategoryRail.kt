@@ -1,4 +1,8 @@
 package dev.gstore.home
+import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.CountPill
+import dev.gstore.ui.EmptyContent
+import dev.gstore.ui.GStoreSpace
 import dev.gstore.ui.Fluent
 
 import androidx.compose.foundation.layout.Arrangement
@@ -52,40 +56,26 @@ fun CategoryRail(
     onToggleFavorite: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        ) {
-            Text(
-                text = categoryLabel(category),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-            // Text-only action: no icon, no internal padding — the label's
-            // left edge sits exactly on the row's 16dp inset.
-            TextButton(
-                onClick = { onOpenCategory(category) },
-                contentPadding = PaddingValues(0.dp),
-            ) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block)) {
+        // The shared header: same titleLarge + count pill + 48dp trailing
+        // control as every other section in the app.
+        AuroraSectionHeader(
+            title = categoryLabel(category),
+            count = count,
+            onClick = { onOpenCategory(category) },
+            trailing = {
                 Text(
                     "See all",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
-            }
-        }
+            },
+            modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
+        )
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            contentPadding = PaddingValues(horizontal = GStoreSpace.Gutter),
         ) {
             items(top, key = { it.repo.id }) { signals ->
                 RailCard(
@@ -116,32 +106,44 @@ fun CategoryFullScreen(
     onToggleFavorite: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
+        ) {
             IconButton(onClick = onBack) {
                 Icon(Fluent.ArrowLeft, contentDescription = "Back")
             }
             Text(
-                text = "${categoryLabel(category)} · ${items.size}",
+                text = categoryLabel(category),
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            CountPill(items.size)
         }
         if (items.isEmpty() && syncing) {
-            ShimmerRows(count = 8, reduceMotion = reduceMotion)
+            ShimmerRows(
+                count = 8,
+                reduceMotion = reduceMotion,
+                modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
+            )
         } else if (items.isEmpty()) {
-            Text(
-                text = "No apps in this category yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            EmptyContent(
+                message = "No apps in this category yet.",
+                icon = Fluent.Add,
             )
         } else if (grid) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+                horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+                contentPadding = PaddingValues(
+                    start = GStoreSpace.Gutter,
+                    end = GStoreSpace.Gutter,
+                    top = GStoreSpace.Block,
+                ),
             ) {
                 items(items, key = { it.repo.id }) { signals ->
                     AdaptiveCard(
@@ -158,7 +160,12 @@ fun CategoryFullScreen(
             }
         } else {
             androidx.compose.foundation.lazy.LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+                contentPadding = PaddingValues(
+                    start = GStoreSpace.Gutter,
+                    end = GStoreSpace.Gutter,
+                    top = GStoreSpace.Block,
+                ),
             ) {
                 items(items, key = { it.repo.id }) { signals ->
                     AdaptiveCard(

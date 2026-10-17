@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.gstore.data.UpdateState
@@ -43,7 +45,11 @@ import dev.gstore.database.DownloadRecord
 import dev.gstore.model.Repository
 import dev.gstore.model.VerificationResult
 import dev.gstore.ui.AppIcon
+import dev.gstore.ui.AuroraSectionHeader
 import dev.gstore.ui.EmptyContent
+import dev.gstore.ui.GStoreSpace
+import dev.gstore.ui.ShimmerRows
+import dev.gstore.ui.squircleDp
 
 /**
  * Download queue + history (flow C) and the Installed shelf: every APK
@@ -56,6 +62,7 @@ import dev.gstore.ui.EmptyContent
 @Composable
 fun DownloadsScreen(
     state: DownloadsUiState,
+    reduceMotion: Boolean = false,
     onCancel: (Long) -> Unit,
     onRetry: (Long) -> Unit,
     onForget: (Long) -> Unit,
@@ -100,13 +107,13 @@ fun DownloadsScreen(
                         onDismissLoginPrompt()
                         onOpenLogin()
                     },
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                 ) { Text("Log in to GitHub") }
             },
             dismissButton = {
                 TextButton(
                     onClick = onDismissLoginPrompt,
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                 ) { Text("Later") }
             },
         )
@@ -125,47 +132,55 @@ fun DownloadsScreen(
         if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty() &&
             state.favorites.isEmpty() && state.manual.isEmpty()
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                EmptyContent(
-                    message = "Nothing here yet. Pick an APK on an app's details screen.",
-                    icon = Fluent.ArrowDownload,
+            // A check is in flight: show the rows it is about to fill rather
+            // than an empty shelf that reads as "you have nothing".
+            if (state.installedRefreshing) {
+                ShimmerRows(
+                    count = 5,
+                    reduceMotion = reduceMotion,
+                    modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
                 )
-                OutlinedButton(
-                    onClick = onRefreshInstalled,
-                    enabled = !state.installedRefreshing,
-                    modifier = Modifier.padding(top = 16.dp),
-                ) {
-                    Text(if (state.installedRefreshing) "Checking..." else "Check now")
-                }
+                return@PullToRefreshBox
             }
+            EmptyContent(
+                message = "Nothing here yet. Pick an APK on an app's details screen.",
+                icon = Fluent.ArrowDownload,
+                action = {
+                    OutlinedButton(
+                        onClick = onRefreshInstalled,
+                        enabled = !state.installedRefreshing,
+                        modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                    ) {
+                        Text(if (state.installedRefreshing) "Checking..." else "Check now")
+                    }
+                },
+            )
             return@PullToRefreshBox
         }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = GStoreSpace.Gutter),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Downloads",
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = onRefreshInstalled) {
-                        Icon(Fluent.ArrowSync, contentDescription = "Check for updates")
-                    }
-                }
+                AuroraSectionHeader(
+                    title = "Downloads",
+                    topGap = false,
+                    trailing = {
+                        IconButton(onClick = onRefreshInstalled) {
+                            Icon(Fluent.ArrowSync, contentDescription = "Check for updates")
+                        }
+                    },
+                )
             }
             if (state.favorites.isNotEmpty()) {
-                item { SectionTitle("Favourites (${state.favorites.size})") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Favourites",
+                        count = state.favorites.size,
+                    )
+                }
                 items(state.favorites, key = { "f-${it.id}" }) { repo ->
                     FavoriteRow(
                         repo = repo,
@@ -175,7 +190,12 @@ fun DownloadsScreen(
                 }
             }
             if (state.manual.isNotEmpty()) {
-                item { SectionTitle("Added by you (${state.manual.size})") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Added by you",
+                        count = state.manual.size,
+                    )
+                }
                 items(state.manual, key = { "a-${it.id}" }) { repo ->
                     ManualRow(
                         repo = repo,
@@ -185,7 +205,12 @@ fun DownloadsScreen(
                 }
             }
             if (updates.isNotEmpty()) {
-                item { SectionTitle("Updates available (${updates.size})") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Updates available",
+                        count = updates.size,
+                    )
+                }
                 items(updates, key = { "u-${it.record.assetId}" }) { row ->
                     InstalledRow(
                         row = row,
@@ -198,7 +223,12 @@ fun DownloadsScreen(
                 }
             }
             if (current.isNotEmpty()) {
-                item { SectionTitle("Installed via G Store (${current.size})") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Installed via G Store",
+                        count = current.size,
+                    )
+                }
                 items(current, key = { "i-${it.record.assetId}" }) { row ->
                     InstalledRow(
                         row = row,
@@ -211,7 +241,12 @@ fun DownloadsScreen(
                 }
             }
             if (missing.isNotEmpty()) {
-                item { SectionTitle("Not on this device (${missing.size})") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Not on this device",
+                        count = missing.size,
+                    )
+                }
                 items(missing, key = { "m-${it.record.assetId}" }) { row ->
                     InstalledRow(
                         row = row,
@@ -224,13 +259,23 @@ fun DownloadsScreen(
                 }
             }
             if (state.active.isNotEmpty()) {
-                item { SectionTitle("Active") }
+                item {
+                    AuroraSectionHeader(
+                        title = "Active",
+                        count = state.active.size,
+                    )
+                }
                 items(state.active, key = { it.assetId }) { record ->
                     ActiveRow(record = record, onCancel = { onCancel(record.assetId) })
                 }
             }
             if (state.history.isNotEmpty()) {
-                item { SectionTitle("History") }
+                item {
+                    AuroraSectionHeader(
+                        title = "History",
+                        count = state.history.size,
+                    )
+                }
                 items(state.history, key = { it.assetId }) { record ->
                     HistoryRow(
                         record = record,
@@ -254,13 +299,16 @@ private fun InstalledRow(
     onDownloadUpdate: (DownloadRecord) -> Unit,
 ) {
     val record = row.record
-    // Cardless row: the list already insets 16dp, so the row only pads vertically.
+    val installed = row.installedVersionCode != null
+    // Cardless row: the list already insets the gutter, so the row only pads
+    // vertically. Anatomy is shared with FavoriteRow / ManualRow — tile,
+    // GStoreSpace.Medium to the text column, GStoreSpace.Small inside it.
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = { onBrowseRepo(record.repoFullName) })
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
     ) {
         PackageIcon(
             packageName = record.packageName ?: record.repoFullName,
@@ -268,22 +316,25 @@ private fun InstalledRow(
         )
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         ) {
             // Line 1: app label.
             Text(
                 text = row.label,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
-            // Line 2: status + version, single ellipsis line.
+            // Line 2: status + version, single ellipsis line. The separator is
+            // only rendered when a version actually exists — never "Installed · ".
             val statusLine = when (row.updateState) {
                 UpdateState.UPDATE_AVAILABLE ->
                     "Update available${row.latestTag?.let { " · $it" } ?: ""}"
                 UpdateState.READY_TO_INSTALL -> "Downloaded update ready to install"
-                UpdateState.UP_TO_DATE ->
-                    "Installed · ${row.installedVersionName ?: row.installedVersionCode?.toString() ?: ""}"
+                UpdateState.UP_TO_DATE -> {
+                    val version = row.installedVersionName ?: row.installedVersionCode?.toString()
+                    if (version != null) "Installed · $version" else "Installed"
+                }
                 UpdateState.NOT_INSTALLED -> "Not installed on this device"
             }
             Text(
@@ -291,47 +342,53 @@ private fun InstalledRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.End,
-            ) {
-                when (row.updateState) {
-                    // Row actions stay compact (40dp): the hero owns the 48dp CTA.
-                    UpdateState.UPDATE_AVAILABLE -> OutlinedButton(
+        // Trailing column: at most TWO controls, so a row never towers over its
+        // neighbours (three stacked buttons made this column 104-160dp). The
+        // primary action wins the first slot; "Uninstall" is the third control
+        // that gets dropped when a primary is present.
+        Column(
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            horizontalAlignment = Alignment.End,
+        ) {
+            val primaryShown = when (row.updateState) {
+                UpdateState.UPDATE_AVAILABLE -> {
+                    OutlinedButton(
                         onClick = { onDownloadUpdate(record) },
-                        modifier = Modifier.heightIn(min = 40.dp),
+                        modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                     ) { Text("Update") }
-                    UpdateState.READY_TO_INSTALL -> OutlinedButton(
-                        onClick = { onInstall(record) },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                    ) { Text("Install") }
-                    UpdateState.NOT_INSTALLED -> OutlinedButton(
-                        onClick = { onInstall(record) },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                    ) { Text("Install") }
-                    UpdateState.UP_TO_DATE -> Unit
+                    true
                 }
-                if (row.installedVersionCode != null) {
-                    TextButton(
-                        onClick = { onLaunch(record.packageName ?: "") },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Text("Open")
-                    }
-                    TextButton(
-                        onClick = { onUninstall(record.packageName ?: "") },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Text("Uninstall")
-                    }
+                UpdateState.READY_TO_INSTALL, UpdateState.NOT_INSTALLED -> {
+                    // Filled, 48dp — identical to HistoryRow's Install.
+                    Button(
+                        onClick = { onInstall(record) },
+                        modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                    ) { Text("Install") }
+                    true
+                }
+                UpdateState.UP_TO_DATE -> false
+            }
+            if (installed && !primaryShown) {
+                TextButton(
+                    onClick = { onLaunch(record.packageName ?: "") },
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) {
+                    Text("Open")
+                }
+            }
+            if (installed) {
+                TextButton(
+                    onClick = { onUninstall(record.packageName ?: "") },
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) {
+                    Text("Uninstall")
                 }
             }
         }
+    }
 }
 
 /** Hearted repo with a one-tap APK download (latest stable eligible asset wins). */
@@ -341,38 +398,39 @@ private fun FavoriteRow(
     onBrowse: () -> Unit,
     onDownload: () -> Unit,
 ) {
-    // Cardless row (see InstalledRow): vertical padding only.
+    // Cardless row (see InstalledRow): vertical padding only, shared anatomy.
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onBrowse)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
     ) {
-        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         ) {
-                Text(
-                    text = repo.fullName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${repo.stars} stars",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
-            Button(
-                onClick = onDownload,
-                modifier = Modifier.heightIn(min = 40.dp),
-            ) { Text("Download") }
+            Text(
+                text = repo.fullName,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${repo.stars} stars",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
+        // One-tap primary: 48dp, like every other primary action on the screen.
+        Button(
+            onClick = onDownload,
+            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+        ) { Text("Download") }
+    }
 }
 
 /** Hand-added repo (link or owner/name): browseable, removable, no download yet. */
@@ -382,39 +440,39 @@ private fun ManualRow(
     onBrowse: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    // Cardless row (see InstalledRow): vertical padding only.
+    // Cardless row (see InstalledRow): vertical padding only, shared anatomy.
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onBrowse)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
     ) {
-        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 56.dp)
+        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         ) {
-                Text(
-                    text = repo.fullName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = if (repo.archived) "Archived on GitHub" else "${repo.stars} stars",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
-            TextButton(
-                onClick = onRemove,
-                modifier = Modifier.heightIn(min = 40.dp),
-                contentPadding = ButtonDefaults.TextButtonContentPadding,
-            ) { Text("Remove") }
+            Text(
+                text = repo.fullName,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = if (repo.archived) "Archived on GitHub" else "${repo.stars} stars",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
+        // Tertiary text action: stays compact at GStoreSpace.RowAction.
+        TextButton(
+            onClick = onRemove,
+            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+        ) { Text("Remove") }
+    }
 }
 
 /** Real app icon from PackageManager, monogram tile while it resolves. */
@@ -425,15 +483,15 @@ private fun PackageIcon(packageName: String, label: String) {
         runCatching { context.packageManager.getApplicationIcon(packageName) }.getOrNull()
     }
     Box(contentAlignment = Alignment.Center) {
-        AppIcon(avatarUrl = null, owner = label, size = 56.dp)
+        AppIcon(avatarUrl = null, owner = label, size = GStoreSpace.Tile)
         if (drawable != null) {
             // Forced to the common squircle: the overlay must carry the same
             // clip as the AppIcon well beneath it, or square corners show.
             AsyncImage(
                 model = drawable,
                 contentDescription = null,
-                modifier = Modifier.size(56.dp).clip(
-                    androidx.compose.foundation.shape.RoundedCornerShape(56.dp * 0.28f),
+                modifier = Modifier.size(GStoreSpace.Tile).clip(
+                    RoundedCornerShape(squircleDp(GStoreSpace.Tile)),
                 ),
                 contentScale = ContentScale.Crop,
             )
@@ -441,30 +499,32 @@ private fun PackageIcon(packageName: String, label: String) {
     }
 }
 
-@Composable
-private fun SectionTitle(text: String) {
-    // No own top gap: the list separates items with a uniform 16dp gap.
-    Text(text, style = MaterialTheme.typography.titleSmall)
-}
+/**
+ * Tile corner radius, snapped to the 4dp grid by core:ui's shared
+ * [squircleDp] so the PackageManager icon overlay always matches the
+ * monogram well beneath it.
+ */
 
 @Composable
 private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
-    // Cardless status block: vertical padding only, 12dp rhythm inside.
+    // Cardless row like every other row here: vertical padding only, and the
+    // same 4dp text rhythm. No leading icon — the filename is the anchor.
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
             Text(
                 record.filename,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "${record.repoFullName} · ${record.releaseTag}",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             val fraction = if (record.bytesTotal > 0) {
                 (record.bytesDone.toFloat() / record.bytesTotal).coerceIn(0f, 1f)
@@ -476,10 +536,19 @@ private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
                 Text(
                     "${formatBytes(record.bytesDone)} of ${formatBytes(record.bytesTotal)}",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             } else {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Text("${formatBytes(record.bytesDone)} downloaded", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "${formatBytes(record.bytesDone)} downloaded",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -487,8 +556,7 @@ private fun ActiveRow(record: DownloadRecord, onCancel: () -> Unit) {
             ) {
                 TextButton(
                     onClick = onCancel,
-                    modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                 ) { Text("Cancel") }
             }
         }
@@ -501,46 +569,51 @@ private fun HistoryRow(
     onForget: () -> Unit,
     onInstall: () -> Unit,
 ) {
-    // Cardless status block (see ActiveRow): vertical padding only.
+    // Cardless row (see ActiveRow): vertical padding only, shared rhythm.
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
             Text(
                 record.filename,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "${record.repoFullName} · ${record.releaseTag}",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             when (record.status) {
                 "COMPLETED" -> {
                     Text(
                         verificationLine(record.verification),
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     record.packageName?.let {
                         Text(
                             "Package $it${record.versionName?.let { v -> " · $v" } ?: ""}",
                             style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+                        // Filled, 48dp — the one "Install" look on this screen.
                         Button(
                             onClick = onInstall,
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                         ) { Text("Install") }
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 40.dp),
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                         ) { Text("Remove") }
                     }
                 }
@@ -550,30 +623,34 @@ private fun HistoryRow(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         maxLines = 3,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
                         OutlinedButton(
                             onClick = onRetry,
-                            modifier = Modifier.heightIn(min = 40.dp),
+                            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                         ) { Text("Retry") }
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 40.dp),
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                         ) { Text("Remove") }
                     }
                 }
                 else -> {
-                    Text(record.status.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = record.status.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
                         TextButton(
                             onClick = onForget,
-                            modifier = Modifier.heightIn(min = 40.dp),
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                         ) { Text("Remove") }
                     }
                 }

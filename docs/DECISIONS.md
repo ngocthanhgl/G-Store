@@ -893,3 +893,83 @@ budget + search throttling vs 14 rotating sets, so coverage still
 accumulates day over day rather than all at once; `dropped_stale`
 has never fired (corpses accumulate — a future pass should prune
 repos whose APK releases vanish).
+## 34. v1.1.0 cross-screen uniformity pass (audit -> polish)
+
+Six read-only audit agents swept every screen; one batched fix pass followed,
+then one detector pass (skill rule: build fully, inspect once, fix once).
+
+### Root causes found (not symptoms)
+
+1. **`cardRadiusDp` was a phantom parameter app-wide.** `cardShapeFor()` had
+   ZERO call sites; `RepoCard` declared the parameter and ignored it,
+   `GridCard` hardcoded `panelShape()` (fixed 20dp). The Settings slider wrote
+   to DataStore and changed nothing on screen. Fixed: every card now calls
+   `cardShapeFor(cardRadiusDp)`. The user setting is finally live.
+2. **`AuroraSectionHeader` existed with zero call sites.** Five screens each
+   hand-rolled a header, which is why they drifted: `titleSmall` on Downloads,
+   `titleMedium` on Details/Home-rails, `titleLarge` on Home/Category, four
+   different trailing-control treatments, four different vertical rhythms
+   (8/8, 12/12, 16/16). Fixed: the shared header is now the ONLY header, at
+   `titleLarge` + tonal count pill + 24dp-above / 8dp-below + 48dp target.
+3. **`GStoreTokens` had zero callers** and the comment beside it claimed
+   "no hardcoded colors or spacing outside this module" - false. Replaced by
+   `GStoreSpace` in `core:ui`, now actually consumed by all eight screens.
+4. **Compact and expanded nav disagreed** (26dp bar icon vs 24dp rail icon),
+   and a 1dp divider sat above the bar although DESIGN allows borders only
+   for selected filters.
+
+### Screen defects fixed
+
+- **AppIcon** hardcoded `Color.White` + `Color(0xFF1B1B1B)` and a fractional
+  radius (`size * 0.28f` = 15.68dp). Under AMOLED a monogram tile was a glowing
+  white square. Now `surfaceContainerHighest` / `onSurfaceVariant`, radius
+  snapped to the 4dp grid by the shared `squircleDp()` (made public so
+  feature:downloads stopped mirroring it).
+- **Five row types on Downloads** disagreed on padding (4 vs 16dp), text gap
+  (4/12/16dp), leading style (titleMedium vs titleSmall), meta colour and
+  trailing treatment. All five now share one anatomy; the trailing stack is
+  capped at two controls so one row cannot be 160dp next to a 64dp neighbour.
+- **"Install" appeared twice at two emphases** (filled 48dp in History,
+  outlined 40dp in Installed). Now filled 48dp in both.
+- **Details**: the release rail sat 0dp under its heading while the screenshots
+  rail sat 12dp - same component, two gaps. Changelog toggle had a ~20dp target
+  and no affordance (a bold line indistinguishable from four others): now 48dp
+  with a chevron. Three intrinsic-width link buttons in a non-wrapping Row
+  could not fit 320dp: now a FlowRow. The syncing spinner lacked the +12dp
+  offset its replacement button carries, so the whole top row jumped 12dp on
+  every sync.
+- **README**: H3 was the same 16sp as body text and H4/H5/H6 were all
+  identical; ordered lists rendered a bullet; nested lists had zero indent;
+  code blocks soft-wrapped with no hanging indent; images reserved no space
+  (mid-read scroll jump) and had no error state; code/quote surfaces vanished
+  on AMOLED (tonal elevation over a black container); a duplicate
+  `[image: alt]` artifact printed above every image; and the stale/offline
+  banner was drawn UNDER a `fillMaxSize` list - the one signal that exists for
+  offline use was unreadable. Plus a 680dp reading-measure cap for tablets.
+- **Touch targets**: 12 Settings chips and the Details release chips were 32dp
+  (M3 default); row actions were 40dp; Logout/Cancel had no `heightIn` at all.
+  Primary actions now answer to 48dp, tertiary to 40dp.
+- **`reduceMotion`** reached Home/Category/Details but not Downloads or
+  README. Both now take it and both now have a real skeleton to freeze
+  (Downloads had NO loading state at all; README's was a centred spinner).
+  Search and Settings were deliberately NOT given the parameter - neither has
+  gated motion, and an unused parameter is the phantom-parameter defect this
+  pass exists to remove.
+
+### Dead code removed
+`compact` params on RepoCard/GridCard (AdaptiveCard consumes it for routing),
+`monogramSize` on AppIcon, `tileSquircleDp` mirror, the hand-rolled
+`SectionTitle`/`LedgerLine` duplicates, off-grid 11dp/14dp shimmer bars.
+
+### Verification (executed)
+`:app:assembleDebug` + `:app:lintDebug` BUILD SUCCESSFUL; 113/113 unit tests
+pass (signature changes touched three shared components); impeccable
+`detect --json` over all 14 touched UI files returned `[]`.
+
+### Honest limits
+No emulator/device on this workstation: touch-target sizes, the 680dp reading
+measure, FlowRow link wrapping and AMOLED contrast are verified by
+construction + lint + the detector, not by screenshot. Everything is
+ground-truth verified on disk; the compressed summaries in this repo's history
+have twice described code that did not exist, so nothing here is taken on
+trust without a compile.

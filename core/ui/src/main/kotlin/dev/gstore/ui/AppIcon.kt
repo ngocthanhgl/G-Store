@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -22,13 +21,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import kotlin.math.roundToInt
+
+/**
+ * Squircle corner radius for an app tile of [size]: ~28% of the edge reads as
+ * a squircle in the store-shelf idiom, snapped to the 4dp grid so tiles never
+ * carry a fractional radius.
+ */
+fun squircleDp(size: Dp): Dp {
+    val dp = size.value
+    return ((dp * 0.28f).roundToInt().coerceAtLeast(4) / 4f).coerceAtLeast(4f).dp
+}
 
 /**
  * Repository / developer icon: the owner's GitHub avatar when a URL is known,
  * monogram tile underneath as loading/error/empty fallback. The image simply
  * covers the monogram when it loads — no state juggling, no blank tiles.
- * Squircle corners (~28% radius) in the store-shelf idiom; decorative (the
- * name is always adjacent text), so no content description.
+ *
+ * Colours are theme tokens (a neutral well plus [onSurfaceVariant] glyph) so
+ * the tile adapts to dark and AMOLED, where a hardcoded white well would have
+ * been a glowing square. Decorative: the name is always adjacent text, so no
+ * content description.
  */
 @Composable
 fun AppIcon(
@@ -36,43 +49,44 @@ fun AppIcon(
     owner: String,
     size: Dp,
     modifier: Modifier = Modifier,
-    monogramSize: Dp = 44.dp,
 ) {
+    val shape = RoundedCornerShape(squircleDp(size))
     Surface(
         modifier = modifier.size(size),
-        shape = RoundedCornerShape(size * 0.28f),
-        color = Color.White,
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Box(contentAlignment = Alignment.Center) {
             // The monogram shows only while there is no image to cover it:
             // no URL, still loading, or load failed. A loaded avatar (even a
-            // transparent PNG over the white well) never shows the letter.
+            // transparent PNG over the well) never shows the letter.
             var loaded by remember(avatarUrl) { mutableStateOf(false) }
             if (avatarUrl.isNullOrBlank() || !loaded) {
                 Text(
                     text = owner.take(1).uppercase(),
-                    style = if (size >= monogramSize) {
-                        MaterialTheme.typography.titleLarge
-                    } else {
-                        MaterialTheme.typography.titleMedium
-                    },
-                    color = Color(0xFF1B1B1B),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (!avatarUrl.isNullOrBlank()) {
-                // Downsample to the drawn size: avatars arrive as large
-                // PNGs and the full bitmap would sit in memory per row.
+                // Downsample to the drawn size: avatars arrive as large PNGs
+                // and the full bitmap would sit in memory per row. Remembered
+                // so a recomposition does not rebuild the request.
                 val px = with(LocalDensity.current) { size.roundToPx() }
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
+                val context = LocalContext.current
+                val request = remember(avatarUrl, px, context) {
+                    ImageRequest.Builder(context)
                         .data(avatarUrl)
                         .size(px, px)
-                        .build(),
+                        .build()
+                }
+                AsyncImage(
+                    model = request,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    onSuccess = { _ -> loaded = true },
-                    onError = { _ -> loaded = false },
+                    onSuccess = { loaded = true },
+                    onError = { loaded = false },
                 )
             }
         }

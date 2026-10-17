@@ -42,7 +42,6 @@ fun AdaptiveCard(
                 onToggleFavorite = onToggleFavorite,
                 modifier = modifier,
                 cardRadiusDp = cardRadiusDp,
-                compact = compact,
             )
         }
     } else {
@@ -54,7 +53,6 @@ fun AdaptiveCard(
             onToggleFavorite = onToggleFavorite,
             modifier = modifier,
             cardRadiusDp = cardRadiusDp,
-            compact = compact,
         )
     }
 }

@@ -23,6 +23,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,12 +48,15 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.AppIcon
+import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.Fluent
+import dev.gstore.ui.GStoreSpace
 import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.ThemeMode
 
-private val RowMinHeight = 48.dp
+private val RowMinHeight = GStoreSpace.TouchTarget
 
 /**
  * Appearance + behavior settings. Every control writes through
@@ -66,13 +71,16 @@ fun SettingsScreen(
     appVersion: String,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).statusBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = GStoreSpace.Gutter)
+            .statusBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
     ) {
         item {
             Column(
                 // No own top gap: the screen starts at the status-bar inset.
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
             ) {
                 Text(
                     "Settings",
@@ -100,10 +108,12 @@ fun SettingsScreen(
                             "it to 5,000 — a token with no scopes is enough.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Button(
                         onClick = { showLogin = true },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
                     ) {
                         Text("Log in with token", maxLines = 1)
                     }
@@ -121,7 +131,10 @@ fun SettingsScreen(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = vm::logout) { Text("Logout") }
+                        TextButton(
+                            onClick = vm::logout,
+                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                        ) { Text("Logout") }
                     }
                 }
                 val error = loginError
@@ -130,6 +143,8 @@ fun SettingsScreen(
                         text = error,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
                 }
@@ -213,10 +228,12 @@ fun SettingsScreen(
                     steps = 15,
                     // Pill track: Slider has no shape param, so the track
                     // slot carries the rounded bar instead of M3's thin line.
+                    // The slot also hosts the 20dp thumb, so it must be at
+                    // least thumb-sized — clipping at 12dp flattened it.
                     track = { state ->
                         SliderDefaults.Track(
                             sliderState = state,
-                            modifier = Modifier.height(12.dp).clip(CircleShape),
+                            modifier = Modifier.height(20.dp).clip(CircleShape),
                         )
                     },
                 )
@@ -249,6 +266,8 @@ fun SettingsScreen(
                         "download counts are popularity signals, never safety ratings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -269,17 +288,19 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
         onDismissRequest = onDismiss,
         title = { Text("Log in to GitHub") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block)) {
                 Text(
                     "Create a token (no scopes needed), then paste it here. " +
                         "It stays encrypted on this device.",
                     style = MaterialTheme.typography.bodySmall,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 OutlinedButton(
                     onClick = {
                         uriHandler.openUri("https://github.com/settings/tokens/new")
                     },
-                    modifier = Modifier.heightIn(min = 48.dp),
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                 ) {
                     Text(
                         "Open github.com/settings/tokens",
@@ -300,7 +321,7 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
             TextButton(
                 onClick = { onConfirm(text) },
                 enabled = text.isNotBlank() && !busy,
-                modifier = Modifier.heightIn(min = 48.dp),
+                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
             ) {
                 if (busy) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -309,31 +330,35 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+            ) { Text("Cancel") }
+        },
     )
 }
 
 @Composable
 private fun SettingGroup(title: String, content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = dev.gstore.designsystem.panelShape(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+    // The header carries its own 24dp-above / 8dp-below rhythm.
+    Column {
+        // Shared header so group titles cannot drift from every other screen:
+        // titleLarge, no primary tint, 24dp above / 8dp below.
+        AuroraSectionHeader(title = title)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = dev.gstore.designsystem.panelShape(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
         ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            content()
+            Column(
+                modifier = Modifier.padding(GStoreSpace.Card),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
+            ) {
+                content()
+            }
         }
     }
 }
@@ -359,15 +384,32 @@ private fun <T> ChoiceRow(
     // FlowRow wraps on narrow screens instead of pushing chips off-screen.
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
         options.forEach { option ->
+            val isSelected = option == selected
             FilterChip(
-                selected = option == selected,
+                selected = isSelected,
                 onClick = { onSelect(option) },
                 shape = CircleShape,
                 label = { Text(labelOf(option), maxLines = 1) },
+                leadingIcon = if (isSelected) {
+                    {
+                        Icon(
+                            painter = Fluent.Checkmark,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                // M3 chips are 32dp; every chip here is a primary choice.
+                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
             )
         }
     }

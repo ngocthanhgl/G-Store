@@ -6,10 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,11 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
 import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
+import dev.gstore.ui.GStoreSpace
 
 @Composable
 fun SearchScreen(
@@ -63,17 +67,29 @@ fun SearchScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).statusBarsPadding().imePadding()) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = GStoreSpace.Gutter)
+            .statusBarsPadding()
+            .imePadding(),
+    ) {
         Text(
             "Search",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            overflow = TextOverflow.Ellipsis,
         )
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::setQuery,
-            label = { Text("Name, description, or owner") },
+            label = {
+                Text(
+                    "Name, description, or owner",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
             singleLine = true,
             shape = CircleShape,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -88,14 +104,18 @@ fun SearchScreen(
                     Icon(Fluent.Search, contentDescription = "Search GitHub")
                 }
             },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = GStoreSpace.TouchTarget)
+                .padding(vertical = GStoreSpace.Block),
         )
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         // Chunk once per result set, not on every recomposition.
         val rows = remember(state.results) { state.results.chunked(2) }
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = GStoreSpace.Block),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         ) {
             if (state.query.isBlank()) {
                 item {
@@ -104,6 +124,8 @@ fun SearchScreen(
                             "results are never saved without your tap.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             } else if (state.results.isEmpty()) {
@@ -112,6 +134,8 @@ fun SearchScreen(
                         "No cached matches. Try GitHub search, or add owner/name from Home.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -130,25 +154,27 @@ fun SearchScreen(
                 }
             } else {
                 items(rows, key = { it.first().id }) { row ->
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-                        row.forEach { repo ->
-                            AdaptiveCard(
-                                repo = repo,
-                                isFavorite = repo.id in state.favoriteIds,
-                                apkBadge = ApkBadge.UNKNOWN,
-                                grid = true,
-                                onOpen = { onOpenRepo(repo) },
-                                onToggleFavorite = { vm.toggleFavorite(repo) },
-                                modifier = Modifier.weight(1f),
-                                cardRadiusDp = cardRadiusDp,
-                                compact = compact,
-                            )
-                        }
-                        if (row.size == 1) {
-                            Spacer(Modifier.weight(1f))
+                    Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            row.forEach { repo ->
+                                AdaptiveCard(
+                                    repo = repo,
+                                    isFavorite = repo.id in state.favoriteIds,
+                                    apkBadge = ApkBadge.UNKNOWN,
+                                    grid = true,
+                                    onOpen = { onOpenRepo(repo) },
+                                    onToggleFavorite = { vm.toggleFavorite(repo) },
+                                    modifier = Modifier.weight(1f),
+                                    cardRadiusDp = cardRadiusDp,
+                                    compact = compact,
+                                )
+                            }
+                            if (row.size == 1) {
+                                Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -157,19 +183,19 @@ fun SearchScreen(
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+                        modifier = Modifier.padding(vertical = GStoreSpace.Small),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier.size(GStoreSpace.TouchTarget),
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         }
                         Text(
                             "Searching GitHub...",
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -179,10 +205,10 @@ fun SearchScreen(
                 item {
                     Text(
                         "GitHub results (not saved)",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 16.dp),
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = GStoreSpace.BeforeHeader),
                     )
                 }
                 items(netResults, key = { "net-${it.id}" }) { repo ->
@@ -201,33 +227,37 @@ fun SearchScreen(
 private fun NetworkRow(repo: Repository, onAdd: () -> Unit, onOpen: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
             .padding(vertical = 4.dp),
     ) {
-        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = 48.dp)
+        AppIcon(
+            avatarUrl = repo.avatarUrl,
+            owner = repo.owner,
+            size = GStoreSpace.Tile,
+        )
         Column(Modifier.weight(1f)) {
             Text(
                 repo.fullName,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 repo.description?.takeIf { it.isNotBlank() } ?: "by ${repo.owner}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "${repo.stars} stars",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         IconButton(onClick = onAdd) {

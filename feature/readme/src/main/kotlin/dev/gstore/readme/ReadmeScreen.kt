@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
@@ -19,20 +21,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.BlockView
+import dev.gstore.ui.GStoreSpace
+import dev.gstore.ui.ShimmerRows
 
 @Composable
 fun ReadmeScreen(
     state: ReadmeUiState,
+    reduceMotion: Boolean = false,
     onRefresh: (Boolean) -> Unit,
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize().statusBarsPadding()) {
         when (state.status) {
-            ReadmeStatus.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+ReadmeStatus.LOADING -> {
+                // Skeleton lines, not a centred spinner: a spinner in an
+                // empty frame tells the reader nothing about the document
+                // that is arriving (DESIGN.md, "never a dead spinner").
+                ShimmerRows(count = 8, reduceMotion = reduceMotion)
             }
             ReadmeStatus.MISSING -> EmptyReadme { onRefresh(true) }
             ReadmeStatus.ERROR -> ErrorReadme(state.notice) { onRefresh(true) }
@@ -40,9 +49,15 @@ fun ReadmeScreen(
         }
         if (state.notice != null && state.status == ReadmeStatus.READY) {
             Snackbar(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(GStoreSpace.Gutter),
                 action = { Button(onClick = onDismissNotice) { Text("Dismiss") } },
-            ) { Text(state.notice, maxLines = 2) }
+            ) {
+                Text(
+                    state.notice,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -50,17 +65,24 @@ fun ReadmeScreen(
 @Composable
 private fun EmptyReadme(onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(GStoreSpace.Gutter),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("No README on the default branch", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(12.dp))
+        Text(
+            "No README on the default branch",
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(GStoreSpace.Medium))
         Text(
             "This repository does not publish a README where G Store looks for one.",
             style = MaterialTheme.typography.bodyMedium,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(GStoreSpace.Medium))
         Button(onClick = onRetry) { Text("Retry") }
     }
 }
@@ -68,32 +90,67 @@ private fun EmptyReadme(onRetry: () -> Unit) {
 @Composable
 private fun ErrorReadme(notice: String?, onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(GStoreSpace.Gutter),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("README unavailable", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(12.dp))
-        if (notice != null) Text(notice, style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(12.dp))
+        Text(
+            "README unavailable",
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(GStoreSpace.Medium))
+        if (notice != null) {
+            Text(
+                notice,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.height(GStoreSpace.Medium))
         Button(onClick = onRetry) { Text("Retry") }
     }
 }
 
 @Composable
 private fun BlocksList(state: ReadmeUiState, modifier: Modifier = Modifier) {
-    if (state.stale) {
-        Text(
-            "Offline copy — may be outdated",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-        )
-    }
-    LazyColumn(modifier, contentPadding = PaddingValues(horizontal = 16.dp)) {
-        itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
-            BlockView(block, state.owner, state.repo, state.branch)
-            Spacer(Modifier.height(12.dp))
+    // The stale banner and the list were both Box children, so the list drew
+    // over the banner. A Column gives the banner its own row.
+    Column(modifier) {
+        if (state.stale) {
+            Text(
+                "Offline copy — may be outdated",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(
+                    horizontal = GStoreSpace.Gutter,
+                    vertical = GStoreSpace.Medium,
+                ),
+            )
+        }
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = GStoreSpace.Gutter,
+                end = GStoreSpace.Gutter,
+                top = GStoreSpace.Block,
+                bottom = GStoreSpace.BeforeHeader,
+            ),
+        ) {
+            itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
+                // Cap the measure: full-width body text is unreadable on
+                // tablets and expanded windows.
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    Column(Modifier.widthIn(max = 680.dp)) {
+                        BlockView(block, state.owner, state.repo, state.branch)
+                        Spacer(Modifier.height(GStoreSpace.Block))
+                    }
+                }
+            }
         }
     }
 }

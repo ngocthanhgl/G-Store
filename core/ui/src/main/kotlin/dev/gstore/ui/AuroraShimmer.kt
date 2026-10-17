@@ -76,7 +76,7 @@ private fun ShimmerTextStack(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         fractions.forEach { fraction ->
             ShimmerBlock(
-                modifier = Modifier.fillMaxWidth(fraction).height(14.dp),
+                modifier = Modifier.fillMaxWidth(fraction).height(16.dp),
                 reduceMotion = reduceMotion,
             )
         }
@@ -132,11 +132,11 @@ fun ShimmerTiles(
                     reduceMotion = reduceMotion,
                 )
                 ShimmerBlock(
-                    modifier = Modifier.width(60.dp).height(11.dp),
+                    modifier = Modifier.width(60.dp).height(12.dp),
                     reduceMotion = reduceMotion,
                 )
                 ShimmerBlock(
-                    modifier = Modifier.width(40.dp).height(11.dp),
+                    modifier = Modifier.width(40.dp).height(12.dp),
                     reduceMotion = reduceMotion,
                 )
             }

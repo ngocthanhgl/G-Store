@@ -6,73 +6,152 @@
 // (app/src/main/java/com/aurora/store/compose/composable/SectionHeader.kt):
 // title with optional subtitle, optional trailing slot, whole row clickable
 // with a default primary-tinted chevron. Changes for G Store: resource
-// dimens/drawables inlined (16dp/4dp/8dp rhythm, Material core chevron),
-// no @Preview.
+// dimens/drawables inlined, Material core chevron, titleLarge + count pill
+// per DESIGN.md, 24dp-above/8dp-below rhythm, no @Preview.
 package dev.gstore.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
- * Section header row used throughout the app. Title with optional subtitle,
- * an optional trailing slot, and the whole row becomes clickable when
- * [onClick] is non-null. When [trailing] is null and [onClick] is set, a
- * default right-chevron is shown.
+ * The app's only section header. Every screen uses this so titles, counts,
+ * rhythm and trailing controls cannot drift apart.
+ *
+ * Rhythm (DESIGN.md): 24dp above the heading, 8dp below it — more space above
+ * than below. [topGap] is zero for a header that opens a screen, where the
+ * status bar already separates it from the edge.
+ *
+ * [count] renders as a tonal pill beside the title, matching the ledger
+ * convention; it is omitted when null rather than shown as a bare number.
  */
 @Composable
 fun AuroraSectionHeader(
     modifier: Modifier = Modifier,
     title: String,
+    count: Int? = null,
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    topGap: Boolean = true,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(top = if (topGap) GStoreSpace.BeforeHeader else 0.dp)
+            .padding(bottom = GStoreSpace.AfterHeader)
+            .defaultMinSize(minHeight = GStoreSpace.TouchTarget),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (count != null) {
+            CountPill(count)
+        }
+        if (!subtitle.isNullOrBlank()) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = GStoreSpace.Medium),
             )
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
         when {
-            trailing != null -> trailing()
+            trailing != null -> Box(modifier = Modifier.padding(start = GStoreSpace.Medium)) {
+                trailing()
+            }
+
             onClick != null -> Icon(
                 painter = Fluent.ChevronRight,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .padding(start = GStoreSpace.Medium)
+                    .size(GStoreSpace.Icon),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
+}
+
+/** Tonal count pill — `· 42`. The ledger answer to "how many". */
+@Composable
+fun CountPill(count: Int, modifier: Modifier = Modifier) {
+    Text(
+        text = count.toString(),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        maxLines = 1,
+        modifier = modifier
+            .padding(start = GStoreSpace.Small)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .defaultMinSize(minWidth = 28.dp, minHeight = 28.dp)
+            .padding(horizontal = GStoreSpace.Small, vertical = 2.dp),
+    )
+}
+
+/**
+ * Vertical rhythm tokens. One source for the values DESIGN.md fixes, so a
+ * screen cannot pick 12dp where another picked 16dp.
+ */
+object GStoreSpace {
+    /** Screen gutter, horizontal. */
+    val Gutter = 16.dp
+
+    /** Card inner padding. */
+    val Card = 12.dp
+
+    /** Space ABOVE a section header. More than below: the heading leads. */
+    val BeforeHeader = 24.dp
+
+    /** Space BELOW a section header. */
+    val AfterHeader = 8.dp
+
+    /** Gap between sibling blocks inside a list. */
+    val Block = 12.dp
+
+    /** Small inset, e.g. between an icon and its text. */
+    val Small = 8.dp
+
+    /** Medium inset. */
+    val Medium = 12.dp
+
+    /** Icon size, app-wide. */
+    val Icon = 24.dp
+
+    /** App tile / monogram size. */
+    val Tile = 56.dp
+
+    /** Minimum primary touch target. */
+    val TouchTarget = 48.dp
+
+    /** Minimum height for compact row actions. */
+    val RowAction = 40.dp
 }

@@ -1,4 +1,11 @@
 package dev.gstore.details
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.GStoreSpace
 import dev.gstore.ui.Fluent
 
 import android.content.Intent
@@ -134,10 +141,16 @@ fun DetailsScreen(
     }?.asset
     Column(modifier.fillMaxSize()) {
     val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
-    LazyColumn(
+LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        // Bottom padding so the last block clears the navigation bar; the
+        // header inset comes from the TopBar's own statusBarsPadding().
+        contentPadding = PaddingValues(
+            start = GStoreSpace.Gutter,
+            end = GStoreSpace.Gutter,
+            bottom = GStoreSpace.BeforeHeader,
+        ),
     ) {
         // Back / share / favorite / refresh live in one top row; the hero
         // below it bleeds edge-to-edge under the camera hole.
@@ -160,37 +173,33 @@ fun DetailsScreen(
                 modifier = Modifier.statusBarsPadding(),
             )
         }
-        item { Spacer(Modifier.height(12.dp)) }
         item { HeaderRow(repo) }
-        item { Spacer(Modifier.height(12.dp)) }
-            item {
-                HeroBare(
-                    hero = state.hero,
-                    release = selectedRelease(state),
-                    asset = heroAsset,
-                    installedPackageName = state.installedPackageName,
-                    onDownload = onHeroDownload,
-                    onCancel = onHeroCancel,
-                    onInstall = onHeroInstall,
-                    onUninstall = onHeroUninstall,
-                    canOpenApp = canOpenApp,
-                    onOpenApp = onOpenApp,
-                    findingApk = state.syncing || state.loadingAssets || state.scanningApks,
-                )
-            }
-        item { Spacer(Modifier.height(12.dp)) }
+        item {
+            HeroBare(
+                hero = state.hero,
+                release = selectedRelease(state),
+                asset = heroAsset,
+                installedPackageName = state.installedPackageName,
+                onDownload = onHeroDownload,
+                onCancel = onHeroCancel,
+                onInstall = onHeroInstall,
+                onUninstall = onHeroUninstall,
+                canOpenApp = canOpenApp,
+                onOpenApp = onOpenApp,
+                findingApk = state.syncing || state.loadingAssets || state.scanningApks,
+            )
+        }
         val description = repo.description
         if (description != null) {
             item { DescriptionText(description) }
-            item { Spacer(Modifier.height(8.dp)) }
         }
         item { FactsLine(repo) }
-        item { Spacer(Modifier.height(8.dp)) }
         item { LinksRow(repo, onOpenReadme) }
-        item { Spacer(Modifier.height(12.dp)) }
         val busy = state.syncing || state.loadingRepo || state.scanningApks
         val syncError = state.syncError
-        item { SectionTitle("Releases (${apkReleases.size})") }
+        // The shared header owns the 24dp-above / 8dp-below rhythm, so no
+        // hand-placed spacers bracket it and the rail starts 8dp down.
+        item { SectionTitle("Releases", apkReleases.size) }
         if (apkReleases.isEmpty() && busy && syncError == null) {
             // Still arriving: shimmer instead of "no releases" copy.
             item { ShimmerRows(count = 2, reduceMotion = reduceMotion) }
@@ -198,17 +207,13 @@ fun DetailsScreen(
             item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
         }
         if (syncError != null) {
-            item { Spacer(Modifier.height(12.dp)) }
             item {
                 SyncErrorCard(syncError, onRefresh, cardRadiusDp)
             }
         }
-        item { Spacer(Modifier.height(12.dp)) }
         selectedRelease(state)?.let { release ->
             item { ChangelogFull(release, reduceMotion) }
-            item { Spacer(Modifier.height(12.dp)) }
         }
-        item { Spacer(Modifier.height(12.dp)) }
         item { ScreenshotsRow(state.screenshots, reduceMotion) }
     }
 }
@@ -227,13 +232,17 @@ private fun TopBar(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Optical 16dp alignment: an IconButton centers its 24dp glyph in a
-    // 48dp box, so edge buttons shift 12dp outward to put the glyph edge
-    // exactly on the list's 16dp inset. Offsets don't move siblings.
+    // Optical 16dp alignment: an IconButton centres its 24dp glyph in a 48dp
+    // box, so the two edge controls shift 12dp outward to put their glyph
+    // edge exactly on the list's 16dp inset. Offsets don't move siblings, so
+    // every control keeps its full 48dp target and the inner two stay aligned
+    // with each other. The syncing spinner carries the SAME offset as the
+    // refresh button it replaces — otherwise the whole row jumped 12dp every
+    // time a sync started or stopped.
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
         IconButton(
             onClick = onBack,
@@ -243,15 +252,20 @@ private fun TopBar(
         IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
         IconButton(onClick = onToggleFavorite) {
             Icon(
-                if (isFavorite) Fluent.Heart else Fluent.Heart,
+                Fluent.Heart,
                 contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
             )
         }
         if (syncing) {
-            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(Modifier.size(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(GStoreSpace.TouchTarget)
+                    .offset(x = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(Modifier.size(GStoreSpace.Icon))
             }
         } else IconButton(
             onClick = onRefresh,
@@ -317,7 +331,9 @@ private fun DescriptionText(description: String) {
         },
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded },
+            .heightIn(min = GStoreSpace.TouchTarget)
+            .clickable { expanded = !expanded }
+            .padding(vertical = GStoreSpace.Small),
     )
 }
 
@@ -337,34 +353,45 @@ private fun FactsLine(repo: Repository) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = GStoreSpace.Small),
         )
     }
 }
 
-/** Repository / homepage / README as one row of compact link buttons. */
+/**
+ * Repository / homepage / README as compact link buttons. They live in a
+ * FlowRow, not a Row: three intrinsic-width text buttons cannot fit a 320dp
+ * screen minus gutters, and a Row would clip them mid-glyph.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun LinksRow(repo: Repository, onOpenReadme: () -> Unit) {
     val uriHandler = LocalUriHandler.current
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+        modifier = Modifier.padding(vertical = GStoreSpace.Small),
     ) {
         TextButton(
             onClick = { uriHandler.openUri("https://github.com/${repo.fullName}") },
-            modifier = Modifier.heightIn(min = 40.dp),
-        ) { Text("Repository", maxLines = 1) }
+            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+            contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
+        ) { Text("Repository", maxLines = 1, overflow = TextOverflow.Ellipsis) }
         repo.homepage?.takeIf { it.isNotBlank() }?.let { home ->
             val url = if (home.startsWith("http")) home else "https://$home"
             TextButton(
                 onClick = { uriHandler.openUri(url) },
-                modifier = Modifier.heightIn(min = 40.dp),
-            ) { Text("Homepage", maxLines = 1) }
+                modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
+            ) { Text("Homepage", maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
         TextButton(
             onClick = onOpenReadme,
-            modifier = Modifier.heightIn(min = 40.dp),
-        ) { Text("README", maxLines = 1) }
+            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+            contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
+        ) { Text("README", maxLines = 1, overflow = TextOverflow.Ellipsis) }
     }
 }
 
@@ -375,14 +402,10 @@ private fun formatCount(n: Int): String = when {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    // Same top gap as the Downloads screen's SectionTitle: count labels
-    // start at the same height for identical hierarchy on both screens.
-    // No own top gap: every call site already separates with a 16dp spacer.
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-    )
+private fun SectionTitle(text: String, count: Int? = null) {
+    // The shared header: same titleLarge + tonal count pill + 24dp-above /
+    // 8dp-below rhythm as every other section in the app.
+    AuroraSectionHeader(title = text, count = count)
 }
 
 @Composable
@@ -392,10 +415,17 @@ private fun ReleasePicker(
     onSelect: (Long) -> Unit,
 ) {
     if (releases.isEmpty()) {
-        Text("No releases synced yet.")
+        Text(
+            "No releases synced yet.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(vertical = GStoreSpace.Small),
+        )
         return
     }
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
         items(releases, key = { it.id }) { release ->
             val selected = release.id == selectedId
             FilterChip(
@@ -405,14 +435,26 @@ private fun ReleasePicker(
                     Text(
                         release.tag + if (release.prerelease) " · pre" else "",
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
+                leadingIcon = if (selected) {
+                    {
+                        Icon(
+                            Fluent.Checkmark,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                } else null,
                 shape = CircleShape,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
+                // M3 chips are 32dp; this rail is a primary choice surface.
+                modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
             )
         }
     }
@@ -459,13 +501,19 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                // 48dp target: the toggle is the only way to reach the notes,
+                // so a text line alone would not be tappable enough.
+                .heightIn(min = GStoreSpace.TouchTarget)
+                .clip(CircleShape)
+                .clickable { expanded = !expanded }
+                .padding(horizontal = GStoreSpace.Small),
         ) {
                 Text(
                     buildString {
@@ -476,10 +524,18 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-            }
+            // Disclosure chevron: without it a bold text line is
+            // indistinguishable from the four other bold lines above it.
+            Icon(
+                if (expanded) Fluent.ChevronRight else Fluent.ChevronDown,
+                contentDescription = if (expanded) "Hide changelog" else "Show changelog",
+                modifier = Modifier.size(GStoreSpace.Icon),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (expanded) {
             val releaseName = release.name
                 // The tag already heads this card: repeat the name only when

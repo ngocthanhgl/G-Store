@@ -56,3 +56,42 @@ source (same contracts, rhythm, and chevron behavior) with documented
 deviations: truncating text, refresh/hide trailing actions, no previews.
 The prior accent-bar experiment is retired — current Aurora source has no
 bar, and code beats screenshots.
+
+## Tokens are now enforced, not just declared
+
+The rhythm below is not a description of the app - it is the literal source in
+`core/ui/.../AuroraSectionHeader.kt` (`object GStoreSpace`), consumed by all
+eight screens. Before the uniformity pass these values were declared here and
+hand-copied (and drifted) at ~40 call sites; the earlier `GStoreTokens` object
+had zero callers.
+
+| Token | Value | Where it applies |
+|---|---|---|
+| `Gutter` | 16dp | every screen's horizontal inset |
+| `Card` | 12dp | card inner padding |
+| `BeforeHeader` | 24dp | space ABOVE a section heading |
+| `AfterHeader` | 8dp | space BELOW a section heading |
+| `Block` | 12dp | gap between sibling blocks |
+| `Small` / `Medium` | 8dp / 12dp | icon-to-text gaps |
+| `Icon` | 24dp | every icon, bar and rail |
+| `Tile` | 56dp | every app monogram tile |
+| `TouchTarget` | 48dp | every primary control and icon button |
+| `RowAction` | 40dp | tertiary/destructive row actions |
+
+Rules that follow from it:
+
+- **One section header exists.** `AuroraSectionHeader(title, count, ...)` -
+  `titleLarge`, a tonal `CountPill`, 24dp above / 8dp below, 48dp minimum
+  height, optional trailing slot. No screen hand-rolls one any more.
+- **One card radius.** Cards call `cardShapeFor(cardRadiusDp)`, so the
+  Settings slider (4-20dp) is live everywhere. Panels use `panelShape()`;
+  tiles use the grid-snapped `squircleDp()`.
+- **One ledger.** `LedgerLine(repo, apkBadge)` - status pill, star icon,
+  count - is shared by the list card and the grid card.
+- **Status is tonal.** `StatusPill` and `CountPill` use container/on-container
+  pairs, never a raw hue as a text colour.
+- **Loading is a skeleton.** `LoadingContent` and every inline load path draw
+  `ShimmerRows`, which freezes to a static gradient under reduced motion. No
+  screen shows a centred spinner as its primary loading state.
+- **Primary is 48dp, tertiary is 40dp.** Chips included: M3's default 32dp
+  chip is below every accessibility recommendation and is no longer used.

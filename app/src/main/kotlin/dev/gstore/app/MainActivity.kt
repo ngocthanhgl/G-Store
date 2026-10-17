@@ -98,6 +98,8 @@ import dev.gstore.search.SearchViewModel
 import dev.gstore.settings.SettingsScreen
 import dev.gstore.settings.SettingsViewModel
 import dev.gstore.ui.EmptyContent
+import dev.gstore.ui.GStoreSpace
+import dev.gstore.ui.ShimmerRows
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -243,14 +245,14 @@ private fun GStoreShell(container: AppContainer) {
                     WindowInsetsSides.Horizontal,
                 ),
                 bottomBar = {
-                    Column {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        )
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            modifier = Modifier.height(64.dp),
-                        ) {
+                    // No divider: the bar already separates itself with its
+                    // own container colour, and a hairline above it reads as
+                    // a stray rule on the compact layout (DESIGN.md allows
+                    // borders only for selected filters).
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.height(GStoreSpace.RowAction + GStoreSpace.Icon),
+                    ) {
                             DESTINATIONS.forEach { d ->
                                 val selected = entry?.destination?.hasRoute(d.route::class) == true
                                 NavigationBarItem(
@@ -275,7 +277,6 @@ private fun GStoreShell(container: AppContainer) {
                                     ),
                                 )
                             }
-                        }
                     }
                 },
                 snackbarHost = { SnackbarHost(snackbar) },
@@ -338,7 +339,15 @@ private fun Rail(
             NavigationRailItem(
                 selected = current?.hasRoute(d.route::class) == true,
                 onClick = { navigate(d.route) },
-                icon = { Icon(painterResource(d.icon), contentDescription = d.label) },
+                icon = {
+                    // Same 26dp as the compact bar: the two shells are the
+                    // same navigation, so their glyphs must be the same size.
+                    Icon(
+                        painterResource(d.icon),
+                        contentDescription = d.label,
+                        modifier = Modifier.size(26.dp),
+                    )
+                },
                 label = { Text(d.label) },
                 alwaysShowLabel = false,
                 colors = NavigationRailItemDefaults.colors(
@@ -496,6 +505,7 @@ private fun Content(
             } else {
                 DownloadsScreen(
                     state = dlState,
+                    reduceMotion = appearance.reduceMotion,
                     onCancel = { vm.cancel(it) },
                     onRetry = { vm.retry(it) },
                     onForget = { vm.forget(it) },
@@ -709,6 +719,7 @@ private fun Content(
                 state = state,
                 onRefresh = { vm.refresh(it) },
                 onDismissNotice = { vm.dismissNotice() },
+                reduceMotion = appearance.reduceMotion,
             )
         }
     }

@@ -1,14 +1,21 @@
 package dev.gstore.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -19,6 +26,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -41,29 +51,34 @@ import coil3.size.Size
  * no duplication, no feature-to-feature dependency).
  */
 @Composable
-fun BlockView(block: Block, owner: String, repo: String, branch: String = "main") {
+fun BlockView(block: Block, owner: String, repo: String, branch: String = "main", depth: Int = 0) {
     when (block) {
         is Block.Heading -> {
-            val style = when (block.level) {
-                1 -> MaterialTheme.typography.headlineSmall
-                2 -> MaterialTheme.typography.titleLarge
-                3 -> MaterialTheme.typography.titleMedium
-                else -> MaterialTheme.typography.titleSmall
+            // Body copy is bodyMedium so every heading step stays visible above it.
+            val (style, weight, topGap) = when (block.level) {
+                1 -> Triple(MaterialTheme.typography.headlineSmall, FontWeight.Bold, GStoreSpace.BeforeHeader)
+                2 -> Triple(MaterialTheme.typography.titleLarge, FontWeight.Bold, GStoreSpace.BeforeHeader)
+                3 -> Triple(MaterialTheme.typography.titleMedium, FontWeight.Bold, GStoreSpace.Block)
+                else -> Triple(MaterialTheme.typography.bodyMedium, FontWeight.Bold, GStoreSpace.Block)
             }
-            Text(block.text, style = style, fontWeight = FontWeight.Bold)
-            if (block.level <= 2) HorizontalDivider(Modifier.padding(top = 16.dp))
+            Text(
+                block.text,
+                style = style,
+                fontWeight = weight,
+                modifier = Modifier.padding(top = topGap, bottom = GStoreSpace.AfterHeader),
+            )
+            if (block.level <= 2) HorizontalDivider()
         }
-        is Block.Paragraph -> SpanText(block.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
+        is Block.Paragraph -> SpanText(block.spans, owner, repo, branch, MaterialTheme.typography.bodyMedium)
         is Block.CodeBlock -> CodeBlockView(block)
-        is Block.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            block.items.forEach { item -> ListItemView(item, block.ordered, owner, repo, branch) }
-        }
+        is Block.ListBlock -> ListBlockView(block, block.ordered, owner, repo, branch, depth)
         is Block.Quote -> Surface(
-            tonalElevation = 1.dp,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            tonalElevation = 0.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = RoundedCornerShape(GStoreSpace.Card.value.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium), verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
                 block.children.forEach { BlockView(it, owner, repo, branch) }
             }
         }
@@ -74,16 +89,60 @@ fun BlockView(block: Block, owner: String, repo: String, branch: String = "main"
 }
 
 @Composable
-private fun ListItemView(item: MdListItem, ordered: Boolean, owner: String, repo: String, branch: String) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (item.checked != null) {
-            Checkbox(checked = item.checked, onCheckedChange = null, enabled = false)
-        } else {
-            Text(if (ordered) "•" else "•", style = MaterialTheme.typography.bodyLarge)
+private fun ListBlockView(
+    block: Block.ListBlock,
+    ordered: Boolean,
+    owner: String,
+    repo: String,
+    branch: String,
+    depth: Int,
+) {
+    val indent = (depth.coerceIn(0, 4) * 16).dp
+    Column(
+        modifier = Modifier.padding(start = indent, top = GStoreSpace.Block),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+    ) {
+        block.items.forEachIndexed { index, item ->
+            ListItemView(item, ordered, index + 1, owner, repo, branch, depth)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (item.spans.isNotEmpty()) SpanText(item.spans, owner, repo, branch, MaterialTheme.typography.bodyLarge)
-            item.children.forEach { BlockView(it, owner, repo, branch) }
+    }
+}
+
+@Composable
+private fun ListItemView(
+    item: MdListItem,
+    ordered: Boolean,
+    ordinal: Int,
+    owner: String,
+    repo: String,
+    branch: String,
+    depth: Int,
+) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+        if (item.checked != null) {
+            // READMEs are data, not a to-do app: the box stays inert but keeps
+            // the row rhythm even so task lists line up with plain bullets.
+            Box(
+                Modifier.width(GStoreSpace.TouchTarget).height(GStoreSpace.TouchTarget),
+                contentAlignment = Alignment.Center,
+            ) {
+                Checkbox(
+                    checked = item.checked,
+                    onCheckedChange = null,
+                    enabled = false,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        } else {
+            Text(
+                text = if (ordered) "$ordinal." else "\u2022",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(20.dp),
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+            if (item.spans.isNotEmpty()) SpanText(item.spans, owner, repo, branch, MaterialTheme.typography.bodyMedium)
+            item.children.forEach { BlockView(it, owner, repo, branch, depth = depth + 1) }
         }
     }
 }
@@ -102,13 +161,23 @@ private fun TableView(table: Block.Table) {
 
 @Composable
 private fun TableRowView(cells: List<String>, header: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 16.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        modifier = Modifier.padding(vertical = GStoreSpace.Block),
+    ) {
         cells.forEach { cell ->
             Text(
                 cell,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (header) FontWeight.Bold else null,
-                modifier = Modifier.weight(1f, fill = false),
+                maxLines = 4,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                // Rows are measured independently, so a min width is the only
+                // way columns line up between header and body.
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .widthIn(min = 96.dp)
+                    .padding(end = GStoreSpace.Small),
             )
         }
     }
@@ -118,11 +187,12 @@ private fun TableRowView(cells: List<String>, header: Boolean) {
 private fun CodeBlockView(block: Block.CodeBlock) {
     val clipboard = LocalClipboardManager.current
     Surface(
-        tonalElevation = 2.dp,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(GStoreSpace.Card.value.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (block.language != null) {
                     Text(
@@ -140,7 +210,15 @@ private fun CodeBlockView(block: Block.CodeBlock) {
                     Text("Copy")
                 }
             }
-            Text(block.code.trimEnd(), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+            // Long lines scroll instead of wrapping into a ragged block.
+            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                Text(
+                    block.code.trimEnd(),
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                    softWrap = false,
+                )
+            }
         }
     }
 }
@@ -155,12 +233,20 @@ private fun SpanText(
 ) {
     val uriHandler = LocalUriHandler.current
     val linkColor = MaterialTheme.colorScheme.primary
+    val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
+    val codeColor = MaterialTheme.colorScheme.onSurface
     val annotated = buildAnnotatedString {
         fun append(span: Span) {
             when (span) {
                 is Span.Text -> append(span.text)
                 is Span.Code -> withStyle(
-                    SpanStyle(fontFamily = FontFamily.Monospace),
+                    SpanStyle(
+                        fontFamily = FontFamily.Monospace,
+                        // A SpanStyle cannot draw padding, but the tonal
+                        // background alone makes inline code legible.
+                        background = codeBackground,
+                        color = codeColor,
+                    ),
                 ) { append(span.code) }
                 is Span.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                     span.children.forEach(::append)
@@ -185,7 +271,8 @@ private fun SpanText(
                         addStringAnnotation("url", span.href, start, length)
                     }
                 }
-                is Span.Picture -> append("[image: ${span.alt.ifEmpty { span.src }}]")
+                // The image renders below the paragraph; no placeholder text.
+                is Span.Picture -> Unit
             }
         }
         spans.forEach(::append)
@@ -209,13 +296,19 @@ private fun SpanText(
             if (url.startsWith("https://")) {
                 // Cap decoded size: README screenshots are often 4K and
                 // would otherwise sit in memory at full resolution.
+                // The aspect box reserves layout space so decoding never
+                // shifts the document while it is being read.
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(url)
                         .size(Size(1600, 1600))
                         .build(),
                     contentDescription = picture.alt,
-                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 10f)
+                        .clip(RoundedCornerShape(GStoreSpace.Small)),
                 )
             } else {
                 TextButton(onClick = { uriHandler.openUri(url) }) {

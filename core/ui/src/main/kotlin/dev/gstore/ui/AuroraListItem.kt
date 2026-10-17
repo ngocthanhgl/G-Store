@@ -40,6 +40,7 @@ fun AuroraListItem(
     headline: String,
     supporting: String? = null,
     tertiary: String? = null,
+    tertiaryContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
@@ -77,7 +78,9 @@ fun AuroraListItem(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (!tertiary.isNullOrBlank()) {
+            if (tertiaryContent != null) {
+                tertiaryContent()
+            } else if (!tertiary.isNullOrBlank()) {
                 Text(
                     text = tertiary,
                     style = MaterialTheme.typography.bodySmall,

@@ -1,5 +1,9 @@
 package dev.gstore.home
 
+import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.CountPill
+import dev.gstore.ui.EmptyContent
+import dev.gstore.ui.GStoreSpace
 import dev.gstore.ui.Fluent
 
 import androidx.compose.animation.animateContentSize
@@ -244,18 +248,26 @@ private fun HomeHeader(
 ) {
     var showProfile by rememberSaveable { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GStoreSpace.Gutter),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
         Text(
-            "Home · $count",
+            "Home",
             style = MaterialTheme.typography.titleLarge,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        CountPill(count)
+        // Refresh, add and profile share one 8dp gap and one 48dp target, and
+        // all three sit inside the 16dp gutter: no per-button optical offset,
+        // which used to push the trailing target past the gutter to the bezel.
         if (syncing) {
-            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(Modifier.size(24.dp))
+            Box(modifier = Modifier.size(GStoreSpace.TouchTarget), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(GStoreSpace.Icon))
             }
         } else IconButton(onClick = onRefresh) {
             Icon(Fluent.ArrowSync, contentDescription = "Refresh app catalog")
@@ -264,20 +276,12 @@ private fun HomeHeader(
             Icon(Fluent.Add, contentDescription = "Add repository")
         }
         // Profile opens login when logged out, identity + logout when in.
-        // The trailing control shifts 12dp outward so its glyph edge lands
-        // exactly on the 16dp inset (same optical rule as Details TopBar).
         if (identity.login.isBlank()) {
-            IconButton(
-                onClick = onOpenLogin,
-                modifier = Modifier.offset(x = 12.dp),
-            ) {
+            IconButton(onClick = onOpenLogin) {
                 Icon(Fluent.Person, contentDescription = "Log in to GitHub")
             }
         } else {
-            IconButton(
-                onClick = { showProfile = true },
-                modifier = Modifier.offset(x = 12.dp),
-            ) {
+            IconButton(onClick = { showProfile = true }) {
                 AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
             }
         }
@@ -391,7 +395,7 @@ private fun CatalogBlock(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = GStoreSpace.Gutter)
             .animateContentSize(
                 animationSpec = if (reduceMotion) {
                     androidx.compose.animation.core.snap()
@@ -399,12 +403,12 @@ private fun CatalogBlock(
                     androidx.compose.animation.core.spring()
                 },
             ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
     ) {
         // No section header: the count lives in the Home title above and the
         // refresh action moved to the header row, so the filter chips lead.
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
@@ -416,7 +420,7 @@ private fun CatalogBlock(
                         onFilter(option)
                         expanded = if (open) null else option
                     },
-                    label = { Text(filterLabel(option)) },
+                    label = { Text(filterLabel(option), maxLines = 1) },
                     leadingIcon = if (open) {
                         {
                             Icon(
@@ -432,6 +436,10 @@ private fun CatalogBlock(
                         selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
                     shape = CircleShape,
+                    // M3 chips are 32dp tall; every other control in the app
+                    // answers to a 48dp target, and a chip row is a primary
+                    // navigation surface, so it gets the same floor.
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                 )
             }
         }
