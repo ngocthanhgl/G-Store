@@ -631,7 +631,7 @@
    "owner": "JunkFood02",
    "avatar_url": "https://avatars.githubusercontent.com/u/69683722?v=4",
    "description": "🦭 Video/Audio Downloader for Android, based on yt-dlp",
-   "stars": 29784,
+   "stars": 29787,
    "forks": 1485,
    "topics": [
     "android",
@@ -645,7 +645,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:58:01Z",
+   "updated_at": "2026-10-17T06:27:12Z",
    "created_at": "2022-04-15T01:15:25Z",
    "license": "GPL-3.0"
   },
@@ -736,7 +736,7 @@
    "owner": "koodo-reader",
    "avatar_url": "https://avatars.githubusercontent.com/u/149913075?v=4",
    "description": "A modern ebook manager and reader with sync and backup capacities for Windows, macOS, Linux, Android, iOS and Web",
-   "stars": 28534,
+   "stars": 28535,
    "forks": 2138,
    "topics": [
     "book",
@@ -760,7 +760,7 @@
    ],
    "archived": false,
    "default_branch": "dev",
-   "updated_at": "2026-10-17T05:17:32Z",
+   "updated_at": "2026-10-17T06:46:24Z",
    "created_at": "2020-03-05T02:18:30Z",
    "license": "AGPL-3.0"
   },
@@ -1776,7 +1776,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T05:02:58Z",
+   "updated_at": "2026-10-17T06:13:26Z",
    "created_at": "2022-04-06T20:06:28Z",
    "license": "Apache-2.0"
   },
@@ -5363,7 +5363,7 @@
    "owner": "celzero",
    "avatar_url": "https://avatars.githubusercontent.com/u/68689239?v=4",
    "description": "DNS over HTTPS / DNS over Tor / DNSCrypt client, WireGuard proxifier, firewall, and connection tracker for Android.",
-   "stars": 5597,
+   "stars": 5599,
    "forks": 350,
    "topics": [
     "android",
@@ -5385,7 +5385,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T02:12:55Z",
+   "updated_at": "2026-10-17T06:41:53Z",
    "created_at": "2020-06-08T13:41:18Z",
    "license": "Apache-2.0"
   },
@@ -5443,7 +5443,7 @@
    "owner": "NeoApplications",
    "avatar_url": "https://avatars.githubusercontent.com/u/101910870?v=4",
    "description": "An F-Droid client with modern UI and an arsenal of extra features.",
-   "stars": 5458,
+   "stars": 5459,
    "forks": 190,
    "topics": [
     "android",
@@ -5453,7 +5453,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T04:40:43Z",
+   "updated_at": "2026-10-17T05:51:54Z",
    "created_at": "2021-03-07T12:56:05Z",
    "license": "GPL-3.0"
   },
@@ -7559,7 +7559,7 @@
    "owner": "FoedusProgramme",
    "avatar_url": "https://avatars.githubusercontent.com/u/157073664?v=4",
    "description": "A sane music player built with media3 and material design library that is following android's standard strictly.",
-   "stars": 2349,
+   "stars": 2350,
    "forks": 138,
    "topics": [
     "android",
@@ -7575,7 +7575,7 @@
    ],
    "archived": false,
    "default_branch": "beta",
-   "updated_at": "2026-10-16T21:36:18Z",
+   "updated_at": "2026-10-17T06:10:03Z",
    "created_at": "2023-08-02T07:57:11Z",
    "license": "GPL-3.0"
   },
@@ -7794,7 +7794,7 @@
    "owner": "pass-with-high-score",
    "avatar_url": "https://avatars.githubusercontent.com/u/173918919?v=4",
    "description": "Block ads system-wide on Android using local VPN-based DNS filtering. No root needed. No data collection.",
-   "stars": 2190,
+   "stars": 2191,
    "forks": 123,
    "topics": [
     "adblocker",
@@ -7817,7 +7817,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T19:39:38Z",
+   "updated_at": "2026-10-17T05:43:29Z",
    "created_at": "2026-02-10T04:35:15Z",
    "license": "GPL-3.0"
   },
@@ -11347,7 +11347,7 @@
    "owner": "InlitX",
    "avatar_url": "https://avatars.githubusercontent.com/u/193412982?v=4",
    "description": " Offline gym log for Android. No account, no ads, no internet.",
-   "stars": 955,
+   "stars": 956,
    "forks": 107,
    "topics": [
     "android",
@@ -11367,7 +11367,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T04:06:41Z",
+   "updated_at": "2026-10-17T06:03:31Z",
    "created_at": "2026-08-05T12:02:49Z",
    "license": "GPL-3.0"
   },
@@ -11496,12 +11496,12 @@
    "owner": "giejay",
    "avatar_url": "https://avatars.githubusercontent.com/u/2014373?v=4",
    "description": "An Android TV app for the self hosted photos and videos backup solution.",
-   "stars": 900,
+   "stars": 901,
    "forks": 78,
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T07:45:53Z",
+   "updated_at": "2026-10-17T05:32:27Z",
    "created_at": "2024-01-26T07:55:00Z",
    "license": "GPL-3.0"
   },
@@ -16634,7 +16634,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T18:36:26Z",
+   "updated_at": "2026-10-17T06:13:24Z",
    "created_at": "2010-10-19T09:31:13Z",
    "license": "MPL-2.0"
   },
@@ -19145,7 +19145,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/150185321?v=4",
    "description": "Fast Gesture based android launcher",
    "stars": 337,
-   "forks": 25,
+   "forks": 26,
    "topics": [
     "android",
     "android-app",
@@ -20190,7 +20190,7 @@
    "owner": "Mahmud0808",
    "avatar_url": "https://avatars.githubusercontent.com/u/29881338?v=4",
    "description": "Turn a private Telegram channel into your personal cloud drive. Android, Windows, Linux and macOS, auto backup, optional E2E encryption, built-in file manager and player.",
-   "stars": 295,
+   "stars": 296,
    "forks": 28,
    "topics": [
     "android",
@@ -20209,7 +20209,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T02:00:32Z",
+   "updated_at": "2026-10-17T05:55:05Z",
    "created_at": "2026-08-21T16:10:36Z",
    "license": "Apache-2.0"
   },
@@ -33146,6 +33146,47 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
+   "id": 1418930230,
+   "full_name": "kota-zo/myspoti",
+   "owner": "kota-zo",
+   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
+   "description": "Native Android client for Spotify, built with Jetpack Compose",
+   "stars": 46,
+   "forks": 2,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "jetpack-compose",
+    "kotlin",
+    "lyrics",
+    "music-player",
+    "music-video",
+    "myspoti",
+    "spotify",
+    "spotify-adblocker",
+    "spotify-client",
+    "spotify-connect",
+    "spotui"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:38:13Z",
+   "created_at": "2026-10-14T13:01:34Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 415487800,
+   "tag": "v2.0.0-beta.5",
+   "published_at": "2026-10-17T00:27:47Z",
+   "prerelease": true,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
    "id": 1286932324,
    "full_name": "Secure-Phone-apps/Secure-Dialer",
    "owner": "Secure-Phone-apps",
@@ -33177,7 +33218,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:51:07Z",
+   "updated_at": "2026-10-17T05:20:04Z",
    "created_at": "2026-07-02T08:20:01Z",
    "license": "GPL-3.0"
   },
@@ -33286,47 +33327,6 @@
    "published_at": "2026-09-12T07:30:54Z",
    "prerelease": false,
    "apk_count": 18
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1418930230,
-   "full_name": "kota-zo/myspoti",
-   "owner": "kota-zo",
-   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
-   "description": "Native Android client for Spotify, built with Jetpack Compose",
-   "stars": 43,
-   "forks": 2,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "jetpack-compose",
-    "kotlin",
-    "lyrics",
-    "music-player",
-    "music-video",
-    "myspoti",
-    "spotify",
-    "spotify-adblocker",
-    "spotify-client",
-    "spotify-connect",
-    "spotui"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T05:08:40Z",
-   "created_at": "2026-10-14T13:01:34Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 415487800,
-   "tag": "v2.0.0-beta.5",
-   "published_at": "2026-10-17T00:27:47Z",
-   "prerelease": true,
-   "apk_count": 1
   }
  },
  {
@@ -34099,6 +34099,53 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
+   "id": 1408705748,
+   "full_name": "yashoncode/metube",
+   "owner": "yashoncode",
+   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
+   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
+   "stars": 32,
+   "forks": 3,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "android-app",
+    "apk",
+    "background-play",
+    "dearrow",
+    "frosted-glass",
+    "glassmorphism",
+    "liquid-glass",
+    "media3",
+    "newtube",
+    "picture-in-picture",
+    "return-youtube-dislike",
+    "smarttube",
+    "sponsorblock",
+    "youtube",
+    "youtube-alternative",
+    "youtube-client",
+    "youtube-downloader"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:01:40Z",
+   "created_at": "2026-10-07T11:50:27Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 415600829,
+   "tag": "v2.9.8",
+   "published_at": "2026-10-17T05:25:02Z",
+   "prerelease": false,
+   "apk_count": 6
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
    "id": 23364588,
    "full_name": "suve/LD25",
    "owner": "suve",
@@ -34342,53 +34389,6 @@
    "published_at": "2025-04-26T21:59:49Z",
    "prerelease": false,
    "apk_count": 2
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1408705748,
-   "full_name": "yashoncode/metube",
-   "owner": "yashoncode",
-   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
-   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
-   "stars": 29,
-   "forks": 3,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "android-app",
-    "apk",
-    "background-play",
-    "dearrow",
-    "frosted-glass",
-    "glassmorphism",
-    "liquid-glass",
-    "media3",
-    "newtube",
-    "picture-in-picture",
-    "return-youtube-dislike",
-    "smarttube",
-    "sponsorblock",
-    "youtube",
-    "youtube-alternative",
-    "youtube-client",
-    "youtube-downloader"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T02:26:44Z",
-   "created_at": "2026-10-07T11:50:27Z",
-   "license": "MIT"
-  },
-  "release": {
-   "id": 415600829,
-   "tag": "v2.9.8",
-   "published_at": "2026-10-17T05:25:02Z",
-   "prerelease": false,
-   "apk_count": 6
   }
  },
  {
@@ -38851,7 +38851,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T12:57:26Z",
+   "updated_at": "2026-10-17T06:26:38Z",
    "created_at": "2026-01-04T08:26:09Z",
    "license": "MIT"
   },
@@ -42628,7 +42628,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T04:43:17Z",
+   "updated_at": "2026-10-17T05:15:57Z",
    "created_at": "2026-10-11T12:59:51Z",
    "license": "GPL-3.0"
   },
@@ -44897,7 +44897,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/39553080?v=4",
    "description": "Sync Stardew Valley saves across Windows, macOS, Linux & Android using your own Google Drive — transactional save protection, automatic backups, co-op host migration and farm sharing. No servers, no tracking.",
    "stars": 3,
-   "forks": 1,
+   "forks": 0,
    "topics": [
     "android",
     "cloud-saves",
@@ -50823,14 +50823,14 @@
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T17:05:46Z",
+   "updated_at": "2026-10-17T06:39:29Z",
    "created_at": "2026-10-10T16:41:45Z",
    "license": "GPL-3.0"
   },
   "release": {
-   "id": 415196224,
-   "tag": "v2.12.22",
-   "published_at": "2026-10-16T17:11:30Z",
+   "id": 409072397,
+   "tag": "v2.11.20",
+   "published_at": "2026-10-10T16:43:59Z",
    "prerelease": false,
    "apk_count": 1
   }
@@ -58110,6 +58110,37 @@
    "published_at": "2023-09-21T02:43:39Z",
    "prerelease": false,
    "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1378811065,
+   "full_name": "abidhasansojib/onyx-browser",
+   "owner": "abidhasansojib",
+   "avatar_url": "https://avatars.githubusercontent.com/u/132114353?v=4",
+   "description": "Onyx Browser - A browser based on Android WebView and Brave adblock-rust engine.",
+   "stars": 0,
+   "forks": 0,
+   "topics": [
+    "adblock",
+    "browser",
+    "onyx-browser",
+    "webview"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:14:05Z",
+   "created_at": "2026-09-20T21:59:45Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 415652413,
+   "tag": "v1.3.6-prerelease",
+   "published_at": "2026-10-17T07:25:24Z",
+   "prerelease": true,
+   "apk_count": 4
   }
  }
 ]

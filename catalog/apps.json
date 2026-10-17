@@ -2031,7 +2031,7 @@
    "owner": "JunkFood02",
    "avatar_url": "https://avatars.githubusercontent.com/u/69683722?v=4",
    "description": "🦭 Video/Audio Downloader for Android, based on yt-dlp",
-   "stars": 29784,
+   "stars": 29787,
    "forks": 1485,
    "topics": [
     "android",
@@ -2045,7 +2045,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:58:01Z",
+   "updated_at": "2026-10-17T06:27:12Z",
    "created_at": "2022-04-15T01:15:25Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
@@ -2071,7 +2071,7 @@
     "size": 43069442,
     "download_url": "https://github.com/JunkFood02/Seal/releases/download/v1.13.1/Seal-1.13.1-arm64-v8a-release.apk",
     "digest": null,
-    "download_count": 2426967
+    "download_count": 2427241
    },
    {
     "id": 199560010,
@@ -2080,7 +2080,7 @@
     "size": 40611853,
     "download_url": "https://github.com/JunkFood02/Seal/releases/download/v1.13.1/Seal-1.13.1-armeabi-v7a-release.apk",
     "digest": null,
-    "download_count": 119149
+    "download_count": 119160
    },
    {
     "id": 199560101,
@@ -2089,7 +2089,7 @@
     "size": 144991600,
     "download_url": "https://github.com/JunkFood02/Seal/releases/download/v1.13.1/Seal-1.13.1-universal-release.apk",
     "digest": null,
-    "download_count": 307394
+    "download_count": 307457
    },
    {
     "id": 199560696,
@@ -2098,7 +2098,7 @@
     "size": 44364789,
     "download_url": "https://github.com/JunkFood02/Seal/releases/download/v1.13.1/Seal-1.13.1-x86-release.apk",
     "digest": null,
-    "download_count": 30281
+    "download_count": 30286
    },
    {
     "id": 199560506,
@@ -2107,7 +2107,7 @@
     "size": 45218592,
     "download_url": "https://github.com/JunkFood02/Seal/releases/download/v1.13.1/Seal-1.13.1-x86_64-release.apk",
     "digest": null,
-    "download_count": 48914
+    "download_count": 48919
    }
   ]
  },
@@ -2225,7 +2225,7 @@
    "owner": "koodo-reader",
    "avatar_url": "https://avatars.githubusercontent.com/u/149913075?v=4",
    "description": "A modern ebook manager and reader with sync and backup capacities for Windows, macOS, Linux, Android, iOS and Web",
-   "stars": 28534,
+   "stars": 28535,
    "forks": 2138,
    "topics": [
     "book",
@@ -2249,7 +2249,7 @@
    ],
    "archived": false,
    "default_branch": "dev",
-   "updated_at": "2026-10-17T05:17:32Z",
+   "updated_at": "2026-10-17T06:46:24Z",
    "created_at": "2020-03-05T02:18:30Z",
    "license": "AGPL-3.0",
    "language": "JavaScript",
@@ -2275,7 +2275,7 @@
     "size": 104559420,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-amd64.deb",
     "digest": "sha256:698a4a056921171c3408abd3e33a6b751d2b63b3f03798ea8641edca0970e907",
-    "download_count": 625
+    "download_count": 627
    },
    {
     "id": 615074847,
@@ -2293,7 +2293,7 @@
     "size": 64334135,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-arm64.apk",
     "digest": "sha256:a7196a006f1d7933700c2e4d86550b477740e73708adfda80131f22af21587e1",
-    "download_count": 844
+    "download_count": 846
    },
    {
     "id": 615074063,
@@ -2320,7 +2320,7 @@
     "size": 135444632,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-arm64.dmg",
     "digest": "sha256:a4ed495ba090c06fdfe832acdad1af12a3ffcd40725078855c9568092031acac",
-    "download_count": 683
+    "download_count": 685
    },
    {
     "id": 615082183,
@@ -2392,7 +2392,7 @@
     "size": 113074912,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-x64-Portable.exe",
     "digest": "sha256:6b8a6def607a2e3de8064289cc8df45f06ce7b6284ad04d2c9d09285d063ea87",
-    "download_count": 599
+    "download_count": 600
    },
    {
     "id": 615081831,
@@ -2410,7 +2410,7 @@
     "size": 143056180,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-x64.dmg",
     "digest": "sha256:092ff130d48b35141f1e8b542e0cfb18a0bbac3d107255a2830c41b35ef06403",
-    "download_count": 1265
+    "download_count": 1270
    },
    {
     "id": 615079697,
@@ -2428,7 +2428,7 @@
     "size": 113536688,
     "download_url": "https://github.com/koodo-reader/koodo-reader/releases/download/v2.4.6/Koodo-Reader-2.4.6-x64.exe",
     "digest": "sha256:706ce81ec8baf0e659bba722a343bce2bdd9be78c6ef5dbb061e9ef604733a0b",
-    "download_count": 1267
+    "download_count": 1268
    },
    {
     "id": 615081619,
@@ -5741,7 +5741,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T05:02:58Z",
+   "updated_at": "2026-10-17T06:13:26Z",
    "created_at": "2022-04-06T20:06:28Z",
    "license": "Apache-2.0",
    "language": "Kotlin",
@@ -5767,7 +5767,7 @@
     "size": 117873788,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-arm64-v8a.apk",
     "digest": "sha256:6e3a7376ccf022314a1d665d66c8f6c96f29f930c90f2142aaf2cac528797aa5",
-    "download_count": 17139
+    "download_count": 17152
    },
    {
     "id": 544885035,
@@ -5776,7 +5776,7 @@
     "size": 108551406,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-armeabi-v7a.apk",
     "digest": "sha256:78d97e8e7c9644bc84a095aa3cbda92154fb46f6ecdd0acffccffac888302bae",
-    "download_count": 448
+    "download_count": 449
    },
    {
     "id": 544885100,
@@ -5785,7 +5785,7 @@
     "size": 107826476,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-foss-arm64-v8a.apk",
     "digest": "sha256:7df1317a461dd46fba91225b098e4fb24b69118e3bedd641f8072e26aecd3c30",
-    "download_count": 15976
+    "download_count": 15994
    },
    {
     "id": 544885158,
@@ -5794,7 +5794,7 @@
     "size": 99700122,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-foss-armeabi-v7a.apk",
     "digest": "sha256:38fc042e5564b52da3e2b494d5d375dd47a27c6726d0df942800972d62ba6ef2",
-    "download_count": 334
+    "download_count": 335
    },
    {
     "id": 544885224,
@@ -5803,7 +5803,7 @@
     "size": 226172367,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-foss-universal.apk",
     "digest": "sha256:862e469ea3b4979f822d5bfe72f7928905928dd5e00368ac0904c3b5f6a3d82e",
-    "download_count": 3598
+    "download_count": 3607
    },
    {
     "id": 544885357,
@@ -5812,7 +5812,7 @@
     "size": 121687175,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-foss-x86_64.apk",
     "digest": "sha256:6133f997cf71ae0f9c1f50a3d288663006a7b000555dfeaa2c3d60168aeeeb3a",
-    "download_count": 223
+    "download_count": 224
    },
    {
     "id": 544885437,
@@ -5821,7 +5821,7 @@
     "size": 250744403,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-universal.apk",
     "digest": "sha256:82490f5a05315b65a10290973c7ab713a95740ec50a616a17fb8ef48eb647a5c",
-    "download_count": 1838
+    "download_count": 1840
    },
    {
     "id": 544885591,
@@ -5830,7 +5830,7 @@
     "size": 131800017,
     "download_url": "https://github.com/T8RIN/ImageToolbox/releases/download/4.2.0/image-toolbox-4.2.0-x86_64.apk",
     "digest": "sha256:0c0eee5fa233ff5e534b7398242bec367a643f9d0f179cf1cf8bfefd36c7ff70",
-    "download_count": 279
+    "download_count": 280
    }
   ]
  },
@@ -10084,7 +10084,7 @@
     "size": 11213788,
     "download_url": "https://github.com/ReadYouApp/ReadYou/releases/download/0.16.2/ReadYou-0.16.2-091c9207-signed.apk",
     "digest": "sha256:a27f6da6961f2d5cd27b515349dc71844a0d20cfacc38b5fc398152fa034ce5e",
-    "download_count": 22418
+    "download_count": 22430
    }
   ]
  },
@@ -10298,7 +10298,7 @@
     "size": 14497657,
     "download_url": "https://github.com/XayahSuSuSu/Android-DataBackup/releases/download/2.0.12/DataBackup-2.0.12-arm64-v8a-foss-release.apk",
     "digest": "sha256:3a7b9ab820ea33d02a84ee5403d99dc8e35c73b7c3705615bfa371c958f57b4e",
-    "download_count": 45597
+    "download_count": 45606
    },
    {
     "id": 295339688,
@@ -10307,7 +10307,7 @@
     "size": 15181547,
     "download_url": "https://github.com/XayahSuSuSu/Android-DataBackup/releases/download/2.0.12/DataBackup-2.0.12-arm64-v8a-premium-release.apk",
     "digest": "sha256:606b5cb2824918d093bf731bbf9604efa77a52359851dc1f44a6910b3b334311",
-    "download_count": 47889
+    "download_count": 47897
    },
    {
     "id": 295339566,
@@ -10419,7 +10419,7 @@
     "size": 4779938,
     "download_url": "https://github.com/LibChecker/LibChecker/releases/download/2.5.4/LibChecker-2.5.4.5696014-2671-foss-release.apk",
     "digest": "sha256:d10fc81fde48cc9dc697b389ae13f3c9dcdc07a5b04e811ff812f4314b95052d",
-    "download_count": 9321
+    "download_count": 9325
    },
    {
     "id": 449831408,
@@ -10428,7 +10428,7 @@
     "size": 5567554,
     "download_url": "https://github.com/LibChecker/LibChecker/releases/download/2.5.4/LibChecker-2.5.4.5696014-2671-market-release.apk",
     "digest": "sha256:45b0c134580ba7bdd59da59079ef8a88e036385072c9cd0b9453f002d9d6754d",
-    "download_count": 6538
+    "download_count": 6540
    },
    {
     "id": 449831516,
@@ -10446,7 +10446,7 @@
     "size": 43,
     "download_url": "https://github.com/LibChecker/LibChecker/releases/download/2.5.4/version_code.txt",
     "digest": "sha256:d0f43dca5ed072a986472ebf4ad9f1e3e854cc591d01f6809823da4c8122af4e",
-    "download_count": 65349
+    "download_count": 65389
    }
   ]
  },
@@ -10843,7 +10843,7 @@
     "size": 61100918,
     "download_url": "https://github.com/plainhub/plain-app/releases/download/v3.3.25/PlainApp-3.3.25-64bit-Recommended.apk",
     "digest": "sha256:090a4a350c1f371a1588f8c18b35d30f07b1bcbb27796f883b2f4398ac44928a",
-    "download_count": 5457
+    "download_count": 5460
    },
    {
     "id": 557227713,
@@ -12673,7 +12673,7 @@
     "size": 176471259,
     "download_url": "https://github.com/bromite/bromite/releases/download/108.0.5359.156/arm64_ChromePublic.apk",
     "digest": null,
-    "download_count": 489429
+    "download_count": 489437
    },
    {
     "id": 88813656,
@@ -12682,7 +12682,7 @@
     "size": 50232884,
     "download_url": "https://github.com/bromite/bromite/releases/download/108.0.5359.156/arm64_ChromePublic_debug.7z",
     "digest": null,
-    "download_count": 2566
+    "download_count": 2567
    },
    {
     "id": 88813664,
@@ -12691,7 +12691,7 @@
     "size": 99330457,
     "download_url": "https://github.com/bromite/bromite/releases/download/108.0.5359.156/arm64_SystemWebView.apk",
     "digest": null,
-    "download_count": 74260
+    "download_count": 74262
    },
    {
     "id": 88813667,
@@ -12709,7 +12709,7 @@
     "size": 126604753,
     "download_url": "https://github.com/bromite/bromite/releases/download/108.0.5359.156/arm_ChromePublic.apk",
     "digest": null,
-    "download_count": 106358
+    "download_count": 106360
    },
    {
     "id": 88813675,
@@ -12727,7 +12727,7 @@
     "size": 53180574,
     "download_url": "https://github.com/bromite/bromite/releases/download/108.0.5359.156/arm_SystemWebView.apk",
     "digest": null,
-    "download_count": 24175
+    "download_count": 24176
    },
    {
     "id": 88813689,
@@ -13827,7 +13827,7 @@
    "owner": "celzero",
    "avatar_url": "https://avatars.githubusercontent.com/u/68689239?v=4",
    "description": "DNS over HTTPS / DNS over Tor / DNSCrypt client, WireGuard proxifier, firewall, and connection tracker for Android.",
-   "stars": 5597,
+   "stars": 5599,
    "forks": 350,
    "topics": [
     "android",
@@ -13849,7 +13849,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T02:12:55Z",
+   "updated_at": "2026-10-17T06:41:53Z",
    "created_at": "2020-06-08T13:41:18Z",
    "license": "Apache-2.0",
    "language": "Kotlin",
@@ -13875,7 +13875,7 @@
     "size": 31780409,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-70-arm64-v8a.apk",
     "digest": "sha256:2eb2c79f3c3e87dcaf42f5c43d307fe3665c7e1c8a25c6f966212ee49fb53eeb",
-    "download_count": 4436
+    "download_count": 4474
    },
    {
     "id": 637834602,
@@ -13884,7 +13884,7 @@
     "size": 31188568,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-70-armeabi-v7a.apk",
     "digest": "sha256:fcda300f9e3657519c0505e4cbabe12033065d31442d509ae8fa2aefc99820d9",
-    "download_count": 193
+    "download_count": 196
    },
    {
     "id": 637837714,
@@ -13893,7 +13893,7 @@
     "size": 31398810,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-70-x86.apk",
     "digest": "sha256:b23d043dadc8dbdbf3780ddb781d148a7e3dcacf253932c755f5b0791e5c7f91",
-    "download_count": 88
+    "download_count": 90
    },
    {
     "id": 637836178,
@@ -13902,7 +13902,7 @@
     "size": 33119817,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-70-x86_64.apk",
     "digest": "sha256:237778cc6f4446bb77853f769359e98329d323385341cdcece391ab8af5cd161",
-    "download_count": 109
+    "download_count": 111
    },
    {
     "id": 637840145,
@@ -13911,7 +13911,7 @@
     "size": 72146804,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-70.apk",
     "digest": "sha256:f8b78513e91bc47066ccf51f5bd742274abb3970388d5e7a7ebcae9c9cd9c9d2",
-    "download_count": 619
+    "download_count": 630
    },
    {
     "id": 637728753,
@@ -13920,7 +13920,7 @@
     "size": 30940198,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-v0.5.8-izzy-arm64-v8a.apk",
     "digest": "sha256:fa1de4d7ed520036eb389e5dbd4ade4f752f8dc741f60288a8fd11c686faa7e2",
-    "download_count": 1611
+    "download_count": 1632
    },
    {
     "id": 637728757,
@@ -13929,7 +13929,7 @@
     "size": 30348340,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-v0.5.8-izzy-armeabi-v7a.apk",
     "digest": "sha256:e8b5414cef80968a6c28644c5de36fc9301cc09cf0bf438976e0ba16d556e036",
-    "download_count": 110
+    "download_count": 112
    },
    {
     "id": 637728755,
@@ -13938,7 +13938,7 @@
     "size": 71306600,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-v0.5.8-izzy-universal.apk",
     "digest": "sha256:3701e77c1a8fc0f75c7721115f2c17f9aef3f6a1087a74dfc82c8f4e3b993f6a",
-    "download_count": 144
+    "download_count": 148
    },
    {
     "id": 637728752,
@@ -13947,7 +13947,7 @@
     "size": 30558564,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-v0.5.8-izzy-x86.apk",
     "digest": "sha256:b09266cc261978c237c26295f24ed35e9e8e2c67ffdce183117073a26f141460",
-    "download_count": 97
+    "download_count": 99
    },
    {
     "id": 637728756,
@@ -13956,7 +13956,7 @@
     "size": 32279577,
     "download_url": "https://github.com/celzero/rethink-app/releases/download/v0.5.8/rethink-v0.5.8-izzy-x86_64.apk",
     "digest": "sha256:0c9bff47822747bf932e86e968053310256b7e8eacf6babb98b21c72a7119618",
-    "download_count": 94
+    "download_count": 96
    }
   ]
  },
@@ -14073,7 +14073,7 @@
    "owner": "NeoApplications",
    "avatar_url": "https://avatars.githubusercontent.com/u/101910870?v=4",
    "description": "An F-Droid client with modern UI and an arsenal of extra features.",
-   "stars": 5458,
+   "stars": 5459,
    "forks": 190,
    "topics": [
     "android",
@@ -14083,7 +14083,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T04:40:43Z",
+   "updated_at": "2026-10-17T05:51:54Z",
    "created_at": "2021-03-07T12:56:05Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
@@ -14109,7 +14109,7 @@
     "size": 5924118,
     "download_url": "https://github.com/NeoApplications/Neo-Store/releases/download/1.3.2/Neo_Store_1.3.2_release.apk",
     "digest": "sha256:87a3d6f553f7ce0e9fe1858748f94c83aa2bc3e54e25410e31a317a2cb93cc3b",
-    "download_count": 17009
+    "download_count": 17031
    }
   ]
  },
@@ -14495,7 +14495,7 @@
     "size": 8687548,
     "download_url": "https://github.com/simondankelmann/Bluetooth-LE-Spam/releases/download/v1.0.9/app-debug.apk",
     "digest": null,
-    "download_count": 62556
+    "download_count": 62561
    },
    {
     "id": 222377129,
@@ -14504,7 +14504,7 @@
     "size": 6857773,
     "download_url": "https://github.com/simondankelmann/Bluetooth-LE-Spam/releases/download/v1.0.9/app-release.apk",
     "digest": null,
-    "download_count": 109653
+    "download_count": 109661
    }
   ]
  },
@@ -14561,7 +14561,7 @@
     "size": 17571744,
     "download_url": "https://github.com/emanuele-f/PCAPdroid/releases/download/v2.0.2/PCAPdroid_v2.0.2.apk",
     "digest": "sha256:eb437cbe10e2c7e332c06d7401d8f9036c3722747f541e6e231d1bd9ab6dbffc",
-    "download_count": 33209
+    "download_count": 33307
    }
   ]
  },
@@ -14674,7 +14674,7 @@
     "size": 136252221,
     "download_url": "https://github.com/saber-notes/saber/releases/download/v1.36.1/Saber_v1.36.1.apk",
     "digest": "sha256:1df0edc6dc6eeba4603310f242f13232aa54b88969c19099f9039082be7da726",
-    "download_count": 1871
+    "download_count": 1872
    },
    {
     "id": 535955919,
@@ -15570,7 +15570,7 @@
     "size": 4130561,
     "download_url": "https://github.com/rumboalla/apkupdater/releases/download/0.0.604-ci/com.apkupdater.ci-release.apk",
     "digest": "sha256:96741d501ae60ac73b94983187bc7db3cfe28a8b3520cffc371177d7cda354f2",
-    "download_count": 27117
+    "download_count": 27143
    }
   ]
  },
@@ -16032,7 +16032,7 @@
     "size": 13093640,
     "download_url": "https://github.com/ukanth/afwall/releases/download/v5.0.0/AFWall_5.0.0_Free.apk",
     "digest": "sha256:7b787581171a727269e7d5ab11c43001b8136511d6972d78842d6dbd211d6be9",
-    "download_count": 822
+    "download_count": 834
    }
   ]
  },
@@ -18527,7 +18527,7 @@
     "size": 8553225,
     "download_url": "https://github.com/lihenggui/blocker/releases/download/v2.0.5839/Blocker-2.0.5839-foss-release.apk",
     "digest": "sha256:78679dc5d1a7d1bc086da3d8c7f084523d2fdb2a464474098c307f1f126becd4",
-    "download_count": 9258
+    "download_count": 9259
    },
    {
     "id": 306262990,
@@ -18634,7 +18634,7 @@
     "size": 16354854,
     "download_url": "https://github.com/AhmetCanArslan/ShizuWall/releases/download/v4.6.6/ShizuWall-4.6.6.apk",
     "digest": "sha256:1c3527edf4f6f4c9bf5d223028f51e916f3abcefbb4ec32accd79501834ddc3f",
-    "download_count": 9680
+    "download_count": 9709
    }
   ]
  },
@@ -18647,7 +18647,7 @@
    "owner": "FoedusProgramme",
    "avatar_url": "https://avatars.githubusercontent.com/u/157073664?v=4",
    "description": "A sane music player built with media3 and material design library that is following android's standard strictly.",
-   "stars": 2349,
+   "stars": 2350,
    "forks": 138,
    "topics": [
     "android",
@@ -18663,7 +18663,7 @@
    ],
    "archived": false,
    "default_branch": "beta",
-   "updated_at": "2026-10-16T21:36:18Z",
+   "updated_at": "2026-10-17T06:10:03Z",
    "created_at": "2023-08-02T07:57:11Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
@@ -18689,7 +18689,7 @@
     "size": 12542978,
     "download_url": "https://github.com/FoedusProgramme/Gramophone/releases/download/1.1.2/Gramophone-1.1.2-release.apk",
     "digest": "sha256:fe36158a4ba3829f74aa43c50f3048c26f0a9e15635460b9d823cf01dbff034c",
-    "download_count": 5553
+    "download_count": 5557
    }
   ]
  },
@@ -19172,7 +19172,7 @@
    "owner": "pass-with-high-score",
    "avatar_url": "https://avatars.githubusercontent.com/u/173918919?v=4",
    "description": "Block ads system-wide on Android using local VPN-based DNS filtering. No root needed. No data collection.",
-   "stars": 2190,
+   "stars": 2191,
    "forks": 123,
    "topics": [
     "adblocker",
@@ -19195,14 +19195,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T19:39:38Z",
+   "updated_at": "2026-10-17T05:43:29Z",
    "created_at": "2026-02-10T04:35:15Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
    "openIssues": 65,
    "watchers": null,
    "homepage": "https://blockads.pwhs.app",
-   "pushedAt": "2026-10-16T19:39:33Z"
+   "pushedAt": "2026-10-17T05:43:26Z"
   },
   "release": {
    "id": 413026558,
@@ -19221,7 +19221,7 @@
     "size": 19281020,
     "download_url": "https://github.com/pass-with-high-score/blockads-android/releases/download/v7.0.0/app-arm64-v8a-release.apk",
     "digest": "sha256:f3b6fca88a8f69caee5875b675cf022c39018a473bde074dcc0d5af2fe23b5ca",
-    "download_count": 2717
+    "download_count": 2754
    },
    {
     "id": 641239124,
@@ -19230,7 +19230,7 @@
     "size": 18069202,
     "download_url": "https://github.com/pass-with-high-score/blockads-android/releases/download/v7.0.0/app-armeabi-v7a-release.apk",
     "digest": "sha256:0acf3a6b0a52dff9bd038c228ca569e57d768db99646ce338444957b5e3f9d90",
-    "download_count": 94
+    "download_count": 96
    },
    {
     "id": 641239123,
@@ -19239,7 +19239,7 @@
     "size": 58507020,
     "download_url": "https://github.com/pass-with-high-score/blockads-android/releases/download/v7.0.0/app-universal-release.apk",
     "digest": "sha256:cd0a05b458c6524f44cb8fc90a586c7953d3da7715fc0f358501c7f0eb627731",
-    "download_count": 697
+    "download_count": 715
    },
    {
     "id": 641239129,
@@ -19257,7 +19257,7 @@
     "size": 19823213,
     "download_url": "https://github.com/pass-with-high-score/blockads-android/releases/download/v7.0.0/app-x86_64-release.apk",
     "digest": "sha256:87ccd00ec770ebc951da4c4ded4dde43136b4c0933492fe51c01fa8948f33dd7",
-    "download_count": 19
+    "download_count": 20
    },
    {
     "id": 641239128,
@@ -21194,7 +21194,7 @@
     "size": 5311894,
     "download_url": "https://github.com/CatimaLoyalty/Android/releases/download/v2.45.1/app-foss-release.apk",
     "digest": "sha256:271980b62f73137db2d843fb4fc35f103c4126d769f816d365206c5c1adff3a9",
-    "download_count": 7362
+    "download_count": 7370
    },
    {
     "id": 593348313,
@@ -21549,7 +21549,7 @@
     "size": 40858280,
     "download_url": "https://github.com/wh201906/SerialTest/releases/download/V0.3.5/V0.3.5-android.apk",
     "digest": null,
-    "download_count": 7650
+    "download_count": 7652
    },
    {
     "id": 162857766,
@@ -21594,7 +21594,7 @@
     "size": 7281580,
     "download_url": "https://github.com/wh201906/SerialTest/releases/download/V0.3.5/V0.3.5-win64-MSVC.7z",
     "digest": null,
-    "download_count": 8704
+    "download_count": 8705
    }
   ]
  },
@@ -22318,7 +22318,7 @@
     "size": 69349521,
     "download_url": "https://github.com/Arcticons-Team/Arcticons/releases/download/15.3.2/Arcticons-15.3.2-black-release.apk",
     "digest": "sha256:eaca7423e836c545d1dac5adafc7e80c91e699526f6c0dd1d57850c2689a275e",
-    "download_count": 1083
+    "download_count": 1085
    },
    {
     "id": 574844417,
@@ -22327,7 +22327,7 @@
     "size": 29544995,
     "download_url": "https://github.com/Arcticons-Team/Arcticons/releases/download/15.3.2/Arcticons-15.3.2-dayNight-release.apk",
     "digest": "sha256:d5aec9fa1e02718743c216193006bfa0ba71a6ade74504d06e046a66b29ed4b8",
-    "download_count": 1982
+    "download_count": 1987
    },
    {
     "id": 574844413,
@@ -22336,7 +22336,7 @@
     "size": 70647343,
     "download_url": "https://github.com/Arcticons-Team/Arcticons/releases/download/15.3.2/Arcticons-15.3.2-normal-release.apk",
     "digest": "sha256:653ea050715c4d40c15da7e6cefad17e389afcd6a518636f6115de2ae1310fc1",
-    "download_count": 2855
+    "download_count": 2858
    },
    {
     "id": 574844419,
@@ -22345,7 +22345,7 @@
     "size": 29963909,
     "download_url": "https://github.com/Arcticons-Team/Arcticons/releases/download/15.3.2/Arcticons-15.3.2-you-release.apk",
     "digest": "sha256:40a96043517115baab67008e3719286c04c38dca08c13c615e6ed1dab4dc5b5c",
-    "download_count": 2401
+    "download_count": 2405
    }
   ]
  },
@@ -22728,7 +22728,7 @@
     "size": 11752909,
     "download_url": "https://github.com/potatameister/PaperKnife/releases/download/v1.1.0/paperknife-lite-v1.1.0.apk",
     "digest": "sha256:e1418425ea52ea20770c092363e818bfda18b6ce9ad90062df09a81511817aad",
-    "download_count": 1340
+    "download_count": 1345
    },
    {
     "id": 603682883,
@@ -22737,7 +22737,7 @@
     "size": 25770042,
     "download_url": "https://github.com/potatameister/PaperKnife/releases/download/v1.1.0/paperknife-v1.1.0.apk",
     "digest": "sha256:1ba765dfa8b8a19c861f8a862b48b63c6259208b45f53c071a064c2eb7137c9d",
-    "download_count": 1491
+    "download_count": 1496
    }
   ]
  },
@@ -23237,7 +23237,7 @@
     "size": 24083458,
     "download_url": "https://github.com/mrrfv/open-android-backup/releases/download/v1.2.3/Open_Android_Backup_v1.2.3_Bundle.zip",
     "digest": "sha256:d1ca878fbcbde68d6eb186655ef7c4d4ece6601d60a34aad6c871c3f271307a8",
-    "download_count": 3197
+    "download_count": 3198
    }
   ]
  },
@@ -25028,7 +25028,7 @@
     "size": 4287501,
     "download_url": "https://github.com/mudkipme/MoeMemosAndroid/releases/download/2.0.6/moememos-v2.0.6.apk",
     "digest": "sha256:a5f53b3afd4a69f9ee19567bc3bd13ea45fa12c35267f1139ae2f3bc49275a9d",
-    "download_count": 1156
+    "download_count": 1162
    }
   ]
  },
@@ -27556,7 +27556,7 @@
    "owner": "InlitX",
    "avatar_url": "https://avatars.githubusercontent.com/u/193412982?v=4",
    "description": " Offline gym log for Android. No account, no ads, no internet.",
-   "stars": 955,
+   "stars": 956,
    "forks": 107,
    "topics": [
     "android",
@@ -27576,7 +27576,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T04:06:41Z",
+   "updated_at": "2026-10-17T06:03:31Z",
    "created_at": "2026-08-05T12:02:49Z",
    "license": "GPL-3.0",
    "language": "Dart",
@@ -27602,7 +27602,7 @@
     "size": 41656717,
     "download_url": "https://github.com/InlitX/GymMane/releases/download/v1.5.0/GymMane-arm64-v8a.apk",
     "digest": "sha256:975a6040e97e845326ca4995eb96c0270c7ef305d702eee5647c5c8759ee6b8a",
-    "download_count": 2105
+    "download_count": 2122
    },
    {
     "id": 631932408,
@@ -27853,12 +27853,12 @@
    "owner": "giejay",
    "avatar_url": "https://avatars.githubusercontent.com/u/2014373?v=4",
    "description": "An Android TV app for the self hosted photos and videos backup solution.",
-   "stars": 900,
+   "stars": 901,
    "forks": 78,
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T07:45:53Z",
+   "updated_at": "2026-10-17T05:32:27Z",
    "created_at": "2024-01-26T07:55:00Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
@@ -27991,7 +27991,7 @@
     "size": 60896807,
     "download_url": "https://github.com/Delta-Icons/android/releases/download/v2.20.0/delta-foss-v2.20.0.apk",
     "digest": "sha256:d068ff4876ef9c5ee789d2c3ca7b79756e9c73cf9e1b9e66b44e2c8c1eb776a7",
-    "download_count": 706
+    "download_count": 709
    },
    {
     "id": 604137481,
@@ -28000,7 +28000,7 @@
     "size": 60743793,
     "download_url": "https://github.com/Delta-Icons/android/releases/download/v2.20.0/delta-fossdc-v2.20.0.apk",
     "digest": "sha256:e50f5e437c829623636acc39596ae0baf59d8da1ba3fca382d2181212a4d0bae",
-    "download_count": 409
+    "download_count": 411
    },
    {
     "id": 604137479,
@@ -28009,7 +28009,7 @@
     "size": 61260929,
     "download_url": "https://github.com/Delta-Icons/android/releases/download/v2.20.0/delta-gplay-v2.20.0.apk",
     "digest": "sha256:dd42d255fdae08dca5db34e6a9891184e56fb54f3a283b0402a6dcf715a0d755",
-    "download_count": 265
+    "download_count": 267
    }
   ]
  },
@@ -30080,7 +30080,7 @@
     "size": 4984388,
     "download_url": "https://github.com/tmo1/sms-ie/releases/download/v2.12.0/com.github.tmo1.sms_ie-v2.12.0-standard-release.apk",
     "digest": "sha256:e33f9080a2a6dfc0c33b4c5ea6ccc388d09b2a42f69781bc6a381213622d05f2",
-    "download_count": 1414
+    "download_count": 1419
    }
   ]
  },
@@ -30272,7 +30272,7 @@
     "size": 6320684,
     "download_url": "https://github.com/Kin69/Athena/releases/download/1.8/Athena.apk",
     "digest": "sha256:9424e364ce8a3f6b47770bf1f2b274c466fc8daf4905bf84eff1fc81c52ad40e",
-    "download_count": 30470
+    "download_count": 30472
    }
   ]
  },
@@ -30493,7 +30493,7 @@
     "size": 4150597,
     "download_url": "https://github.com/eyalm2000/adns/releases/download/v2.1.8/app-foss-release.apk",
     "digest": "sha256:90c8c5ca5d2333a3cb06b8c64b515ad1a68eb8318a6c50756ba67f777ab3f8c0",
-    "download_count": 2147
+    "download_count": 2152
    },
    {
     "id": 607924930,
@@ -30502,7 +30502,7 @@
     "size": 4154693,
     "download_url": "https://github.com/eyalm2000/adns/releases/download/v2.1.8/app-normal-release.apk",
     "digest": "sha256:29c924dcd7f212c1d207a8b6d93612fe64757a859ab574769b0fdef364c4c956",
-    "download_count": 3183
+    "download_count": 3193
    }
   ]
  },
@@ -31240,7 +31240,7 @@
     "size": 66935246,
     "download_url": "https://github.com/chaldea-center/chaldea/releases/download/v2.6.1/chaldea-2.6.1-android.apk",
     "digest": "sha256:500a6356deaa81692e5a570113672c7e203c5e6f1fa0fd6089224166076bfb01",
-    "download_count": 46064
+    "download_count": 46091
    },
    {
     "id": 526567300,
@@ -31258,7 +31258,7 @@
     "size": 21780017,
     "download_url": "https://github.com/chaldea-center/chaldea/releases/download/v2.6.1/chaldea-2.6.1-linux.tar.gz",
     "digest": "sha256:c72ec5b3f7b66d38ff212da67eae9ef0f506d83d1ae6aeda51b0c796c9561e04",
-    "download_count": 759
+    "download_count": 762
    },
    {
     "id": 526567297,
@@ -31267,7 +31267,7 @@
     "size": 25344464,
     "download_url": "https://github.com/chaldea-center/chaldea/releases/download/v2.6.1/chaldea-2.6.1-windows.zip",
     "digest": "sha256:384c9b5812675f4b86775f05fdaa9cb476127a6e963d6367c4d4e3f9bcc4bb1c",
-    "download_count": 17618
+    "download_count": 17634
    },
    {
     "id": 526567296,
@@ -31670,7 +31670,7 @@
     "size": 79853528,
     "download_url": "https://github.com/krvstek/uni-apks/releases/download/26.10.11-morphe/music-experimental-morphe-v9.40.51-arm64-v8a.apk",
     "digest": "sha256:a04bece7bec3b5da77911b43a06666d5637dbec0dd7f99f2393db2ccde6fb28f",
-    "download_count": 68
+    "download_count": 71
    },
    {
     "id": 631108657,
@@ -31706,7 +31706,7 @@
     "size": 107964567,
     "download_url": "https://github.com/krvstek/uni-apks/releases/download/26.10.11-morphe/reddit-experimental-morphe-v2026.41.0-all.apk",
     "digest": "sha256:94c9fc0b3004448b093fe075bccb250e7318e935021f1a09f22a71a0d34eff5e",
-    "download_count": 23
+    "download_count": 25
    },
    {
     "id": 631108305,
@@ -34086,7 +34086,7 @@
     "size": 2285461,
     "download_url": "https://github.com/CompassMB/MBCompass/releases/download/v1.1.19/MBCompass_v1.1.19_signed_release.apk",
     "digest": "sha256:95ad7a3ec211fe6c48dd09b2e03555c2562eed4884cf402ce250cb142e17c8cb",
-    "download_count": 3829
+    "download_count": 3839
    }
   ]
  },
@@ -34790,7 +34790,7 @@
     "size": 42198273,
     "download_url": "https://github.com/iodn/android-ir-blaster/releases/download/v3.4.6/irblaster-arm64-v8a-release.apk",
     "digest": "sha256:c4c9c64d79b25499b1c0892f4f2ad000d9d3bf31172fc36da8d1dfbed177dba7",
-    "download_count": 595
+    "download_count": 617
    },
    {
     "id": 643293969,
@@ -34808,7 +34808,7 @@
     "size": 43560229,
     "download_url": "https://github.com/iodn/android-ir-blaster/releases/download/v3.4.6/irblaster-x86_64-release.apk",
     "digest": "sha256:a52c2cf5b7ce60434746ef4f7edba847af250939962b9b89f4978ac88a08f4e3",
-    "download_count": 6
+    "download_count": 7
    }
   ]
  },
@@ -37136,7 +37136,7 @@
     "size": 66222999,
     "download_url": "https://github.com/OpenIoTHub/OpenIoTHub/releases/download/v1.3.94%2B449/openiothub.dmg",
     "digest": "sha256:9ebed1e4d7276d35442d508a1c8f219eed1216f1d460e467036453c81502ef80",
-    "download_count": 24
+    "download_count": 25
    },
    {
     "id": 285476578,
@@ -37415,7 +37415,7 @@
     "size": 304411337,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-arm64-v8a.apk",
     "digest": "sha256:6c9b1317bfec2e87217f11aa81c3dfdde8a82ea97812e8ad9132c57b2334ee69",
-    "download_count": 2118
+    "download_count": 2138
    },
    {
     "id": 642687743,
@@ -37424,7 +37424,7 @@
     "size": 203447000,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-armeabi-v7a.apk",
     "digest": "sha256:dbf9bb5f8e2cdf6f1577dfbd490f966816a6e444028141e2d3743a49e5afbdcb",
-    "download_count": 132
+    "download_count": 136
    },
    {
     "id": 642687787,
@@ -37433,7 +37433,7 @@
     "size": 693543,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-devtools.png",
     "digest": "sha256:be530d1104c46fbf8d866b027ee5e4c91ec27d094450125bc9714c9643d5f813",
-    "download_count": 2588
+    "download_count": 2613
    },
    {
     "id": 642687784,
@@ -37442,7 +37442,7 @@
     "size": 192480,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-extensions.png",
     "digest": "sha256:2eaf357f197d040b6194b503dff3dccd85f2372a5c93e596dc78efbb2ed6c702",
-    "download_count": 2603
+    "download_count": 2628
    },
    {
     "id": 642687744,
@@ -37451,7 +37451,7 @@
     "size": 171903,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-setup.png",
     "digest": "sha256:a20495927f64043a789135c95abafd18653fa7840fa67b5d454a50a7d8bf3af9",
-    "download_count": 2609
+    "download_count": 2634
    },
    {
     "id": 642687738,
@@ -37460,7 +37460,7 @@
     "size": 105936,
     "download_url": "https://github.com/BareBrowser/bare-browser/releases/download/v1.0.0/Bare-1.0.0-welcome.png",
     "digest": "sha256:4d4475056198a31b58285fe08dc8ee5a92c3c225828ba8684ab0d60de708df09",
-    "download_count": 2621
+    "download_count": 2646
    },
    {
     "id": 642687742,
@@ -38292,7 +38292,7 @@
     "size": 8363248,
     "download_url": "https://github.com/techlore/Plexus-app/releases/download/v2.2.1/Plexus_v2.2.1.apk",
     "digest": "sha256:bd57154901cd54d7c557d1a93925c36c7371ccab2553a6daae20ba0bc7ff6d95",
-    "download_count": 1637
+    "download_count": 1638
    },
    {
     "id": 493282878,
@@ -39028,14 +39028,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T18:36:26Z",
+   "updated_at": "2026-10-17T06:13:24Z",
    "created_at": "2010-10-19T09:31:13Z",
    "license": "MPL-2.0",
    "language": "Kotlin",
-   "openIssues": 28,
+   "openIssues": 24,
    "watchers": null,
    "homepage": "https://opendocument.app/",
-   "pushedAt": "2026-10-16T21:43:41Z"
+   "pushedAt": "2026-10-17T06:13:21Z"
   },
   "release": {
    "id": 408979908,
@@ -39054,7 +39054,7 @@
     "size": 40048763,
     "download_url": "https://github.com/opendocument-app/OpenDocument.droid/releases/download/v4.22.1/app-foss-release.apk",
     "digest": "sha256:965c52508d9a49c6ac926be63587be875e157ddf76efe4290efbcc24925b96ae",
-    "download_count": 5343
+    "download_count": 5396
    },
    {
     "id": 628090648,
@@ -39760,7 +39760,7 @@
     "size": 22396388,
     "download_url": "https://github.com/iakdis/librecamera/releases/download/v2.0.2/librecamera-2.0.2-arm64-v8a.apk",
     "digest": "sha256:9ab46b924a2d59927a90491b85067b562b98fcfa8b85a03a52f07f108efd95ab",
-    "download_count": 9503
+    "download_count": 9530
    },
    {
     "id": 588253572,
@@ -39899,7 +39899,7 @@
     "size": 29587351,
     "download_url": "https://github.com/biplobsd/running_services_monitor/releases/download/v1.0.27%2B26/rsm_v1.0.27%2B26.apk",
     "digest": "sha256:1b4d7b602b44e1b9888a281f20a8af41172271717074a6f0105a2ab1af23b82d",
-    "download_count": 2351
+    "download_count": 2353
    },
    {
     "id": 474387945,
@@ -39908,7 +39908,7 @@
     "size": 11140179,
     "download_url": "https://github.com/biplobsd/running_services_monitor/releases/download/v1.0.27%2B26/rsm_v1.0.27%2B26_arm64-v8a.apk",
     "digest": "sha256:ba9675f29cdef9d2ddde788ae346d1973874d648270f5885e8f8a9cdec1c432c",
-    "download_count": 8984
+    "download_count": 8985
    },
    {
     "id": 474387943,
@@ -42480,7 +42480,7 @@
     "size": 120657757,
     "download_url": "https://github.com/REBEL-ROOT/omni-browser/releases/download/v1.3.5.1/omni-browser-v1.3.5.1-aarch64.apk",
     "digest": "sha256:46eaee79ad403d74d90389ee6ab47da1de31a1a1e6fbf40e89ebbee90e73f13f",
-    "download_count": 396
+    "download_count": 404
    },
    {
     "id": 642685305,
@@ -44492,7 +44492,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/150185321?v=4",
    "description": "Fast Gesture based android launcher",
    "stars": 337,
-   "forks": 25,
+   "forks": 26,
    "topics": [
     "android",
     "android-app",
@@ -44531,7 +44531,7 @@
     "size": 8764914,
     "download_url": "https://github.com/Elnix90/Dragon-Launcher/releases/download/4.5.2/DragonLauncher-4.5.2.apk",
     "digest": "sha256:4d88017bb9f616d51aef87a04eac19cff4d6669884344275e8a9917bd90ce8aa",
-    "download_count": 477
+    "download_count": 482
    },
    {
     "id": 641530505,
@@ -44745,7 +44745,7 @@
     "size": 3201715,
     "download_url": "https://github.com/forzzzzz/Calculator-You/releases/download/v3.1.2/CalculatorYou-v3.1.2.apk",
     "digest": null,
-    "download_count": 4447
+    "download_count": 4450
    }
   ]
  },
@@ -46243,7 +46243,7 @@
     "size": 1971916,
     "download_url": "https://github.com/DavidBerdik/Let-Me-Downgrade/releases/download/1.1.0/Let-Me-Downgrade-1.1.0.apk",
     "digest": "sha256:4f16d69cc648006a89bb4a765a94e6e5255fd4ed904fa5f360f168ee2f4a7e99",
-    "download_count": 2126
+    "download_count": 2128
    }
   ]
  },
@@ -46690,7 +46690,7 @@
    "owner": "Mahmud0808",
    "avatar_url": "https://avatars.githubusercontent.com/u/29881338?v=4",
    "description": "Turn a private Telegram channel into your personal cloud drive. Android, Windows, Linux and macOS, auto backup, optional E2E encryption, built-in file manager and player.",
-   "stars": 295,
+   "stars": 296,
    "forks": 28,
    "topics": [
     "android",
@@ -46709,7 +46709,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T02:00:32Z",
+   "updated_at": "2026-10-17T05:55:05Z",
    "created_at": "2026-08-21T16:10:36Z",
    "license": "Apache-2.0",
    "language": "Kotlin",
@@ -46735,7 +46735,7 @@
     "size": 28002018,
     "download_url": "https://github.com/Mahmud0808/TeleDrive/releases/download/v1.4.2/TeleDrive-1.4.2-arm64-v8a-release.apk",
     "digest": "sha256:17c4c14db4aab0491593572b6d62537706780dd1f6c4decea49b8ee4147ad60e",
-    "download_count": 2340
+    "download_count": 2349
    },
    {
     "id": 574605886,
@@ -46744,7 +46744,7 @@
     "size": 21650018,
     "download_url": "https://github.com/Mahmud0808/TeleDrive/releases/download/v1.4.2/TeleDrive-1.4.2-armeabi-v7a-release.apk",
     "digest": "sha256:d4f3c67adb66718c0a10bae3bfce6c46eb786b326d8c3f01adb4d93bba7275ed",
-    "download_count": 107
+    "download_count": 108
    },
    {
     "id": 574605885,
@@ -46753,7 +46753,7 @@
     "size": 96847458,
     "download_url": "https://github.com/Mahmud0808/TeleDrive/releases/download/v1.4.2/TeleDrive-1.4.2-universal-release.apk",
     "digest": "sha256:f481f61a878b9b7823e287ab3f46fb90efe9e4003361af5e4fddb031538dc098",
-    "download_count": 360
+    "download_count": 361
    },
    {
     "id": 574605882,
@@ -46780,7 +46780,7 @@
     "size": 193055882,
     "download_url": "https://github.com/Mahmud0808/TeleDrive/releases/download/v1.4.2/TeleDrive-1.4.2.msi",
     "digest": "sha256:70d29b145867092cca8ec0b5938a6113477b018b39b239059a0feb01b3f9f9ac",
-    "download_count": 574
+    "download_count": 579
    }
   ]
  },
@@ -47169,7 +47169,7 @@
     "size": 50373866,
     "download_url": "https://github.com/Chrisimx/ScanBridge/releases/download/v2.1.4/ScanBridge.apk",
     "digest": "sha256:2460d0026375cc7e9f553f8ac813bda780f8ad86e1effd5c7bc176adcf80d99e",
-    "download_count": 2619
+    "download_count": 2620
    }
   ]
  },
@@ -47845,7 +47845,7 @@
     "size": 9471068,
     "download_url": "https://github.com/tharunbirla/FetchIt/releases/download/v1.4/app-release.apk",
     "digest": null,
-    "download_count": 4555
+    "download_count": 4562
    }
   ]
  },
@@ -50095,7 +50095,7 @@
     "size": 12681333,
     "download_url": "https://github.com/shynoiddev/FireWall-Blocks/releases/download/v1.5.shynoid/FireWall.Blocks.V.1.5.shynoid.apk",
     "digest": "sha256:39b1fea1663241083d2bf2d8358dbe31388c4e2a7379d7abb685655eb586ab85",
-    "download_count": 5172
+    "download_count": 5175
    }
   ]
  },
@@ -50278,7 +50278,7 @@
     "size": 6261142,
     "download_url": "https://github.com/Arctosoft/Valv-Android/releases/download/v2.4.1/Vault_41_2.4.1_release.apk",
     "digest": "sha256:62530637f576b2b9c49077d3e8e7cbaee882b6bdd048b1e5d4a909248c52c133",
-    "download_count": 1903
+    "download_count": 1904
    }
   ]
  },
@@ -50705,7 +50705,7 @@
     "size": 3162474,
     "download_url": "https://github.com/yamin8000/freeDictionaryApp/releases/download/1.8.4/io.github.yamin8000.owl-v58-n1.8.4-release.apk",
     "digest": "sha256:6ff3329e0925f488953e9bd75c512b2c42ac1003f89493c0dab0a625bc66e586",
-    "download_count": 676
+    "download_count": 677
    }
   ]
  },
@@ -50756,7 +50756,7 @@
     "size": 45555415,
     "download_url": "https://github.com/Kenneth-Cho-InfoSec/Solipsism/releases/download/v9.3.1/Solipsism-Browser-v9.3.1.apk",
     "digest": "sha256:a916afa5611ba4c501cab429d8e8b6f39917bef56f2fdb13802705669a805f3e",
-    "download_count": 978
+    "download_count": 998
    }
   ]
  },
@@ -52685,7 +52685,7 @@
     "size": 93671097,
     "download_url": "https://github.com/gitakoos/proton-photos/releases/download/v2.5.0/photosforproton-universal-release.apk",
     "digest": "sha256:2e041042bef398905106949751f78060cbbb7c8e804666c390f3aa51b96a5c0d",
-    "download_count": 670
+    "download_count": 672
    },
    {
     "id": 579783551,
@@ -53776,7 +53776,7 @@
     "size": 1667773,
     "download_url": "https://github.com/cvzi/WallpaperExport/releases/download/v1.1.4/wallpaperexport_android_6.apk",
     "digest": "sha256:c2470d807c2c427df98924897e2fd79c2ea32e48b30135525c7512363a6aeba7",
-    "download_count": 3458
+    "download_count": 3461
    },
    {
     "id": 273168847,
@@ -53785,7 +53785,7 @@
     "size": 1651911,
     "download_url": "https://github.com/cvzi/WallpaperExport/releases/download/v1.1.4/wallpaperexport_android_7.apk",
     "digest": "sha256:7e29c337b63e56a657d5536a7fdd9f553df41576323693007ef111204a066531",
-    "download_count": 2592
+    "download_count": 2595
    },
    {
     "id": 270413826,
@@ -53794,7 +53794,7 @@
     "size": 2174613,
     "download_url": "https://github.com/cvzi/WallpaperExport/releases/download/v1.1.4/wallpaperexport_gh_9.apk",
     "digest": "sha256:353cb0c51872233d56376bcc3d2276a3653e069433f7ad629cac82eaaa1c2778",
-    "download_count": 4121
+    "download_count": 4124
    }
   ]
  },
@@ -54654,7 +54654,7 @@
     "size": 28441162,
     "download_url": "https://github.com/Chiu-xaH/HFUT-Schedule/releases/download/v4.21.2.3/4.21.2.3-arm64-v8a.apk",
     "digest": "sha256:3b3af01c16b7d125bf0612d761c7ea528a4c3c9795bcb5a4531b34269bee179d",
-    "download_count": 26
+    "download_count": 28
    },
    {
     "id": 625676698,
@@ -55499,7 +55499,7 @@
     "size": 2653197,
     "download_url": "https://github.com/vbresan/HealthyBatteryCharging/releases/download/24/biz.binarysolutions.healthybatterycharging-2.1.3-release.apk",
     "digest": "sha256:1fbf5172325c75654b0bffa117894f806ff61b7e8fb10d29f511ce58503b2a67",
-    "download_count": 1947
+    "download_count": 1948
    }
   ]
  },
@@ -56315,7 +56315,7 @@
     "size": 20428027,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/AppManagerNG-reproducible-floss-release.apk",
     "digest": "sha256:c47fe42a2eb707fb05af8f591f8323ac3a83004ad2671da16fe5a554a2e4da58",
-    "download_count": 1699
+    "download_count": 1700
    },
    {
     "id": 545369738,
@@ -56333,7 +56333,7 @@
     "size": 20428440,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/AppManagerNG-reproducible-full-release.apk",
     "digest": "sha256:09c9e89f911b33bcc9ef1bd07869adef71f05aa425de77011eed2711a885bf7c",
-    "download_count": 4703
+    "download_count": 4709
    },
    {
     "id": 545369734,
@@ -56360,7 +56360,7 @@
     "size": 16595608,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/dependency-check-report.html",
     "digest": "sha256:7f5adeb97e44c7184436e22318c819b7b724bf671a69297bb083a8420a6fc09d",
-    "download_count": 13
+    "download_count": 14
    },
    {
     "id": 545369748,
@@ -56369,7 +56369,7 @@
     "size": 2095122,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/dependency-check-report.sarif",
     "digest": "sha256:5f1a896eaeb9bf9bb778d38d26c0050ecb9f8ab203a481914b1e879895e1a00c",
-    "download_count": 6
+    "download_count": 7
    },
    {
     "id": 545369752,
@@ -56378,7 +56378,7 @@
     "size": 548,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/dependency-cve-receipt.json",
     "digest": "sha256:b186564f4776f83d796a0adae6e9bf13822da0a512d55eec825b7044024d6edb",
-    "download_count": 14
+    "download_count": 15
    },
    {
     "id": 545369765,
@@ -56387,7 +56387,7 @@
     "size": 332,
     "download_url": "https://github.com/SysAdminDoc/AppManagerNG/releases/download/v0.6.23/server-jars.txt",
     "digest": "sha256:858eab2a3aff3fcd7ac2f895d091b00858fd3f547dc2baa3d196a0a6d399047a",
-    "download_count": 14
+    "download_count": 15
    }
   ]
  },
@@ -56774,7 +56774,7 @@
     "size": 1887149,
     "download_url": "https://github.com/VincentEngel/VES-Image-Compare/releases/download/fdroid-v2.3.6/vesic_v2.3.6-release.apk",
     "digest": "sha256:53fa9ecc75aac9cd8f533810b5abcb5218429c6ac2f48b7c7ec4d4dba7f49f7a",
-    "download_count": 900
+    "download_count": 902
    }
   ]
  },
@@ -57155,7 +57155,7 @@
     "size": 10995338,
     "download_url": "https://github.com/chmouel/liseur/releases/download/v0.24.0/liseur-v0.24.0.apk",
     "digest": "sha256:d69ed11374109dc13bc8f14fd2924192001585c1331d17a2fc25ac6ccf7a7ca9",
-    "download_count": 196
+    "download_count": 211
    }
   ]
  },
@@ -57580,7 +57580,7 @@
     "size": 64749541,
     "download_url": "https://github.com/MiepHD/cuscon/releases/download/v4.1.2.2/cuscon-v4122-foss-release.apk",
     "digest": "sha256:749afdad63a06d721ded689b11e24190532f7d0e11297208a89fc364fa14ad44",
-    "download_count": 441
+    "download_count": 444
    }
   ]
  },
@@ -59798,7 +59798,7 @@
     "size": 16520,
     "download_url": "https://github.com/martinmimigames/tiny-music-player/releases/download/v1.3/tiny.music.player.1.3.apk",
     "digest": null,
-    "download_count": 2067
+    "download_count": 2068
    }
   ]
  },
@@ -61291,7 +61291,7 @@
     "size": 629396,
     "download_url": "https://github.com/hxreborn/playstore-adblock/releases/download/v1.5.0/playstore-adblock-v1.5.0-arm64-v8a.apk",
     "digest": "sha256:35be94770a03d6ca96e0ed3d3ff74f962afa9b52fab5e7ab34d4cc8aac2b1426",
-    "download_count": 906
+    "download_count": 907
    }
   ]
  },
@@ -62110,7 +62110,7 @@
     "size": 2514589,
     "download_url": "https://github.com/vinstall/VInstall/releases/download/v0.4.4/app-release.apk",
     "digest": "sha256:ef8eacab2fe325a3316bcc6141a9516a39c9d30dc4ef48a6285d74b77261404a",
-    "download_count": 2370
+    "download_count": 2372
    }
   ]
  },
@@ -64181,7 +64181,7 @@
     "size": 15436699,
     "download_url": "https://github.com/tokn-authenticator/tokn/releases/download/v1.8.2/tokn-1.8.2.release.apk",
     "digest": "sha256:766461d8202eec385bf35af8d3c62bcbc04434ef3d33bd631c548a78938c9e34",
-    "download_count": 552
+    "download_count": 553
    }
   ]
  },
@@ -65889,7 +65889,7 @@
     "size": 5839508,
     "download_url": "https://github.com/84593320z/GKD-XA/releases/download/v1.4.4/GKD-XA-v1.4.4.apk",
     "digest": "sha256:40b54095b0b07c7873622c792684d038214b7e1cea5283a90ddc01c65226b561",
-    "download_count": 130
+    "download_count": 138
    },
    {
     "id": 646035243,
@@ -66794,7 +66794,7 @@
     "size": 22954040,
     "download_url": "https://github.com/TheZupZup/Linthra/releases/download/v0.2.9/Linthra-v0.2.9-x86_64.flatpak",
     "digest": "sha256:e983c97a2240f8c7122baba3a421c01a8984ea42013f9c67e42e34d288d3ffda",
-    "download_count": 11
+    "download_count": 12
    }
   ]
  },
@@ -67439,7 +67439,7 @@
     "size": 14201797,
     "download_url": "https://github.com/thelooter/labplus_for_gitlab/releases/download/1.5.0/app-arm64-v8a-signed-release.apk",
     "digest": null,
-    "download_count": 333
+    "download_count": 334
    },
    {
     "id": 188682387,
@@ -67475,7 +67475,7 @@
     "size": 31799280,
     "download_url": "https://github.com/thelooter/labplus_for_gitlab/releases/download/1.5.0/app-signed-release.apk",
     "digest": null,
-    "download_count": 72
+    "download_count": 73
    },
    {
     "id": 188682463,
@@ -68913,7 +68913,7 @@
     "size": 8591327,
     "download_url": "https://github.com/munzzyy/starling/releases/download/v0.21.0/starling-0.21.0.apk",
     "digest": "sha256:6cc970f8d8dde8e215eb85c08220fb3ba569120d643e7d7a527d3708042defad",
-    "download_count": 81
+    "download_count": 82
    },
    {
     "id": 634222534,
@@ -68922,7 +68922,7 @@
     "size": 8591327,
     "download_url": "https://github.com/munzzyy/starling/releases/download/v0.21.0/starling.apk",
     "digest": "sha256:6cc970f8d8dde8e215eb85c08220fb3ba569120d643e7d7a527d3708042defad",
-    "download_count": 40
+    "download_count": 41
    }
   ]
  },
@@ -70792,7 +70792,7 @@
     "size": 2244394,
     "download_url": "https://github.com/Zimbelstern/Tournant/releases/download/1.1.6/tournant-1.1.6.apk",
     "digest": null,
-    "download_count": 356
+    "download_count": 357
    }
   ]
  },
@@ -72923,6 +72923,65 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
+   "id": 1418930230,
+   "full_name": "kota-zo/myspoti",
+   "owner": "kota-zo",
+   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
+   "description": "Native Android client for Spotify, built with Jetpack Compose",
+   "stars": 46,
+   "forks": 2,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "jetpack-compose",
+    "kotlin",
+    "lyrics",
+    "music-player",
+    "music-video",
+    "myspoti",
+    "spotify",
+    "spotify-adblocker",
+    "spotify-client",
+    "spotify-connect",
+    "spotui"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:38:13Z",
+   "created_at": "2026-10-14T13:01:34Z",
+   "license": "GPL-3.0",
+   "language": "Kotlin",
+   "openIssues": 7,
+   "watchers": null,
+   "homepage": "",
+   "pushedAt": "2026-10-17T00:21:16Z"
+  },
+  "release": {
+   "id": 415487800,
+   "tag": "v2.0.0-beta.5",
+   "name": "v2.0.0-beta.5",
+   "notes": "\n- **Encrypted downloads**: downloaded songs only play in Myspoti, on your phone.\n- **Offline queue**: the queue of downloaded songs shows what really plays next, and can be edited.\n- **Downloaded songs are no longer reported to Spotify**: no more album starting over a downloaded song.\n- **In-app updates**: download and install without leaving the app.\n- **Jam QR scan** no longer crashes; a banner tells when downloads need the SpotiFLAC verification.\n- **Your playlists, edited in the app**: name, description, cover (from your photos), public, private or collaborative, delete.\n- **Profiles**: search people, open a profile (followers, public playlists), follow; a playlist's owner opens theirs.\n- **More from Spotify**: \"Don't play this artist\", save episodes, search suggestions, \"More like this\" under albums, library sorted by recents or recently added, pin and move items into folders.\n- **Sort in both directions** (tap the chosen sort again), remembered for each playlist.\n- **Fixes**: AMOLED black everywhere, lists no longer end under the mini player, full-screen music videos show, the Spotify account page stays under the status bar, \"Saved in\" confirms each change, fast skips no longer jam the player, no white screen on phones in light mode.\n- **Security and reliability fixes** (Android Auto, library pages, logout, links, video lookups).\n\n\n\n## What's Changed\n* Artwork provider: only serve https CDN URLs by @liliapk in https://github.com/kota-zo/myspoti/pull/17\n* Flows: let cancellation escape runCatching around emit by @liliapk in https://github.com/kota-zo/myspoti/pull/18\n* Pagination: advance by raw row count, not mapped rows by @liliapk in https://github.com/kota-zo/myspoti/pull/19\n* Bridge: timeouts fail as BridgeException, not cancellation by @liliapk in https://github.com/kota-zo/myspoti/pull/20\n* Bridge buffers: drop oldest, keep the newest state by @liliapk in https://github.com/kota-zo/myspoti/pull/21\n* Media browser: only Auto, Assistant, System UI and the ",
+   "published_at": "2026-10-17T00:27:47Z",
+   "html_url": "https://github.com/kota-zo/myspoti/releases/tag/v2.0.0-beta.5",
+   "prerelease": true
+  },
+  "assets": [
+   {
+    "id": 649054246,
+    "name": "myspoti-2.0.0-beta.5.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 12927524,
+    "download_url": "https://github.com/kota-zo/myspoti/releases/download/v2.0.0-beta.5/myspoti-2.0.0-beta.5.apk",
+    "digest": "sha256:ac34c79482b40aa0beef110b782f66fe4a326937e2a78c577d375d3947e2824f",
+    "download_count": 362
+   }
+  ]
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
    "id": 1286932324,
    "full_name": "Secure-Phone-apps/Secure-Dialer",
    "owner": "Secure-Phone-apps",
@@ -72954,14 +73013,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:51:07Z",
+   "updated_at": "2026-10-17T05:20:04Z",
    "created_at": "2026-07-02T08:20:01Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
    "openIssues": 7,
    "watchers": null,
    "homepage": "https://secure-phone-apps.github.io/Secure-Dialer/",
-   "pushedAt": "2026-10-17T03:51:03Z"
+   "pushedAt": "2026-10-17T05:20:00Z"
   },
   "release": {
    "id": 398065136,
@@ -72989,7 +73048,7 @@
     "size": 6870320,
     "download_url": "https://github.com/Secure-Phone-apps/Secure-Dialer/releases/download/v1.6.0/secure-dialer-v1.6.0-arm64-v8a.apk",
     "digest": "sha256:238c100469736dd15d2f71ed589f5a8d97bc4b2ce0f063b7450711509954838b",
-    "download_count": 989
+    "download_count": 991
    },
    {
     "id": 594905722,
@@ -73339,65 +73398,6 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
-   "id": 1418930230,
-   "full_name": "kota-zo/myspoti",
-   "owner": "kota-zo",
-   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
-   "description": "Native Android client for Spotify, built with Jetpack Compose",
-   "stars": 43,
-   "forks": 2,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "jetpack-compose",
-    "kotlin",
-    "lyrics",
-    "music-player",
-    "music-video",
-    "myspoti",
-    "spotify",
-    "spotify-adblocker",
-    "spotify-client",
-    "spotify-connect",
-    "spotui"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T05:08:40Z",
-   "created_at": "2026-10-14T13:01:34Z",
-   "license": "GPL-3.0",
-   "language": "Kotlin",
-   "openIssues": 7,
-   "watchers": null,
-   "homepage": "",
-   "pushedAt": "2026-10-17T00:21:16Z"
-  },
-  "release": {
-   "id": 415487800,
-   "tag": "v2.0.0-beta.5",
-   "name": "v2.0.0-beta.5",
-   "notes": "\n- **Encrypted downloads**: downloaded songs only play in Myspoti, on your phone.\n- **Offline queue**: the queue of downloaded songs shows what really plays next, and can be edited.\n- **Downloaded songs are no longer reported to Spotify**: no more album starting over a downloaded song.\n- **In-app updates**: download and install without leaving the app.\n- **Jam QR scan** no longer crashes; a banner tells when downloads need the SpotiFLAC verification.\n- **Your playlists, edited in the app**: name, description, cover (from your photos), public, private or collaborative, delete.\n- **Profiles**: search people, open a profile (followers, public playlists), follow; a playlist's owner opens theirs.\n- **More from Spotify**: \"Don't play this artist\", save episodes, search suggestions, \"More like this\" under albums, library sorted by recents or recently added, pin and move items into folders.\n- **Sort in both directions** (tap the chosen sort again), remembered for each playlist.\n- **Fixes**: AMOLED black everywhere, lists no longer end under the mini player, full-screen music videos show, the Spotify account page stays under the status bar, \"Saved in\" confirms each change, fast skips no longer jam the player, no white screen on phones in light mode.\n- **Security and reliability fixes** (Android Auto, library pages, logout, links, video lookups).\n\n\n\n## What's Changed\n* Artwork provider: only serve https CDN URLs by @liliapk in https://github.com/kota-zo/myspoti/pull/17\n* Flows: let cancellation escape runCatching around emit by @liliapk in https://github.com/kota-zo/myspoti/pull/18\n* Pagination: advance by raw row count, not mapped rows by @liliapk in https://github.com/kota-zo/myspoti/pull/19\n* Bridge: timeouts fail as BridgeException, not cancellation by @liliapk in https://github.com/kota-zo/myspoti/pull/20\n* Bridge buffers: drop oldest, keep the newest state by @liliapk in https://github.com/kota-zo/myspoti/pull/21\n* Media browser: only Auto, Assistant, System UI and the ",
-   "published_at": "2026-10-17T00:27:47Z",
-   "html_url": "https://github.com/kota-zo/myspoti/releases/tag/v2.0.0-beta.5",
-   "prerelease": true
-  },
-  "assets": [
-   {
-    "id": 649054246,
-    "name": "myspoti-2.0.0-beta.5.apk",
-    "content_type": "application/vnd.android.package-archive",
-    "size": 12927524,
-    "download_url": "https://github.com/kota-zo/myspoti/releases/download/v2.0.0-beta.5/myspoti-2.0.0-beta.5.apk",
-    "digest": "sha256:ac34c79482b40aa0beef110b782f66fe4a326937e2a78c577d375d3947e2824f",
-    "download_count": 284
-   }
-  ]
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
    "id": 1175646043,
    "full_name": "neil-cena/ulap",
    "owner": "neil-cena",
@@ -73438,7 +73438,7 @@
     "size": 39203575,
     "download_url": "https://github.com/neil-cena/ulap/releases/download/v1.0.14/app-release.apk",
     "digest": "sha256:e6ca491589d42b5661cc01448efaa500e4c9a22b1097278b63db38fd64bc67e1",
-    "download_count": 3146
+    "download_count": 3148
    }
   ]
  },
@@ -73547,7 +73547,7 @@
     "size": 52846,
     "download_url": "https://github.com/Valent-in/Auto-Shine/releases/download/v1.5/autoshine-release-6.apk",
     "digest": "sha256:11de1c25078cd5c028939be47d3db00b06184f8eda3fed9a4c76253f6b70a4cd",
-    "download_count": 211
+    "download_count": 213
    }
   ]
  },
@@ -73900,7 +73900,7 @@
     "size": 4806462,
     "download_url": "https://github.com/v4lpt/PWG/releases/download/v1.0.7/VPT.002-PWG.1.0.7.apk",
     "digest": "sha256:41f58ffb115fedb52797328b79ed603e6d90b86f0bf5d8a6805b25a1df50e4c0",
-    "download_count": 773
+    "download_count": 774
    }
   ]
  },
@@ -74693,7 +74693,7 @@
     "size": 16862691,
     "download_url": "https://github.com/codegeasse1/hikari-adblock/releases/download/v1.2.3/app-arm64-v8a-release.apk",
     "digest": "sha256:2be3db2cce4c677c560f4a013a52bdbf63995ef847eb62a4271afebbb34fb023",
-    "download_count": 2160
+    "download_count": 2162
    },
    {
     "id": 556925072,
@@ -74711,7 +74711,7 @@
     "size": 52696441,
     "download_url": "https://github.com/codegeasse1/hikari-adblock/releases/download/v1.2.3/app-universal-release.apk",
     "digest": "sha256:16c4a22e9cd42b9a78d54029e202b262e7bbca5e34627a7125fe3631dbef95a6",
-    "download_count": 1075
+    "download_count": 1076
    },
    {
     "id": 556925073,
@@ -74787,6 +74787,116 @@
     "download_url": "https://github.com/DistriNet/LANShield/releases/download/fdroid-release-v0.99/lanshield-v0.99.apk.gz",
     "digest": "sha256:c24c216a99e695778c99b5ee8b9464f0c8b370775d482cab326be041df7580e3",
     "download_count": 2
+   }
+  ]
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1408705748,
+   "full_name": "yashoncode/metube",
+   "owner": "yashoncode",
+   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
+   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
+   "stars": 32,
+   "forks": 3,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "android-app",
+    "apk",
+    "background-play",
+    "dearrow",
+    "frosted-glass",
+    "glassmorphism",
+    "liquid-glass",
+    "media3",
+    "newtube",
+    "picture-in-picture",
+    "return-youtube-dislike",
+    "smarttube",
+    "sponsorblock",
+    "youtube",
+    "youtube-alternative",
+    "youtube-client",
+    "youtube-downloader"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:01:40Z",
+   "created_at": "2026-10-07T11:50:27Z",
+   "license": "MIT",
+   "language": "Java",
+   "openIssues": 2,
+   "watchers": null,
+   "homepage": "https://github.com/yashoncode/metube/releases/latest",
+   "pushedAt": "2026-10-17T05:25:02Z"
+  },
+  "release": {
+   "id": 415600829,
+   "tag": "v2.9.8",
+   "name": "MeTube 2.9.8 — Home filters, sleep timer, steadier background play",
+   "notes": "### New\n\n- **Filters on Home.** Liquid-glass chips at the top of Home: All, Music, Gaming, News, Sports and Live. They slide away as you scroll down; scrolling back up shows a small arrow beside the MeTube pill that brings them back.\n- **Home as rows.** Settings › General › Home layout › Rows shows Home like SmartTube: one titled row per topic that you swipe sideways. Feed stays the default.\n- **Channels on Subscriptions.** A row of your subscribed channels heads Subscriptions. Tap one to see only that channel's videos; tap All for everything again.\n- **Sleep timer.** In the player's settings: pause after 10 to 90 minutes, or at the end of the video.\n- **Autoplay switch.** In the player's settings, one tap turns playing the next video on or off.\n- **Video quality for Wi-Fi and mobile data.** Settings › Video quality has a default for each. Mobile data starts as \"Same as Wi-Fi\".\n\n### Fixed\n\n- **Music stopped, and the app was closed, with the screen off.** MeTube now keeps the phone awake and connected while it plays, and asks once to be allowed to run in the background, which battery savers on phones like realme respect. Settings › Playback › \"Keep playing with the screen off\" shows whether it's allowed.\n\nCloses #2 and #4.\n\nNot sure which APK? Most phones: arm64-v8a. Older 32-bit phones: armeabi-v7a. Unsure: universal.",
+   "published_at": "2026-10-17T05:25:02Z",
+   "html_url": "https://github.com/yashoncode/metube/releases/tag/v2.9.8",
+   "prerelease": false
+  },
+  "assets": [
+   {
+    "id": 649643007,
+    "name": "metube.json",
+    "content_type": "application/json",
+    "size": 2625,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/metube.json",
+    "digest": "sha256:579caa7afaabee50c446679613b8eba825b289e595bc1f455794bacefd2dc353",
+    "download_count": 124
+   },
+   {
+    "id": 649637038,
+    "name": "MeTube_2.9.8_arm64-v8a.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 60045610,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_arm64-v8a.apk",
+    "digest": "sha256:01112b3e7afbb9495ae0dfc00b5145cb4a8800f6d6ea571f43a0c1303c882d78",
+    "download_count": 80
+   },
+   {
+    "id": 649639832,
+    "name": "MeTube_2.9.8_armeabi-v7a.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 48742878,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_armeabi-v7a.apk",
+    "digest": "sha256:c63154aa5e037017886b65c79ada90cabe2987594419eaf945335a38f922b173",
+    "download_count": 7
+   },
+   {
+    "id": 649642346,
+    "name": "MeTube_2.9.8_universal.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 90768148,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_universal.apk",
+    "digest": "sha256:6c7af49a94866455fc9151b59b29af6dc82e26c717a0b930865057fa14765dbf",
+    "download_count": 6
+   },
+   {
+    "id": 649642597,
+    "name": "MeTube_2.9.8_x86.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 58663006,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_x86.apk",
+    "digest": "sha256:71feac344cacf55f24a5ec4ffd8f31429f7b2cb66caeedd81dfacc3a23fb8679",
+    "download_count": 1
+   },
+   {
+    "id": 649642976,
+    "name": "SHA256SUMS",
+    "content_type": "text/plain",
+    "size": 368,
+    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/SHA256SUMS",
+    "digest": "sha256:2de8e41b3dc8405182c4317aaed6cf8c3636dfa7cd6017720a18d805031bb1ce",
+    "download_count": 0
    }
   ]
  },
@@ -74923,7 +75033,7 @@
     "size": 221767,
     "download_url": "https://github.com/AshkanRafiee/Libre-Contacts-Backup/releases/download/v2.8.0/Libre-Contacts-Backup-v2.8.0.apk",
     "digest": "sha256:fd487c4c798185de31927c9be5b3549df850a3a9887075e2b69dff22852592e0",
-    "download_count": 30
+    "download_count": 36
    }
   ]
  },
@@ -75225,116 +75335,6 @@
     "download_url": "https://github.com/hathibelagal-dev/Eidetic-Memory-Trainer/releases/download/1.4.4/app-release.apk",
     "digest": null,
     "download_count": 421
-   }
-  ]
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1408705748,
-   "full_name": "yashoncode/metube",
-   "owner": "yashoncode",
-   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
-   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
-   "stars": 29,
-   "forks": 3,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "android-app",
-    "apk",
-    "background-play",
-    "dearrow",
-    "frosted-glass",
-    "glassmorphism",
-    "liquid-glass",
-    "media3",
-    "newtube",
-    "picture-in-picture",
-    "return-youtube-dislike",
-    "smarttube",
-    "sponsorblock",
-    "youtube",
-    "youtube-alternative",
-    "youtube-client",
-    "youtube-downloader"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T02:26:44Z",
-   "created_at": "2026-10-07T11:50:27Z",
-   "license": "MIT",
-   "language": "Java",
-   "openIssues": 3,
-   "watchers": null,
-   "homepage": "https://github.com/yashoncode/metube/releases/latest",
-   "pushedAt": "2026-10-15T10:00:08Z"
-  },
-  "release": {
-   "id": 415600829,
-   "tag": "v2.9.8",
-   "name": "MeTube 2.9.8 — Home filters, sleep timer, steadier background play",
-   "notes": "### New\n\n- **Filters on Home.** Liquid-glass chips at the top of Home: All, Music, Gaming, News, Sports and Live. They slide away as you scroll down; scrolling back up shows a small arrow beside the MeTube pill that brings them back.\n- **Home as rows.** Settings › General › Home layout › Rows shows Home like SmartTube: one titled row per topic that you swipe sideways. Feed stays the default.\n- **Channels on Subscriptions.** A row of your subscribed channels heads Subscriptions. Tap one to see only that channel's videos; tap All for everything again.\n- **Sleep timer.** In the player's settings: pause after 10 to 90 minutes, or at the end of the video.\n- **Autoplay switch.** In the player's settings, one tap turns playing the next video on or off.\n- **Video quality for Wi-Fi and mobile data.** Settings › Video quality has a default for each. Mobile data starts as \"Same as Wi-Fi\".\n\n### Fixed\n\n- **Music stopped, and the app was closed, with the screen off.** MeTube now keeps the phone awake and connected while it plays, and asks once to be allowed to run in the background, which battery savers on phones like realme respect. Settings › Playback › \"Keep playing with the screen off\" shows whether it's allowed.\n\nCloses #2 and #4.\n\nNot sure which APK? Most phones: arm64-v8a. Older 32-bit phones: armeabi-v7a. Unsure: universal.",
-   "published_at": "2026-10-17T05:25:02Z",
-   "html_url": "https://github.com/yashoncode/metube/releases/tag/v2.9.8",
-   "prerelease": false
-  },
-  "assets": [
-   {
-    "id": 649643007,
-    "name": "metube.json",
-    "content_type": "application/json",
-    "size": 2625,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/metube.json",
-    "digest": "sha256:579caa7afaabee50c446679613b8eba825b289e595bc1f455794bacefd2dc353",
-    "download_count": 27
-   },
-   {
-    "id": 649637038,
-    "name": "MeTube_2.9.8_arm64-v8a.apk",
-    "content_type": "application/vnd.android.package-archive",
-    "size": 60045610,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_arm64-v8a.apk",
-    "digest": "sha256:01112b3e7afbb9495ae0dfc00b5145cb4a8800f6d6ea571f43a0c1303c882d78",
-    "download_count": 20
-   },
-   {
-    "id": 649639832,
-    "name": "MeTube_2.9.8_armeabi-v7a.apk",
-    "content_type": "application/vnd.android.package-archive",
-    "size": 48742878,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_armeabi-v7a.apk",
-    "digest": "sha256:c63154aa5e037017886b65c79ada90cabe2987594419eaf945335a38f922b173",
-    "download_count": 3
-   },
-   {
-    "id": 649642346,
-    "name": "MeTube_2.9.8_universal.apk",
-    "content_type": "application/vnd.android.package-archive",
-    "size": 90768148,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_universal.apk",
-    "digest": "sha256:6c7af49a94866455fc9151b59b29af6dc82e26c717a0b930865057fa14765dbf",
-    "download_count": 2
-   },
-   {
-    "id": 649642597,
-    "name": "MeTube_2.9.8_x86.apk",
-    "content_type": "application/vnd.android.package-archive",
-    "size": 58663006,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/MeTube_2.9.8_x86.apk",
-    "digest": "sha256:71feac344cacf55f24a5ec4ffd8f31429f7b2cb66caeedd81dfacc3a23fb8679",
-    "download_count": 1
-   },
-   {
-    "id": 649642976,
-    "name": "SHA256SUMS",
-    "content_type": "text/plain",
-    "size": 368,
-    "download_url": "https://github.com/yashoncode/metube/releases/download/v2.9.8/SHA256SUMS",
-    "digest": "sha256:2de8e41b3dc8405182c4317aaed6cf8c3636dfa7cd6017720a18d805031bb1ce",
-    "download_count": 0
    }
   ]
  },
@@ -75917,7 +75917,7 @@
     "size": 10376019,
     "download_url": "https://github.com/DavidNeurieder/ActivityTrace/releases/download/v0.10.0/ActivityTrace_v0.10.0.apk",
     "digest": "sha256:af996dac49b7ead11e64abf6f5a5983065afa4245f1550e76081fa461ebe1dc0",
-    "download_count": 96
+    "download_count": 97
    }
   ]
  },
@@ -76252,7 +76252,7 @@
     "size": 21319419,
     "download_url": "https://github.com/mkalmousli/FloatingVolume/releases/download/v0.0.3/FloatingVolume.github.v0.0.3.apk",
     "digest": "sha256:8169c04373c95593d945218f205a4c4ac90c58d0e719710f42afbde12ca9dd6f",
-    "download_count": 748
+    "download_count": 749
    }
   ]
  },
@@ -76394,7 +76394,7 @@
     "size": 4744373,
     "download_url": "https://github.com/randombits-dev/interval-timer/releases/download/v1.2.0/IntervalTimer-1.2.0.apk",
     "digest": "sha256:7cb61e6d9d81b713b38478334d942cf2a9fd0826df43924bad9348500f9396a8",
-    "download_count": 475
+    "download_count": 476
    }
   ]
  },
@@ -76446,7 +76446,7 @@
     "size": 124811960,
     "download_url": "https://github.com/fiwalld/DoHGuard/releases/download/1.3.7/DoH-release-1.3.7.apk",
     "digest": null,
-    "download_count": 1371
+    "download_count": 1373
    }
   ]
  },
@@ -77084,7 +77084,7 @@
     "size": 235802476,
     "download_url": "https://github.com/staneswilson/revanced-photos/releases/download/v7.96.0.996044120/com.google.android.apps.photos-morphe-signed.apk",
     "digest": "sha256:d5eca65ec378f8fac2a15d1ef5e0308dc1ece444cf37979f1c5eb203cfe05c0d",
-    "download_count": 26
+    "download_count": 27
    },
    {
     "id": 630159812,
@@ -77713,7 +77713,7 @@
     "size": 17380199,
     "download_url": "https://github.com/zobaer53/NoFlix/releases/download/3.0.1/NoFlix.apk",
     "digest": "sha256:b65de40e06e7b12be561611a1c36e74359cb1733f860a51c9d0e8568aa2d8bb8",
-    "download_count": 81
+    "download_count": 84
    }
   ]
  },
@@ -78697,7 +78697,7 @@
     "size": 91029399,
     "download_url": "https://github.com/aburdiss/scale-practice/releases/download/v2.9.2/app-release.apk",
     "digest": "sha256:35da255241939106ab90e966badaa4cd259686db77a9cc5366f327049e54a95d",
-    "download_count": 199
+    "download_count": 200
    }
   ]
  },
@@ -79159,7 +79159,7 @@
     "size": 4617376,
     "download_url": "https://github.com/SysAdminDoc/Lawnchair-Lite/releases/download/v2.27.2/Lawnchair-Lite-v2.27.2-release.apk",
     "digest": "sha256:f7395fec0040a5c5891d69335d5d8a8471a0fe853b3b41b30e6c8d7633caa542",
-    "download_count": 287
+    "download_count": 288
    },
    {
     "id": 546546291,
@@ -79270,7 +79270,7 @@
     "size": 4954656,
     "download_url": "https://github.com/Its-Just-Nans/sms2call/releases/download/1.0.11/sms2call-1.0.11.apk",
     "digest": null,
-    "download_count": 535
+    "download_count": 536
    }
   ]
  },
@@ -79468,7 +79468,7 @@
    "created_at": "2026-07-24T10:48:44Z",
    "license": "AGPL-3.0",
    "language": "Rust",
-   "openIssues": 118,
+   "openIssues": 119,
    "watchers": null,
    "homepage": "https://p-pass.hawkeye-xb.com",
    "pushedAt": "2026-10-17T03:44:26Z"
@@ -80147,7 +80147,7 @@
     "size": 21137976,
     "download_url": "https://github.com/bl3xand/APK-Toolbox/releases/download/v1.1.4/APK-Toolbox-1.1.4-armeabi-v7a.apk",
     "digest": "sha256:7c4e78faf24aa78a3bdac9a97403db9ea5f4b1536720a4784d5cd8ebb814bc06",
-    "download_count": 60
+    "download_count": 61
    },
    {
     "id": 628369140,
@@ -80659,7 +80659,7 @@
     "size": 2276570,
     "download_url": "https://github.com/elhizazi1/Castix/releases/download/v1.0/app-release.apk",
     "digest": "sha256:d5eb95703822da317b45efe545bdd348b1114795a465676e9e467729ec7dfa5b",
-    "download_count": 1340
+    "download_count": 1342
    }
   ]
  },
@@ -81418,7 +81418,7 @@
    "openIssues": 5,
    "watchers": null,
    "homepage": "https://passpony.app",
-   "pushedAt": "2026-10-17T04:26:44Z"
+   "pushedAt": "2026-10-17T05:41:50Z"
   },
   "release": {
    "id": 415609681,
@@ -81437,7 +81437,7 @@
     "size": 24597846,
     "download_url": "https://github.com/norsehorse-dev/PassPonyAndroid/releases/download/v2.0.0/PassPonyAndroid-2.0.0-foss.apk",
     "digest": "sha256:25e58d80c01e49e624d845856f02cc8e5f898e1b23ce4f0dedd24398bdff177c",
-    "download_count": 1
+    "download_count": 4
    },
    {
     "id": 649666894,
@@ -82680,7 +82680,7 @@
     "size": 234,
     "download_url": "https://github.com/foxhole-team/foxhole-guard/releases/download/v0.1.2/update-manifest.json",
     "digest": "sha256:dd97280241905efcc4c50d4932ccf98658cbd158128216a86fb5c1540606994a",
-    "download_count": 470
+    "download_count": 471
    }
   ]
  },
@@ -83191,14 +83191,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T12:57:26Z",
+   "updated_at": "2026-10-17T06:26:38Z",
    "created_at": "2026-01-04T08:26:09Z",
    "license": "MIT",
    "language": "TypeScript",
    "openIssues": 0,
    "watchers": null,
    "homepage": "https://chiranth-janardhan-moger.github.io/vaultx-offline-password-manager/",
-   "pushedAt": "2026-10-16T13:11:14Z"
+   "pushedAt": "2026-10-17T06:26:35Z"
   },
   "release": {
    "id": 414972798,
@@ -83211,102 +83211,102 @@
   },
   "assets": [
    {
-    "id": 647362942,
+    "id": 649824042,
     "name": "app-release.apk",
     "content_type": "application/vnd.android.package-archive",
-    "size": 69273347,
+    "size": 69273351,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/app-release.apk",
-    "digest": "sha256:967bd23bfd787d2c028167f710a01208e7fbfc953ffa5180d2d8a3b38b4195ba",
-    "download_count": 2
+    "digest": "sha256:48f652bc96ada89b1b2217a2dd482ac3c198b9fa8e675906179543429ebbd574",
+    "download_count": 0
    },
    {
-    "id": 647362930,
+    "id": 649824038,
     "name": "app-release.apk-sha256.txt",
     "content_type": "text/plain",
     "size": 82,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/app-release.apk-sha256.txt",
-    "digest": "sha256:300ba24a32b5ca31adfd7bff9a2ed4bb60a4dfb356e7011b5faf29b536f16b10",
+    "digest": "sha256:1f330f54845c20541dc83cce359cc33c4daa325cb4b38a5090f283386dc4ae01",
     "download_count": 0
    },
    {
-    "id": 647362934,
+    "id": 649824035,
     "name": "checksums-sha256.txt",
     "content_type": "text/plain",
     "size": 440,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/checksums-sha256.txt",
-    "digest": "sha256:d1148e5c8d5540824c2cc5aff07578fb035446bcd58325640c83bae7280ae096",
+    "digest": "sha256:805b3f9d25cb4ad3586a7410a531f595ed567f24d88907853149427a8e0c46a4",
     "download_count": 0
    },
    {
-    "id": 647362945,
+    "id": 649824039,
     "name": "vaultx-v1.4.1-arm64-v8a.apk",
     "content_type": "application/vnd.android.package-archive",
-    "size": 28864272,
+    "size": 28864276,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1-arm64-v8a.apk",
-    "digest": "sha256:bfe9def6a554462d58e2c946eb3ce8cbf7f6915fdc9725a47b05614ceb03c77d",
-    "download_count": 1
+    "digest": "sha256:cec4d8a549cb8aa9e73e1b6983a26e434a02fefb5d850e841dbcb83f77d3f562",
+    "download_count": 0
    },
    {
-    "id": 647362927,
+    "id": 649824058,
     "name": "vaultx-v1.4.1-arm64-v8a.apk-sha256.txt",
     "content_type": "text/plain",
     "size": 94,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1-arm64-v8a.apk-sha256.txt",
-    "digest": "sha256:1c70764917275de53ceecb0fe61987e4cc3f65ef9b5a56c2332cf4a63ca82ed6",
+    "digest": "sha256:bd334f37ea710ff51bbe8b81f2ead05ce452c7c161bd282b0fc516b927561c23",
     "download_count": 0
    },
    {
-    "id": 647362929,
+    "id": 649824044,
     "name": "vaultx-v1.4.1-armeabi-v7a.apk",
     "content_type": "application/vnd.android.package-archive",
-    "size": 23685928,
+    "size": 23685932,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1-armeabi-v7a.apk",
-    "digest": "sha256:0e7438d8e1109042a18ad3c097b1cc9baa5d3b727890d268c7ff210944e8c665",
+    "digest": "sha256:b9fe7eb9ea1316be78e8103500ff984e07c5bedd275a6a849453b2ff847d7dee",
     "download_count": 0
    },
    {
-    "id": 647362931,
+    "id": 649824037,
     "name": "vaultx-v1.4.1-armeabi-v7a.apk-sha256.txt",
     "content_type": "text/plain",
     "size": 96,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1-armeabi-v7a.apk-sha256.txt",
-    "digest": "sha256:be71087c21046d15940dc6e5fdba3c7e19cb136f9357f8d10e2f935a6915efc9",
+    "digest": "sha256:321bb481508f47517b5a25c439af093396522f156247cec140ce9a4f00c2ce65",
     "download_count": 0
    },
    {
-    "id": 647362947,
+    "id": 649824040,
     "name": "vaultx-v1.4.1.aab",
     "content_type": "application/x-authorware-bin",
-    "size": 36037746,
+    "size": 36037718,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1.aab",
-    "digest": "sha256:280bed7654290778f4f2ce5f5dfdf895cea353a5c6093a368b1938ce687bbad1",
+    "digest": "sha256:b031298942a9def3be0b54b2d0d7986c345ec6aaebb3c673b9f530fa111f50c1",
     "download_count": 0
    },
    {
-    "id": 647362928,
+    "id": 649824036,
     "name": "vaultx-v1.4.1.aab-sha256.txt",
     "content_type": "text/plain",
     "size": 84,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1.aab-sha256.txt",
-    "digest": "sha256:180533a7c71fd791377482d83a454b4541dfeecec8f45b4dc632a53b79193141",
+    "digest": "sha256:cc31d1d2082e7e0c3c34895b8ef57c507c390f245c0b8d717c2bb91559c7f1c0",
     "download_count": 0
    },
    {
-    "id": 647362932,
+    "id": 649824045,
     "name": "vaultx-v1.4.1.apk",
     "content_type": "application/vnd.android.package-archive",
-    "size": 69273347,
+    "size": 69273351,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1.apk",
-    "digest": "sha256:967bd23bfd787d2c028167f710a01208e7fbfc953ffa5180d2d8a3b38b4195ba",
+    "digest": "sha256:48f652bc96ada89b1b2217a2dd482ac3c198b9fa8e675906179543429ebbd574",
     "download_count": 0
    },
    {
-    "id": 647362925,
+    "id": 649824033,
     "name": "vaultx-v1.4.1.apk-sha256.txt",
     "content_type": "text/plain",
     "size": 84,
     "download_url": "https://github.com/Chiranth-Janardhan-moger/vaultx-offline-password-manager/releases/download/v1.4.1/vaultx-v1.4.1.apk-sha256.txt",
-    "digest": "sha256:7d05fa364dd87f9bb6403cd91f4ab7df2f38b68ee892b98ceb9de5a33c3519d5",
+    "digest": "sha256:6cf40223dcf59c217e57879f822e7b3fbc4faac7f1aac405b64565df667a7259",
     "download_count": 0
    }
   ]
@@ -85443,7 +85443,7 @@
     "size": 20161666,
     "download_url": "https://github.com/Toporin/Seedkeeper-Android/releases/download/v0.1.3/Seedkeeper-release-v0.1.3.apk",
     "digest": null,
-    "download_count": 129
+    "download_count": 131
    }
   ]
  },
@@ -88567,7 +88567,7 @@
     "size": 98442454,
     "download_url": "https://github.com/2archiver/YTArk/releases/download/v3.7.0/YTArk-v3.7.0-armv7.apk",
     "digest": "sha256:8e724f1ca62e739ad74d92e1b30bb36137f82029e272c7878b81cef9fee02823",
-    "download_count": 3
+    "download_count": 4
    }
   ]
  },
@@ -90028,14 +90028,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T04:43:17Z",
+   "updated_at": "2026-10-17T05:15:57Z",
    "created_at": "2026-10-11T12:59:51Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
    "openIssues": 0,
    "watchers": null,
    "homepage": "",
-   "pushedAt": "2026-10-16T19:37:23Z"
+   "pushedAt": "2026-10-17T05:24:17Z"
   },
   "release": {
    "id": 415600354,
@@ -90054,7 +90054,7 @@
     "size": 2986838,
     "download_url": "https://github.com/probecat/airplane-scheduler-app/releases/download/v1.1.3/airplane-scheduler.apk",
     "digest": "sha256:1f0f332e2158e77d64162b8abea1dfdd176daba186ab7204f9bbf5e5e601013a",
-    "download_count": 2
+    "download_count": 8
    }
   ]
  },
@@ -90476,7 +90476,7 @@
     "size": 42961541,
     "download_url": "https://github.com/linuxwff789/wxbackup/releases/download/nightly/app-debug.apk",
     "digest": "sha256:bb56b826eb9ebfce62803bea9498dc866701720194687cc1b1f955dad4328210",
-    "download_count": 18
+    "download_count": 19
    },
    {
     "id": 570830426,
@@ -93325,7 +93325,7 @@
     "size": 1950791,
     "download_url": "https://github.com/kalarina-bit/Sparkledns/releases/download/v1.0.9/SparkleDNS-v1.0.9.apk",
     "digest": "sha256:2dca7d26eea9beb72a393e3c0667c4c8475e95264c8142bc2834bba2db2cc9db",
-    "download_count": 4
+    "download_count": 5
    }
   ]
  },
@@ -93879,7 +93879,7 @@
     "size": 8443497,
     "download_url": "https://github.com/privshell/pulse-battery/releases/download/v1.1.1/app-release.apk",
     "digest": "sha256:b4aca04002e119a12f1f1f475812a07756b0d96dedc3054210d83dc2948d46c5",
-    "download_count": 58
+    "download_count": 60
    }
   ]
  },
@@ -94241,7 +94241,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/39553080?v=4",
    "description": "Sync Stardew Valley saves across Windows, macOS, Linux & Android using your own Google Drive — transactional save protection, automatic backups, co-op host migration and farm sharing. No servers, no tracking.",
    "stars": 3,
-   "forks": 1,
+   "forks": 0,
    "topics": [
     "android",
     "cloud-saves",
@@ -97084,7 +97084,7 @@
     "size": 94712639,
     "download_url": "https://github.com/pesums-browser/pesums/releases/download/v1.8/pesums-1.8.apk",
     "digest": "sha256:2778ce3a794464520cd6f7cc66e86aa2253062a06a5366805acd1f67175d144d",
-    "download_count": 11
+    "download_count": 16
    }
   ]
  },
@@ -102182,7 +102182,7 @@
     "size": 643,
     "download_url": "https://github.com/ICD360S-e-V/mitglieder/releases/download/v1.109.0/version_mitglieder_android.json",
     "digest": "sha256:466964e648f6eb2c2560466725527e63ff669819c0a95867b0ebec47723474c8",
-    "download_count": 6
+    "download_count": 7
    },
    {
     "id": 648519599,
@@ -104540,7 +104540,7 @@
     "size": 25167065,
     "download_url": "https://github.com/phoenix-1708/DroidVault/releases/download/v2.0.0/arm64-v8a-release.apk",
     "digest": "sha256:efbd72edc4b07ff54d745065d6f1903edc43faf4b638388814545f585d74b86c",
-    "download_count": 1
+    "download_count": 2
    },
    {
     "id": 642307814,
@@ -104549,7 +104549,7 @@
     "size": 24906867,
     "download_url": "https://github.com/phoenix-1708/DroidVault/releases/download/v2.0.0/armeabi-v7a-release.apk",
     "digest": "sha256:929bd0b903e152b5ab043c6bd3616e3df017819d76b76299fc26db463426d3fa",
-    "download_count": 0
+    "download_count": 1
    }
   ]
  },
@@ -105180,33 +105180,33 @@
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T17:05:46Z",
+   "updated_at": "2026-10-17T06:39:29Z",
    "created_at": "2026-10-10T16:41:45Z",
    "license": "GPL-3.0",
    "language": "Kotlin",
-   "openIssues": 1,
+   "openIssues": 0,
    "watchers": null,
    "homepage": "",
-   "pushedAt": "2026-10-16T18:56:41Z"
+   "pushedAt": "2026-10-17T06:39:25Z"
   },
   "release": {
-   "id": 415196224,
-   "tag": "v2.12.22",
-   "name": "2.12.22",
-   "notes": "* New icon",
-   "published_at": "2026-10-16T17:11:30Z",
-   "html_url": "https://github.com/urzahil/TaskFlow/releases/tag/v2.12.22",
+   "id": 409072397,
+   "tag": "v2.11.20",
+   "name": "2.11.20",
+   "notes": "Initial release",
+   "published_at": "2026-10-10T16:43:59Z",
+   "html_url": "https://github.com/urzahil/TaskFlow/releases/tag/v2.11.20",
    "prerelease": false
   },
   "assets": [
    {
-    "id": 648018738,
+    "id": 628530144,
     "name": "TaskFlow-release.apk",
     "content_type": "application/vnd.android.package-archive",
-    "size": 15973601,
-    "download_url": "https://github.com/urzahil/TaskFlow/releases/download/v2.12.22/TaskFlow-release.apk",
-    "digest": "sha256:3023c005ad01be0fd6637de756dacbb85b636f04e0160cc0eb934ddd67abbd38",
-    "download_count": 0
+    "size": 15899550,
+    "download_url": "https://github.com/urzahil/TaskFlow/releases/download/v2.11.20/TaskFlow-release.apk",
+    "digest": "sha256:27ea2ba55ea80463bdd7ffa9f6049700ec1a317d4d59a37b23ba91ccd6cec770",
+    "download_count": 1
    }
   ]
  },
@@ -105531,7 +105531,7 @@
     "size": 1150,
     "download_url": "https://github.com/lhzin0/auroraplay/releases/download/v3.4.3/release.json",
     "digest": "sha256:defb86f1973d2ad38c21e8ad0333b393d35b647b5ad51687da365104b031a157",
-    "download_count": 6
+    "download_count": 8
    },
    {
     "id": 649335317,
@@ -115943,7 +115943,7 @@
     "size": 33394,
     "download_url": "https://github.com/Xposed-Modules-Repo/io.github.kaguyaluna2333.copymangaadhook/releases/download/1-1.0/CopyMangaAdHook-1.0.apk",
     "digest": "sha256:318cfbb41404b5ab0b70552206e31a67cff50e277d95194373d9a5c54efb0d87",
-    "download_count": 54
+    "download_count": 60
    }
   ]
  },
@@ -116084,7 +116084,7 @@
     "size": 12408296,
     "download_url": "https://github.com/bata-san/Athanor/releases/download/v0.1.25/Athanor_0.1.25_x64-setup.exe",
     "digest": "sha256:93a7b4e5645f0a38e7a5f2529f37653151d1ba78556e563ddcfb9e04bf2de912",
-    "download_count": 38
+    "download_count": 41
    },
    {
     "id": 643312115,
@@ -116315,7 +116315,7 @@
     "size": 1445554,
     "download_url": "https://github.com/likhsout/lightweight_browser/releases/download/v1.0.6/app-release.apk",
     "digest": "sha256:ef0293b52e0795276067411b8663ab4d7c2bc5bfdf7718937e146b7f7e5d7f6e",
-    "download_count": 4
+    "download_count": 5
    },
    {
     "id": 540061079,
@@ -117685,7 +117685,7 @@
     "size": 17973748,
     "download_url": "https://github.com/AdnanSiddiqui23/MobileCleanerFirewal/releases/download/v1.0.0/app-debug.apk",
     "digest": "sha256:7e262f7c9efc00c59ee2b81ec58efb01ef9b4c554d13e60723446c1af0718b2d",
-    "download_count": 5
+    "download_count": 6
    }
   ]
  },
@@ -118017,7 +118017,7 @@
     "size": 11326906,
     "download_url": "https://github.com/SurajAdhikari0/KotSafe/releases/download/v2.0.5/KotSafe-fullPower-release.apk",
     "digest": "sha256:56fe0c18d70bda42e3a97e67d0edcbe64daa055a350c30206d7e0d8d9fc92560",
-    "download_count": 1
+    "download_count": 2
    },
    {
     "id": 644830523,
@@ -118514,6 +118514,82 @@
     "download_url": "https://github.com/Someone117/Backup/releases/download/main/Backup.apk",
     "digest": null,
     "download_count": 23
+   }
+  ]
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1378811065,
+   "full_name": "abidhasansojib/onyx-browser",
+   "owner": "abidhasansojib",
+   "avatar_url": "https://avatars.githubusercontent.com/u/132114353?v=4",
+   "description": "Onyx Browser - A browser based on Android WebView and Brave adblock-rust engine.",
+   "stars": 0,
+   "forks": 0,
+   "topics": [
+    "adblock",
+    "browser",
+    "onyx-browser",
+    "webview"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T06:14:05Z",
+   "created_at": "2026-09-20T21:59:45Z",
+   "license": "GPL-3.0",
+   "language": "Kotlin",
+   "openIssues": 1,
+   "watchers": null,
+   "homepage": "",
+   "pushedAt": "2026-10-17T06:19:22Z"
+  },
+  "release": {
+   "id": 415652413,
+   "tag": "v1.3.6-prerelease",
+   "name": "Onyx Browser v1.3.6-prerelease (Pre-release)",
+   "notes": "## What's Changed in v1.3.6-prerelease\n\n* Merge remote-tracking branch 'origin/main' into dev ([98db219](https://github.com/abidhasansojib/onyx-browser/commit/98db219c38c36ed44cf2a83441b2058812ce16b9))\n* fix(adblock): pass String by value to add_filter_list in native bridge ([49c3ded](https://github.com/abidhasansojib/onyx-browser/commit/49c3dedf49c1f5383bd43d7b5a85121bb2e5b81f))\n* Merge pull request #3 from abidhasansojib/dev ([559c15f](https://github.com/abidhasansojib/onyx-browser/commit/559c15f3c911e176c3b42051bac60858c57c0f3d))\n* Merge pull request #2 from abidhasansojib/dev2 ([1659781](https://github.com/abidhasansojib/onyx-browser/commit/165978125e88586d1950fd6cef3ab6147f01158e))\n* feat(adblock): harness adblock-rust full engine with popup rules, clickjack defusal, and in-stream video ad blocking ([a9cf52a](https://github.com/abidhasansojib/onyx-browser/commit/a9cf52a35c0b986f5b5e10959a319b142c8f41db))\n* docs: codify rule 9 ai branch isolation and main branch protection ([1ae11ae](https://github.com/abidhasansojib/onyx-browser/commit/1ae11ae48ce18343382437632d80f5f8fc2a1c94))\n* docs: codify rule 9 ai branch isolation and main branch protection ([273402c](https://github.com/abidhasansojib/onyx-browser/commit/273402c9d71a1e0284c700f3b466649275782ca3))\n* fix(menu): make block element in menu disabled by default ([22ec472](https://github.com/abidhasansojib/onyx-browser/commit/22ec472b22685c7f3aa8bdb8e7a3f6b1f55469e9))\n\n**Full Changelog**: https://github.com/abidhasansojib/onyx-browser/compare/v1.3.4-prerelease...v1.3.6-prerelease\n",
+   "published_at": "2026-10-17T07:25:24Z",
+   "html_url": "https://github.com/abidhasansojib/onyx-browser/releases/tag/v1.3.6-prerelease",
+   "prerelease": true
+  },
+  "assets": [
+   {
+    "id": 649856828,
+    "name": "Onyx-Browser-v1.3.6-prerelease-arm64-v8a-prerelease.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 21521375,
+    "download_url": "https://github.com/abidhasansojib/onyx-browser/releases/download/v1.3.6-prerelease/Onyx-Browser-v1.3.6-prerelease-arm64-v8a-prerelease.apk",
+    "digest": "sha256:49367979e384c95a1f9c8c4b48f0c670bc9d8771b835a38d3dd7c7b3da65efdd",
+    "download_count": 0
+   },
+   {
+    "id": 649856829,
+    "name": "Onyx-Browser-v1.3.6-prerelease-armeabi-v7a-prerelease.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 17465771,
+    "download_url": "https://github.com/abidhasansojib/onyx-browser/releases/download/v1.3.6-prerelease/Onyx-Browser-v1.3.6-prerelease-armeabi-v7a-prerelease.apk",
+    "digest": "sha256:f1cc45571aca788ce218c1904a34a57701171e7e96a2d7c1cef16b3499f9246b",
+    "download_count": 0
+   },
+   {
+    "id": 649856826,
+    "name": "Onyx-Browser-v1.3.6-prerelease-universal-prerelease.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 42811435,
+    "download_url": "https://github.com/abidhasansojib/onyx-browser/releases/download/v1.3.6-prerelease/Onyx-Browser-v1.3.6-prerelease-universal-prerelease.apk",
+    "digest": "sha256:4c42452712f60be97f7dccfa4ba419bd303c05350acd7034db72bf3852ae9e09",
+    "download_count": 0
+   },
+   {
+    "id": 649856830,
+    "name": "Onyx-Browser-v1.3.6-prerelease-x86_64-prerelease.apk",
+    "content_type": "application/vnd.android.package-archive",
+    "size": 23084443,
+    "download_url": "https://github.com/abidhasansojib/onyx-browser/releases/download/v1.3.6-prerelease/Onyx-Browser-v1.3.6-prerelease-x86_64-prerelease.apk",
+    "digest": "sha256:e06886392e29c31535a0b8bea6ac2955565920963d13f943283adbec81d3ad59",
+    "download_count": 0
    }
   ]
  }
