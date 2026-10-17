@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,9 +44,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Size
 
@@ -293,26 +300,54 @@ private fun SpanText(
             // Auto-fetch images only over HTTPS. Anything else renders as an
             // explicit tap-to-open link so the app never silently fetches
             // cleartext or non-web content on the user's behalf.
-            if (url.startsWith("https://")) {
+if (url.startsWith("https://")) {
                 // Cap decoded size: README screenshots are often 4K and
                 // would otherwise sit in memory at full resolution.
                 // The aspect box reserves layout space so decoding never
                 // shifts the document while it is being read.
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(url)
-                        .size(Size(1600, 1600))
-                        .build(),
-                    contentDescription = picture.alt,
-                    contentScale = ContentScale.Fit,
+                //
+                // Loading and error states are painted UNDER the image and
+                // cleared by its load callbacks: a broken README image must
+                // say so rather than leaving a silent empty rectangle.
+                var failed by remember(url) { mutableStateOf(false) }
+                var loaded by remember(url) { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 10f)
-                        .clip(RoundedCornerShape(GStoreSpace.Small)),
-                )
+                        .clip(RoundedCornerShape(GStoreSpace.Small))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!loaded) {
+                        Text(
+                            if (failed) "Image unavailable" else "Loading image…",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(GStoreSpace.Medium),
+                        )
+                    }
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url)
+                            .size(Size(1600, 1600))
+                            .build(),
+                        contentDescription = picture.alt.ifEmpty { "README image" },
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                        onSuccess = { loaded = true },
+                        onError = { failed = true },
+                    )
+                }
             } else {
                 TextButton(onClick = { uriHandler.openUri(url) }) {
-                    Text("Open image: ${picture.alt.ifEmpty { picture.src }}")
+                    Text(
+                        "Open image: ${picture.alt.ifEmpty { picture.src }}",
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

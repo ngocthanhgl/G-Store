@@ -973,3 +973,10 @@ construction + lint + the detector, not by screenshot. Everything is
 ground-truth verified on disk; the compressed summaries in this repo's history
 have twice described code that did not exist, so nothing here is taken on
 trust without a compile.
+### v1.1.1 — README image error state restored
+Verification by string-scan of the shipped v1.1.0 APK found `Image
+unavailable` absent: fixing the Coil `placeholder` type error had also removed
+the fallback the audit asked for, leaving a broken README image as a silent
+empty rectangle (violating DESIGN.md). Replaced with an explicit reserved Box
+that paints "Loading image…" / "Image unavailable" underneath the image and
+clears it from the load callbacks — no new Coil API needed.
