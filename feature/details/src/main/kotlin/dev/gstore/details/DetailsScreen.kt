@@ -1,6 +1,7 @@
 package dev.gstore.details
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import dev.gstore.ui.safeTop
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.gstore.data.AssetKind
 import dev.gstore.database.DownloadRecord
+import dev.gstore.designsystem.imageShapeFor
 import dev.gstore.designsystem.panelShape
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
@@ -103,7 +105,10 @@ fun DetailsScreen(
     val context = LocalContext.current
     val repo = state.repo
     if (repo == null) {
-        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier.fillMaxSize().safeTop(),
+            contentAlignment = Alignment.Center,
+        ) {
             if (state.loadingRepo || state.syncing) {
                 CircularProgressIndicator()
             } else {
@@ -149,19 +154,22 @@ fun DetailsScreen(
     // by item INDEX, so holding this inside the changelog item made the
     // registry throw whenever the release list shifted under it mid-load.
     var changelogExpanded by rememberSaveable(state.selectedReleaseId) { mutableStateOf(false) }
-LazyColumn(
+    // Full-screen gallery: index into the same screenshot list the strip shows,
+    // so the viewer always opens on the tile that was tapped.
+    var viewerIndex by rememberSaveable { mutableStateOf(-1) }
+    LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
-        // Bottom padding so the last block clears the navigation bar; the
-        // header inset comes from the TopBar's own statusBarsPadding().
+        // The navigation bar owns the system inset, so this is just a reading
+        // gap; the top inset comes from the TopBar's safeTop().
         contentPadding = PaddingValues(
             start = GStoreSpace.Gutter,
             end = GStoreSpace.Gutter,
-            bottom = GStoreSpace.BeforeHeader,
+            bottom = GStoreSpace.Block,
         ),
     ) {
         // Back / share / favorite / refresh live in one top row; the hero
-        // below it bleeds edge-to-edge under the camera hole.
+        // below it sits under safeTop() padding from the TopBar.
         item {
             TopBar(
                 onBack = onBack,
@@ -178,7 +186,7 @@ LazyColumn(
                 syncing = state.syncing,
                 onRefresh = onRefresh,
                 // No horizontal padding: the list already insets 16dp.
-                modifier = Modifier.statusBarsPadding(),
+                modifier = Modifier.safeTop(),
             )
         }
         item { HeaderRow(repo) }
@@ -200,7 +208,9 @@ LazyColumn(
         // Play Store order: what it looks like, before what it says. The
         // gallery was the last thing on the page, which meant every visitor
         // read a paragraph before seeing a single pixel of the app.
-        item { ScreenshotsRow(state.screenshots, reduceMotion) }
+        item {
+            ScreenshotsRow(state.screenshots, reduceMotion) { index -> viewerIndex = index }
+        }
         val description = repo.description
         if (description != null) {
             item { AuroraSectionHeader(title = "About this app", topGap = true) }
@@ -234,7 +244,14 @@ LazyColumn(
         }
         item { MetaFooter(repo, onOpenReadme) }
     }
-}
+    if (viewerIndex >= 0) {
+        ScreenshotViewer(
+            images = state.screenshots,
+            startIndex = viewerIndex,
+            onDismiss = { viewerIndex = -1 },
+        )
+    }
+    }
 }
 
 private fun selectedRelease(state: DetailsUiState): Release? =
@@ -301,10 +318,15 @@ private fun HeaderRow(repo: Repository) {
         dev.gstore.ui.AppIcon(
             avatarUrl = repo.avatarUrl,
             owner = repo.owner,
-            size = 56.dp,
+            size = 72.dp,
         )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        Spacer(Modifier.width(GStoreSpace.Medium))
+        // SpaceEvenly, not Top: three short lines against a 72dp icon left
+        // them bunched at the top with dead space underneath.
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.SpaceEvenly,
+        ) {
             Text(
                 repo.fullName.substringAfter('/'),
                 style = MaterialTheme.typography.titleLarge,
@@ -568,7 +590,7 @@ private fun ChangelogFull(
             // Disclosure chevron: without it a bold text line is
             // indistinguishable from the four other bold lines above it.
             Icon(
-                if (expanded) Fluent.ChevronRight else Fluent.ChevronDown,
+                if (expanded) Fluent.ChevronDown else Fluent.ChevronRight,
                 contentDescription = if (expanded) "Hide changelog" else "Show changelog",
                 modifier = Modifier.size(GStoreSpace.Icon),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -623,7 +645,11 @@ private fun ChangelogFull(
  * first thing on the page and a label above it would be noise.
  */
 @Composable
-private fun ScreenshotsRow(items: List<ScreenshotItem>, reduceMotion: Boolean) {
+private fun ScreenshotsRow(
+    items: List<ScreenshotItem>,
+    reduceMotion: Boolean,
+    onOpen: (Int) -> Unit,
+) {
     if (items.isEmpty()) return
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -636,7 +662,13 @@ private fun ScreenshotsRow(items: List<ScreenshotItem>, reduceMotion: Boolean) {
             Box(
                 modifier = Modifier
                     .size(ScreenshotSize)
-                    .clip(panelShape()),
+                    .clip(imageShapeFor())
+                    // Play Store behaviour: the strip is a window onto the
+                    // full-screen gallery, not the gallery itself.
+                    .clickable(
+                        enabled = imageUrl.isNotBlank(),
+                        onClick = { onOpen(items.indexOf(screenshot)) },
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 if (!loaded && imageUrl.isNotBlank()) {
@@ -654,7 +686,7 @@ private fun ScreenshotsRow(items: List<ScreenshotItem>, reduceMotion: Boolean) {
                         contentDescription = null,
                         modifier = Modifier
                             .size(ScreenshotSize)
-                            .clip(panelShape()),
+                            .clip(imageShapeFor()),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         onSuccess = { _ -> loaded = true },
                         onError = { _ -> loaded = false },
@@ -692,6 +724,13 @@ private fun HeroBare(
 ) {
     val tag = release?.tag
     val version = tag?.let { if (release?.prerelease == true) "$it · pre" else it }
+    // The hero is a pill that hugs its label, not a full-width slab: at
+    // fillMaxWidth it swallowed the whole first screen and left the download
+    // state unreadable at a glance.
+    val heroShape = dev.gstore.designsystem.pillShape
+    val heroModifier = Modifier
+        .padding(top = GStoreSpace.Block)
+        .heightIn(min = GStoreSpace.TouchTarget)
     when (hero) {
         is HeroDlState.IdleDownload -> {
             if (installedPackageName != null) {
@@ -724,7 +763,8 @@ private fun HeroBare(
                     Button(
                         onClick = {},
                         enabled = false,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        modifier = heroModifier,
+                        shape = heroShape,
                     ) {
                         Text(
                             if (tag != null) "No APK in $tag" else "No APK in any release",
@@ -736,7 +776,8 @@ private fun HeroBare(
             }
             Button(
                 onClick = { onDownload(target) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = heroModifier,
+                shape = heroShape,
             ) {
                 Text(
                     listOfNotNull("Download", version, formatBytes(target.size))
@@ -777,7 +818,8 @@ private fun HeroBare(
         is HeroDlState.ReadyInstall -> {
             Button(
                 onClick = { onInstall(hero.record) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = heroModifier,
+                shape = heroShape,
             ) {
                 Text("Install", maxLines = 1)
             }
@@ -812,7 +854,8 @@ private fun HeroBare(
             OutlinedButton(
                 onClick = { if (target != null) onDownload(target) },
                 enabled = target != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = heroModifier,
+                shape = heroShape,
             ) {
                 Text("Retry download", maxLines = 1)
             }

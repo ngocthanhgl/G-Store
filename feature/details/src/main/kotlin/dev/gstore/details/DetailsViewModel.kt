@@ -168,45 +168,61 @@ class DetailsViewModel(
             }
             _state.value = _state.value.copy(syncing = false)
         }
-        // Slim scanner rows have metadata but no assets: full-sync on entry
-        // so the screen never reports "no APK" for data it never fetched.
-        // A failed sync leaves the row STALE, so a later refresh retries.
+        if (repo != null) resolvedId.value = repo.id
+        // Paint whatever is cached BEFORE the full sync runs. That sync walks
+        // every release page and used to hold the screen on a bare spinner for
+        // its whole duration, so a cached repo looked like it was loading.
+        _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+        loadScreenshots(repo)
+
+        // Slim scanner rows have metadata but no assets: full-sync in the
+        // background so the screen never reports "no APK" for data it never
+        // fetched. A failed sync leaves the row STALE, so a later refresh
+        // retries.
         val resolvedName = repo?.fullName?.takeIf { it.isNotBlank() } ?: fullName
         if (repo != null && resolvedName.isNotBlank() && catalog.needsFullSync(resolvedName)) {
-            _state.value = _state.value.copy(syncing = true)
-            when (val result = catalog.sync(resolvedName)) {
+            viewModelScope.launch { refreshInBackground(resolvedName) }
+        }
+    }
+
+    /** Background full sync: updates state in place, never blanks the screen. */
+    private suspend fun refreshInBackground(name: String) {
+        _state.value = _state.value.copy(syncing = true)
+        try {
+            when (val result = catalog.sync(name)) {
                 is Outcome.Ok -> {
-                    repo = catalog.getByFullName(resolvedName)
-                    _state.value = _state.value.copy(syncError = null)
+                    val fresh = catalog.getByFullName(name)
+                    _state.value = _state.value.copy(
+                        repo = fresh ?: _state.value.repo,
+                        syncError = null,
+                    )
                 }
                 is Outcome.Err -> _state.value = _state.value.copy(
                     notice = result.failure,
                     syncError = result.failure,
                 )
             }
+        } finally {
             _state.value = _state.value.copy(syncing = false)
         }
-        if (repo != null) resolvedId.value = repo.id
-        _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+    }
 
-        // Screenshots from the repo root gallery (Play Store-style image strip).
-        if (repo != null && repo.defaultBranch.isNotBlank()) {
-            viewModelScope.launch {
-                when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
-                    is ApiResponse.Fresh -> {
-                        val images = response.data
-                            .filter { it.type == "file" }
-                            .filter { c ->
-                                val n = c.name.lowercase()
-                                n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".webp")
-                            }
-                            .take(8)
-                            .map { ScreenshotItem(it.download_url ?: it.html_url ?: "", it.name) }
-                        _state.value = _state.value.copy(screenshots = images)
+    /** Repo-root image strip, Play Store style. Never fatal when it fails. */
+    private suspend fun loadScreenshots(repo: Repository?) {
+        if (repo == null || repo.defaultBranch.isBlank()) return
+        when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
+            is ApiResponse.Fresh -> {
+                val images = response.data
+                    .filter { it.type == "file" }
+                    .filter { c ->
+                        val n = c.name.lowercase()
+                        n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".webp")
                     }
-                    else -> Unit // screenshots stay empty — not a fatal error
-                }
+                    .take(8)
+                    .map { ScreenshotItem(it.download_url ?: it.html_url ?: "", it.name) }
+                _state.value = _state.value.copy(screenshots = images)
             }
+            else -> Unit // screenshots stay empty — not a fatal error
         }
     }
 
@@ -227,14 +243,7 @@ class DetailsViewModel(
             // Per-release asset scan off the collector; the generation guard
             // below keeps overlapping scans from clearing each other's flag.
             val ids = withContext(Dispatchers.Default) {
-                releases.filter { rel ->
-                    runCatching {
-                        catalog.allAssets(rel.id).any {
-                            val e = classifyAsset(it.filename, it.contentType, it.size)
-                            e.eligible && e.kind == AssetKind.APK
-                        }
-                    }.getOrDefault(false)
-                }.map { it.id }.toSet()
+                catalog.releaseIdsWithApk(releases.map { it.id })
             }
             if (gen != scanGen) return@launch // superseded by a newer scan
             val current = _state.value

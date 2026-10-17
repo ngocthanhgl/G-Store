@@ -23,6 +23,8 @@ object Fluent {
         @Composable get() = painterResource(R.drawable.ic_fluent_arrow_sync_24_regular)
     val Checkmark: Painter
         @Composable get() = painterResource(R.drawable.ic_fluent_checkmark_24_regular)
+    val Close: Painter
+        @Composable get() = painterResource(R.drawable.ic_fluent_dismiss_24_regular)
     val ChevronDown: Painter
         @Composable get() = painterResource(R.drawable.ic_fluent_chevron_down_24_regular)
     val ChevronRight: Painter

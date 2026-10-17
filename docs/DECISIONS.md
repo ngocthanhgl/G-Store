@@ -1060,3 +1060,123 @@ into Modifier.size, producing a confusing "Unresolved reference 'build'").
 Honest limits: no emulator is attached to this workstation, so the pill at
 0/24dp, the 48dp targets and AMOLED contrast are verified by construction,
 lint and the detector - not by screenshot.
+
+## 36. v1.1.3 - Safe zones, image radii, fast details, GitHub stars
+
+Ten items from device review, plus three decisions the user made explicitly
+when asked.
+
+### 36.1 Camera hole / safe zones
+`statusBarsPadding()` reports the status bar, NOT a display cutout, so on a
+punch-hole or notch device the top row of several screens sat inside the
+camera hole. New `core/ui/.../Insets.kt` exposes `safeTop()`, `safeBottom()`,
+`safeHorizontal()`, each built on `WindowInsets.safeDrawing.only(...)` - which
+resolves to max(statusBar, displayCutout). All seven `.statusBarsPadding()`
+call sites plus Details' empty/error branch now use `safeTop()`.
+`InstallerPermissionScreen.kt` had no inset handling at all and now pads both
+axes (`:feature:installation` gained a `:core:ui` dependency).
+
+Bottom insets were inconsistent in the other direction: the compact
+`NavigationBar` had no `navigationBarsPadding()`, its default M3 insets were
+being eaten by a fixed `height(...)`, and four screens faked a bottom pad with
+static dp tokens. The bar now carries `WindowInsets(0,0,0,0)` +
+`navigationBarsPadding()`, the rail pads too, and every list ends with a
+uniform `GStoreSpace.Block` bottom pad.
+
+### 36.2 Corner radius split (the lens bug)
+The card slider defaults to 24dp and `cardShapeFor()` fed EVERYTHING: 56dp app
+tiles, 16dp text bars, screenshots, README images. At 24dp a full-text-width
+image is a lens, and `MarkdownBlocks.kt` had gone further and applied
+`pillShape` (`RoundedCornerShape(percent = 50)`) to a full-width README image
+box. User decision: images get a fixed small radius, cards follow the slider.
+
+`AppRadius.IMAGE_MAX = 12` plus `imageShapeFor()` now own every image and inline
+surface (README images, blockquotes, code blocks, both screenshot clips). Cards
+keep `cardShapeFor()` and still track the slider 0-28dp. The 20+ shimmer bars
+that inherited 24dp were split into `TextBarRadius = 6` and
+`ImageBarRadius = 12` so a skeleton never lies about the shape it previews.
+Dead `object GStoreTokens` deleted; `RepoCard`'s ignored `cardRadiusDp`
+parameter deleted rather than left as a lie.
+
+`AppRadiusImageCapTest` (5 tests) fails if `IMAGE_MAX >= DEFAULT`, so the split
+cannot silently collapse back into one number.
+
+### 36.3 Details performance
+Three separate costs, all measured rather than guessed:
+- The screen showed a bare spinner for the entire sync because `state.repo`
+  was only assigned AFTER `sync()` finished. `load()` is now cache-first: the
+  cached repository (including from the slim catalog index) renders
+  immediately, screenshots load from the same cached copy, and the full
+  sync moved into a background `refreshInBackground()` that updates state in
+  place.
+- `scanApkReleases` ran one `allAssets()` query per release. New
+  `AssetDao.releaseIdsWithApk(releaseIds)` collapses that to a single
+  `SELECT DISTINCT` over the whole release list.
+- The Details ViewModel was NavBackStackEntry-scoped, so every
+  Home -> Details -> Home -> Details re-ran the whole chain. It is now keyed
+  to the Activity's ViewModelStore.
+
+### 36.4 Screenshots open fullscreen
+New `ScreenshotViewer.kt`: a `Dialog(usePlatformDefaultWidth = false)` with a
+`HorizontalPager`, double-tap to 2x, pinch zoom clamped to 4x with pan bounds
+derived from the scaled image, tap-to-dismiss at scale 1, and decode capped at
+1600px. Tiles are 140dp and only clickable when they have a real URL.
+
+### 36.5 Downloads honesty
+`FavoriteRow` rendered a Download button unconditionally, so an app the user
+had already installed still offered to download itself. `DownloadsUiState`
+now carries `installedByRepo` (keyed by `repoFullName`, joined from the
+completed download records) and the favourite row switches to
+`Installed` + Open/Uninstall. `InstalledRow`'s two buttons moved from a
+vertical stack to a horizontal row.
+
+### 36.6 GitHub stars -> Favourites
+User decisions: only starred repos that actually have an APK release, and
+starring is ONE-WAY (the app never calls `DELETE /user/starred/...`; deleting
+something the user may have starred long before opening this app is not
+something a convenience sync should do).
+
+New `GitHubApi` endpoints: `listStarred(page)`, `starRepo(owner, repo)`, and
+`latestRelease(owner, repo)`, plus the first non-GET helper (`unit()`).
+Deliberately NOT added to the `GitHubService` interface, so the three test
+fakes implementing it stay valid.
+
+`StarSyncEngine` pages `/user/starred`, skips repos already probed within
+`RecheckAfterMillis` (30 days), spends exactly one request per repo on
+`latestRelease` to decide whether it qualifies, and only syncs + favourites
+the ones that do. Progress is checkpointed per repo in the new
+`star_checkpoints` table (DB v9, `MIGRATION_8_9`) so a killed process or an
+exhausted quota resumes instead of restarting. `DefaultBudget = 400` keeps a
+run comfortably inside the 5,000/hour authenticated quota.
+
+The heart toggle mirrors to GitHub only when a token exists, and a failure is
+non-fatal. Because `RepoDto.toEntity` re-runs on every sync, no `starred`
+column was added to `Repository` at all - favourites remain the single source
+of truth in Room, which sidesteps clobbering a local flag.
+
+`StarSyncEngineTest` (7 tests) includes a reflection guard that no declared
+method name contains "unstar", and a guard that the starred endpoints stay off
+the `GitHubService` interface.
+
+### 36.7 Changelog arrow
+Was inverted (`expanded -> ChevronRight`), so a collapsed changelog showed an
+expanded arrow. Now `expanded -> ChevronDown`.
+
+### 36.8 Hero and header
+Hero is a pill that hugs its label (no longer a full-width slab that ate the
+first screen) with a top pad so it no longer crowds the header. App icon
+56 -> 72dp with `SpaceEvenly` spacing so the name/meta block distributes
+against the larger icon.
+
+### 36.9 Honest limits
+No emulator is attached to this workstation. Cutout behaviour, pinch-zoom
+gestures, the starred sweep against a real account, and the installed/uninstall
+transitions verify by construction + 124 passing unit tests + lint + detector,
+not by screenshot. All of them need a real device.
+
+### 36.10 Verification
+`:app:assembleDebug` + `testDebugUnitTest` (124 tests, 0 failures) +
+`:app:lintDebug` (no errors) + `:app:assembleRelease` all green.
+impeccable `detect --json` over the 12 touched UI files returned `[]`.
+Lint initially caught `LocalContext as ComponentActivity` - resolved by
+walking the `ContextWrapper` chain to the first `ViewModelStoreOwner`.

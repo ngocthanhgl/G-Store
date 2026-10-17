@@ -52,7 +52,6 @@ fun AdaptiveCard(
             onOpen = onOpen,
             onToggleFavorite = onToggleFavorite,
             modifier = modifier,
-            cardRadiusDp = cardRadiusDp,
         )
     }
 }

@@ -15,5 +15,12 @@ object AppRadius {
     const val MAX = 28
     const val DEFAULT = 24
 
+    /**
+     * Ceiling for images and other fixed-size visual surfaces. The card slider
+     * defaults to [DEFAULT] = 24dp, which turns a full-width screenshot into a
+     * lens and clips its content, so images cap well below it.
+     */
+    const val IMAGE_MAX = 12
+
     fun clamp(dp: Int): Int = dp.coerceIn(MIN, MAX)
 }

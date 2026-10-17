@@ -1,11 +1,14 @@
-package dev.gstore.downloads
+package dev.gstore.downloads
+
 import dev.gstore.ui.Fluent
+import dev.gstore.ui.safeTop
 
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -76,11 +79,13 @@ fun DownloadsScreen(
     onRefreshInstalled: () -> Unit,
     onOpenLogin: () -> Unit,
     onDismissLoginPrompt: () -> Unit,
+    onSyncStars: () -> Unit,
     snackbar: SnackbarHostState,
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val notice = state.notice
+    val starNotice = state.starSyncNotice
     LaunchedEffect(notice) {
         if (notice != null) {
             snackbar.showSnackbar(notice)
@@ -121,7 +126,7 @@ fun DownloadsScreen(
     PullToRefreshBox(
         isRefreshing = state.installedRefreshing,
         onRefresh = onRefreshInstalled,
-        modifier = modifier.fillMaxSize().statusBarsPadding(),
+        modifier = modifier.fillMaxSize().safeTop(),
     ) {
         val updates = state.installed.filter {
             it.updateState == UpdateState.UPDATE_AVAILABLE ||
@@ -162,6 +167,7 @@ fun DownloadsScreen(
             state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = GStoreSpace.Gutter),
             verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+    contentPadding = PaddingValues(bottom = GStoreSpace.Block),
         ) {
             item {
                 AuroraSectionHeader(
@@ -174,18 +180,48 @@ fun DownloadsScreen(
                     },
                 )
             }
-            if (state.favorites.isNotEmpty()) {
+            // Favourites heading doubles as the star-sync control: tapping it re-checks
+            // GitHub, and the running progress replaces the count so the user
+            // sees the sweep move instead of a stalled screen.
+            if (state.favorites.isNotEmpty() || state.starSyncRunning) {
                 item {
                     AuroraSectionHeader(
                         title = "Favourites",
                         count = state.favorites.size,
+                        onClick = onSyncStars,
+                        trailing = if (state.starSyncRunning) {
+                            {
+                                Text(
+                                    "Checking ${state.starSyncProgress?.checked ?: 0}...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        } else {
+                            null
+                        },
                     )
+                }
+                if (starNotice != null) {
+                    item {
+                        Text(
+                            starNotice,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = GStoreSpace.Small),
+                        )
+                    }
                 }
                 items(state.favorites, key = { "f-${it.id}" }) { repo ->
                     FavoriteRow(
                         repo = repo,
+                        installedPackageName = state.installedByRepo[repo.fullName],
                         onBrowse = { onBrowseRepo(repo.fullName) },
                         onDownload = { onDownloadFavorite(repo) },
+                        onLaunch = onLaunch,
+                        onUninstall = onUninstall,
                     )
                 }
             }
@@ -345,13 +381,14 @@ private fun InstalledRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // Trailing column: at most TWO controls, so a row never towers over its
-        // neighbours (three stacked buttons made this column 104-160dp). The
-        // primary action wins the first slot; "Uninstall" is the third control
-        // that gets dropped when a primary is present.
-        Column(
-            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-            horizontalAlignment = Alignment.End,
+        // Trailing controls sit in ONE row, not a column: the user asked for two
+        // side-by-side buttons, and a stacked pair made the row twice as tall
+        // as its neighbours. The primary action takes the first slot;
+        // "Uninstall" is the third control that gets dropped when a primary is
+        // present.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             val primaryShown = when (row.updateState) {
                 UpdateState.UPDATE_AVAILABLE -> {
@@ -395,8 +432,11 @@ private fun InstalledRow(
 @Composable
 private fun FavoriteRow(
     repo: Repository,
+    installedPackageName: String?,
     onBrowse: () -> Unit,
     onDownload: () -> Unit,
+    onLaunch: (String) -> Unit,
+    onUninstall: (String) -> Unit,
 ) {
     // Cardless row (see InstalledRow): vertical padding only, shared anatomy.
     Row(
@@ -418,18 +458,38 @@ private fun FavoriteRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${repo.stars} stars",
+                // An installed app must never be offered a second copy: the
+                // shelf used to show "Download" next to something already on
+                // the device.
+                text = if (installedPackageName != null) {
+                    "Installed"
+                } else {
+                    "${repo.stars} stars"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // One-tap primary: 48dp, like every other primary action on the screen.
-        Button(
-            onClick = onDownload,
-            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-        ) { Text("Download") }
+        if (installedPackageName != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+                TextButton(
+                    onClick = { onLaunch(installedPackageName) },
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) { Text("Open") }
+                TextButton(
+                    onClick = { onUninstall(installedPackageName) },
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) { Text("Uninstall") }
+            }
+        } else {
+            // One-tap primary: 48dp, like every other primary action here.
+            Button(
+                onClick = onDownload,
+                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+            ) { Text("Download") }
+        }
     }
 }
 
@@ -677,5 +737,4 @@ private fun formatBytes(bytes: Long): String {
     if (mb < 1024) return "%.1f MB".format(mb)
     return "%.2f GB".format(mb / 1024.0)
 }
-
 

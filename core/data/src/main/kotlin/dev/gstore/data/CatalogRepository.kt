@@ -71,6 +71,16 @@ class CatalogRepository(
         }
 
     /**
+     * Add to Favourites without ever removing. Used by the GitHub-starred
+     * sweep, which must be idempotent: re-running it over an already-hearted
+     * repo has to leave the favourite in place, not toggle it off.
+     */
+    suspend fun addFavorite(repoId: Long, fullName: String) {
+        if (favorites.idList().toSet().contains(repoId)) return
+        favorites.upsert(FavoriteEntity(repoId, fullName, System.currentTimeMillis()))
+    }
+
+    /**
      * Activity snapshot for one repo — section-membership input (PRODUCT_SPEC §3).
      * Three indexed queries + one in-memory scan; catalog-scale only (see DECISIONS.md).
      */
@@ -96,6 +106,14 @@ class CatalogRepository(
     /** Every asset of a release — the chooser labels non-APKs, never hides them. */
     suspend fun allAssets(releaseId: Long): List<ReleaseAsset> =
         assets.listByRelease(releaseId).map { it.toDomain() }
+
+    /**
+     * Which of [releaseIds] ship an installable APK, in one query. Batched on
+     * purpose: a repo with hundreds of releases used to cost one asset query
+     * each, which is what made the details screen feel like it was loading.
+     */
+    suspend fun releaseIdsWithApk(releaseIds: List<Long>): Set<Long> =
+        if (releaseIds.isEmpty()) emptySet() else assets.releaseIdsWithApk(releaseIds).toSet()
 
     /** Repo root directory listing — used for screenshots (gallery at bottom of details). */
     suspend fun fetchContents(

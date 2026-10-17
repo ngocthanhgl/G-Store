@@ -167,6 +167,42 @@ class GitHubApi : GitHubService {
         return builder.build()
     }
 
+    /** Non-GET verb helper: GitHub's starring API has no GET equivalent. */
+    private suspend fun unit(method: String, url: String): ApiResponse<Unit> =
+        withContext(Dispatchers.IO) {
+            val call = try {
+                http.newCall(request(url, null).newBuilder().method(method, null).build()).execute()
+            } catch (e: Exception) {
+                throw GitHubException.Network(e)
+            }
+            call.use { resp ->
+                when (resp.code) {
+                    401, 403 -> throw GitHubException.Auth(url)
+                    404, 451 -> throw GitHubException.NotFound(url)
+                    422 -> throw GitHubException.Server(422, url)
+                    in 500..599 -> throw GitHubException.Server(resp.code, url)
+                    else -> {
+                        if (!resp.isSuccessful) throw GitHubException.Server(resp.code, url)
+                        // 204 No Content: drain so the connection can be reused.
+                        resp.body.close()
+                        ApiResponse.Fresh(Unit, null)
+                    }
+                }
+            }
+        }
+
+    /**
+     * Star a repository on the user's behalf (one-way by design: un-starring
+     * would delete something the user may have created before ever opening
+     * this app).
+     */
+    suspend fun starRepo(owner: String, repo: String): ApiResponse<Unit> =
+        unit("PUT", "$BASE_URL/user/starred/$owner/$repo")
+
+    /** One page of the authenticated user's starred repositories. */
+    suspend fun listStarred(page: Int): ApiResponse<List<RepoDto>> =
+        get("$BASE_URL/user/starred?per_page=100&page=$page", etag = null)
+
     private suspend inline fun <reified T> get(url: String, etag: String?): ApiResponse<T> =
         withContext(Dispatchers.IO) {
             val call =
@@ -209,6 +245,14 @@ class GitHubApi : GitHubService {
 
     override suspend fun searchRepos(query: String, page: Int): ApiResponse<SearchResponse> =
         get("$BASE_URL/search/repositories?q=$query&per_page=100&page=$page", etag = null)
+
+    /**
+     * The most recent published (non-prerelease, non-draft) release, WITH its
+     * assets. One request answers whether the repo ships an installable APK,
+     * which is what makes the starred sweep affordable.
+     */
+    suspend fun latestRelease(owner: String, repo: String): ApiResponse<ReleaseDto> =
+        get("$BASE_URL/repos/$owner/$repo/releases/latest", etag = null)
 
     /**
      * Validate a user-supplied token and read its identity. NOT on the

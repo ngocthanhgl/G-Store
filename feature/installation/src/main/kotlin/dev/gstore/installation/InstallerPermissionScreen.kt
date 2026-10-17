@@ -14,6 +14,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gstore.ui.safeHorizontal
 
 /**
  * Explanatory gate before the system unknown-sources settings page (flow D).
@@ -30,7 +31,7 @@ fun InstallerPermissionScreen(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier.fillMaxWidth(),
+        modifier.fillMaxWidth().safeHorizontal(),
         shape = dev.gstore.designsystem.panelShape(),
     ) {
         Column(

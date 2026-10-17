@@ -62,6 +62,8 @@ class CatalogImportTest {
         val rows = mutableMapOf<Long, AssetEntity>()
         override suspend fun listByRelease(releaseId: Long): List<AssetEntity> = TODO()
         override suspend fun listEligibleByRelease(releaseId: Long): List<AssetEntity> = TODO()
+        override suspend fun releaseIdsWithApk(releaseIds: List<Long>): List<Long> =
+            rows.values.filter { it.eligibleApk && it.releaseId in releaseIds }.map { it.releaseId }.distinct()
         override suspend fun upsertAll(a: List<AssetEntity>) { a.forEach { rows[it.id] = it } }
     }
 

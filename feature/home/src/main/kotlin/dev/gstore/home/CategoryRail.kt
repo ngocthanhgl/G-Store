@@ -1,5 +1,7 @@
-package dev.gstore.home
+package dev.gstore.home
+
 import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.safeTop
 import dev.gstore.ui.CountPill
 import dev.gstore.ui.EmptyContent
 import dev.gstore.ui.GStoreSpace
@@ -106,7 +108,7 @@ fun CategoryFullScreen(
     onToggleFavorite: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
+    Column(modifier = modifier.fillMaxSize().safeTop()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
@@ -143,6 +145,7 @@ fun CategoryFullScreen(
                     start = GStoreSpace.Gutter,
                     end = GStoreSpace.Gutter,
                     top = GStoreSpace.Block,
+                    bottom = GStoreSpace.Block,
                 ),
             ) {
                 items(items, key = { it.repo.id }) { signals ->
@@ -165,6 +168,7 @@ fun CategoryFullScreen(
                     start = GStoreSpace.Gutter,
                     end = GStoreSpace.Gutter,
                     top = GStoreSpace.Block,
+                    bottom = GStoreSpace.Block,
                 ),
             ) {
                 items(items, key = { it.repo.id }) { signals ->

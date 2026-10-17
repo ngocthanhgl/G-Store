@@ -24,14 +24,6 @@ import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.ThemeMode
 import dev.gstore.model.AppRadius
 
-/** Centralized tokens — no hardcoded colors or spacing outside this module. */
-object GStoreTokens {
-    val CornerSmall = 4
-    val CornerDefault = 12
-    val CornerLarge = 20
-    const val GridUnit = 4
-}
-
 /** App-wide typeface: Roboto Condensed variable font (Apache-2.0, 363 KB),
  * instances at 400/500/700 cover the M3 scale. Code blocks keep Monospace. */
 private val Condensed = FontFamily(
@@ -104,6 +96,19 @@ fun cardShapeFor(radiusDp: Int = LocalCardRadius.current): Shape =
 /** Large content surface — same slider-driven scale as [cardShapeFor]. */
 @Composable
 fun panelShape(): Shape = cardShapeFor()
+
+/**
+ * Shape for IMAGES and other fixed-size visual surfaces: screenshots, gallery
+ * tiles, code and quote surfaces.
+ *
+ * Deliberately capped at [AppRadius.IMAGE_MAX]. The slider defaults to 24dp,
+ * and 24dp on a full-width screenshot turned every image into a lens and cut
+ * into its content; at 12dp an image still reads as rounded but nothing is
+ * clipped. Images are not a "card", so the card slider should not reach them.
+ */
+@Composable
+fun imageShapeFor(radiusDp: Int = LocalCardRadius.current): Shape =
+    RoundedCornerShape(AppRadius.clamp(radiusDp).coerceAtMost(AppRadius.IMAGE_MAX).dp)
 
 /**
  * Fully rounded control shape. Radius is half the height, so it stays a true

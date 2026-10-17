@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.InstalledAppsGateway
+import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.UpdateState
 import dev.gstore.data.classifyAsset
 import dev.gstore.data.resolveUpdateState
@@ -12,6 +13,7 @@ import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.datastore.TokenStore
 import dev.gstore.model.Repository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,12 +34,29 @@ data class InstalledRow(
     val lastUpdateTime: Long,
 )
 
+/** Grouped star-sync flags, so the 5-arg combine stays under the arity cap. */
+private data class StarSyncUi(
+    val running: Boolean,
+    val progress: StarSyncEngine.Progress?,
+    val message: String?,
+)
+
 data class DownloadsUiState(
     val active: List<DownloadRecord> = emptyList(),
     val history: List<DownloadRecord> = emptyList(),
     val installed: List<InstalledRow> = emptyList(),
     val favorites: List<Repository> = emptyList(),
     val manual: List<Repository> = emptyList(),
+    /**
+     * Package name of an installed copy, keyed by repo full name. The
+     * favourites shelf reads this so it can show Open/Uninstall instead of
+     * offering to download a copy the user already has. Empty until the first
+     * installed refresh, so a shelf can briefly under-report.
+     */
+    val installedByRepo: Map<String, String> = emptyMap(),
+    val starSyncRunning: Boolean = false,
+    val starSyncProgress: StarSyncEngine.Progress? = null,
+    val starSyncNotice: String? = null,
     val installedRefreshing: Boolean = false,
     val showLoginPrompt: Boolean = false,
     val notice: String? = null,
@@ -49,6 +68,7 @@ class DownloadsViewModel(
     private val catalog: CatalogRepository,
     private val tokens: TokenStore,
     private val prefs: PreferencesRepository,
+    private val starSync: StarSyncEngine,
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
@@ -72,6 +92,47 @@ class DownloadsViewModel(
 
     private val favorites = MutableStateFlow<List<Repository>>(emptyList())
     private val manual = MutableStateFlow<List<Repository>>(emptyList())
+    private val starSyncRunning = MutableStateFlow(false)
+    private val starSyncProgress = MutableStateFlow<StarSyncEngine.Progress?>(null)
+    private val starSyncNotice = MutableStateFlow<String?>(null)
+
+    /**
+     * Pull the user's GitHub stars into Favourites. Runs once per app start
+     * when a token exists; progress is checkpointed in Room, so a killed
+     * process resumes instead of restarting.
+     */
+    fun syncStarred() {
+        if (starSyncRunning.value) return
+        if (tokens.token.value.isNullOrBlank()) {
+            starSyncNotice.value = "Log in with a GitHub token to import your stars."
+            return
+        }
+        viewModelScope.launch {
+            starSyncRunning.value = true
+            starSyncNotice.value = null
+            try {
+                val result = starSync.run { progress -> starSyncProgress.value = progress }
+                starSyncNotice.value = result.message ?: when {
+                    result.checked == 0 -> "No new stars to check."
+                    result.withApk == 0 ->
+                        "Checked ${result.checked} starred repos - none ship an APK."
+                    result.exhausted ->
+                        "Imported ${result.withApk} of ${result.checked} checked " +
+                            "(${result.withApk} with an APK). More resumes next time."
+                    else -> "Imported ${result.withApk} starred repos with an APK."
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                starSyncNotice.value = "Star import failed: ${e.message}"
+            }
+            starSyncRunning.value = false
+        }
+    }
+
+    fun dismissStarSyncNotice() {
+        starSyncNotice.value = null
+    }
 
     init {
         viewModelScope.launch {
@@ -86,16 +147,26 @@ class DownloadsViewModel(
                 }
             }
         }
+        // Pull GitHub stars in the background on start. Checkpoints make this
+        // cheap on the second launch, and a logged-out device skips it entirely.
+        viewModelScope.launch {
+            if (!tokens.token.value.isNullOrBlank()) syncStarred()
+        }
     }
 
     private val shelves = combine(favorites, manual) { f, m -> f to m }
+    private val starSyncUi = combine(starSyncRunning, starSyncProgress, starSyncNotice) {
+            running, progress, message ->
+        StarSyncUi(running, progress, message)
+    }
 
     val state: StateFlow<DownloadsUiState> = combine(
         repository.observeAll(),
         installed,
         refreshUi,
         shelves,
-    ) { records, rows, ui, shelfPair ->
+        starSyncUi,
+    ) { records, rows, ui, shelfPair, star ->
         val (running, done) = records.partition {
             it.status == "QUEUED" || it.status == "ACTIVE"
         }
@@ -115,6 +186,14 @@ class DownloadsViewModel(
             installed = rows.sortedBy { it.label.lowercase() },
             favorites = shelfPair.first,
             manual = shelfPair.second,
+            // Derived from the same rows, so the shelf can never disagree with
+            // what the Installed shelf reports.
+            installedByRepo = rows.mapNotNull { row ->
+                row.record.packageName?.let { row.record.repoFullName to it }
+            }.toMap(),
+            starSyncRunning = star.running,
+            starSyncProgress = star.progress,
+            starSyncNotice = star.message,
             installedRefreshing = ui.refreshing,
             showLoginPrompt = ui.prompt,
             notice = ui.message,

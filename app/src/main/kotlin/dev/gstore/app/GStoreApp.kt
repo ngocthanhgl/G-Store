@@ -17,11 +17,13 @@ import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.ReadmeRepository
 import dev.gstore.data.SignalsCache
+import dev.gstore.data.StarSyncEngine
 import dev.gstore.database.MIGRATION_3_4
 import dev.gstore.database.MIGRATION_4_5
 import dev.gstore.database.MIGRATION_5_6
 import dev.gstore.database.MIGRATION_6_7
 import dev.gstore.database.MIGRATION_7_8
+import dev.gstore.database.MIGRATION_8_9
 import dev.gstore.datastore.TokenStore
 import dev.gstore.downloads.ApkDownloadWorker
 import dev.gstore.downloads.DownloadRepository
@@ -104,7 +106,7 @@ class AppContainer(val app: Application) {
     val database: GStoreDatabase by lazy {
         // Explicit migrations only — silent data loss is never acceptable (M4).
         Room.databaseBuilder(app, GStoreDatabase::class.java, "gstore.db")
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .fallbackToDestructiveMigration(false)
             .build()
     }
@@ -113,6 +115,7 @@ class AppContainer(val app: Application) {
     val github: GitHubApi by lazy { GitHubApi() }
     val catalog: CatalogRepository by lazy { CatalogRepository.create(github, database) }
     val signals: SignalsCache by lazy { SignalsCache(catalog, appScope) }
+    val starSync: StarSyncEngine by lazy { StarSyncEngine(github, catalog, database.starCheckpoints()) }
     /** Daily scanner catalog over the shared download client (flow A). */
     val catalogClient: CatalogClient by lazy { CatalogClient(downloadHttp) }
     val readme: ReadmeRepository by lazy { ReadmeRepository(github, database.readmes()) }

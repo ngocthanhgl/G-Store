@@ -4,6 +4,7 @@ package dev.gstore.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import dev.gstore.ui.safeTop
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -91,8 +93,9 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = GStoreSpace.Gutter)
-            .statusBarsPadding(),
+            .safeTop(),
         verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
+    contentPadding = PaddingValues(bottom = GStoreSpace.Block),
     ) {
         item {
             Column(

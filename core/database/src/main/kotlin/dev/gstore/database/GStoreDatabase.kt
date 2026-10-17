@@ -95,6 +95,31 @@ data class AssetEntity(
     val eligibleApk: Boolean,
 )
 
+/**
+ * Per-repo verdict of the GitHub-starred sweep (v9).
+ *
+ * The sweep is expensive and must survive process death, so every checked repo
+ * leaves a row behind: [checkedAt] lets a re-run skip recent work, and
+ * [hasApk] records the answer so a repo is never re-probed for 30 days.
+ */
+@Entity(tableName = "star_checkpoints")
+data class StarCheckpoint(
+    @PrimaryKey val repoFullName: String,
+    val checkedAt: Long,
+    val hasApk: Boolean,
+)
+
+@Dao
+interface StarCheckpointDao {
+    @Query("SELECT * FROM star_checkpoints")
+    suspend fun all(): List<StarCheckpoint>
+
+    @Query("SELECT * FROM star_checkpoints WHERE repoFullName = :fullName")
+    suspend fun get(fullName: String): StarCheckpoint?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(checkpoint: StarCheckpoint)
+}
 /** Resumable discovery checkpoint per repo (GITHUB_DISCOVERY §3, flow A). */
 @Entity(tableName = "sync_checkpoints")
 data class SyncCheckpoint(
@@ -180,6 +205,14 @@ interface AssetDao {
 
     @Query("SELECT * FROM assets WHERE releaseId = :releaseId AND eligibleApk = 1")
     suspend fun listEligibleByRelease(releaseId: Long): List<AssetEntity>
+
+    /**
+     * Which of these releases ship an installable APK, in ONE query.
+     * `eligibleApk` was written by the same `classifyAsset` check the N+1 scan
+     * re-ran in Kotlin, so this is the same answer without a query per release.
+     */
+    @Query("SELECT DISTINCT releaseId FROM assets WHERE eligibleApk = 1 AND releaseId IN (:releaseIds)")
+    suspend fun releaseIdsWithApk(releaseIds: List<Long>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(assets: List<AssetEntity>)
@@ -360,6 +393,18 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/** v8 -> v9: per-repo checkpoints for the GitHub-starred -> Favourites sweep. */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS star_checkpoints (" +
+                "repoFullName TEXT NOT NULL PRIMARY KEY, " +
+                "checkedAt INTEGER NOT NULL, " +
+                "hasApk INTEGER NOT NULL)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_star_checkpoints_hasApk ON star_checkpoints(hasApk)")
+    }
+}
 /** v7 -> v8: indices on the hot query columns (join keys + search LIKE). */
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -378,10 +423,11 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         ReleaseEntity::class,
         AssetEntity::class,
         SyncCheckpoint::class,
+        StarCheckpoint::class,
         ReadmeEntity::class,
         DownloadRecord::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class GStoreDatabase : RoomDatabase() {
@@ -390,6 +436,7 @@ abstract class GStoreDatabase : RoomDatabase() {
     abstract fun releases(): ReleaseDao
     abstract fun assets(): AssetDao
     abstract fun checkpoints(): CheckpointDao
+    abstract fun starCheckpoints(): StarCheckpointDao
     abstract fun readmes(): ReadmeDao
     abstract fun downloads(): DownloadDao
 }

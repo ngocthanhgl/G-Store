@@ -7,6 +7,7 @@ import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.HomeSections
+import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.computeSections
 import dev.gstore.data.sortedCatalog
 import dev.gstore.datastore.GitHubIdentity
@@ -57,6 +58,7 @@ class HomeViewModel(
     private val catalogClient: CatalogClient,
     tokens: TokenStore,
     cachedSignals: StateFlow<List<RepoSignals>>,
+    private val starSync: StarSyncEngine,
 ) : ViewModel() {
     private val tokensRef = tokens
     private val allRepos = MutableStateFlow<List<Repository>>(emptyList())
@@ -164,7 +166,17 @@ class HomeViewModel(
     }
 
     fun toggleFavorite(repo: Repository) {
-        viewModelScope.launch { catalog.toggleFavorite(repo) }
+        viewModelScope.launch {
+            val nowFavorite = catalog.toggleFavorite(repo)
+            // One-way mirror to GitHub: hearting an app stars its repo so the
+            // next login sweep can restore the shelf. Un-hearting deliberately
+            // does NOT unstar - that star may predate this app, and deleting it
+            // would be a destructive surprise. A failed star is not fatal; the
+            // local favourite stands either way.
+            if (nowFavorite && !tokensRef.token.value.isNullOrBlank()) {
+                starSync.starOnGitHub(repo.owner, repo.fullName.substringAfter('/'))
+            }
+        }
     }
 
     fun setSectionVisible(section: HomeSection, visible: Boolean) {

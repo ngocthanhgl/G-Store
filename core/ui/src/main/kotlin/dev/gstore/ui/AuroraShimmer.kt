@@ -61,6 +61,12 @@ fun shimmerBrush(reduceMotion: Boolean = false): Brush {
     return Brush.linearGradient(colors, start = Offset(x - 400f, 0f), end = Offset(x, 400f))
 }
 
+/** Text placeholders stay near-square: a pill bar reads as a control, not text. */
+private const val TextBarRadius = 6
+
+/** Image placeholders follow the image cap, never the card slider. */
+private const val ImageBarRadius = 12
+
 @Composable
 fun ShimmerBlock(modifier: Modifier, radiusDp: Int = LocalCardRadius.current, reduceMotion: Boolean = false) {
     Box(
@@ -80,6 +86,7 @@ private fun ShimmerTextStack(
         fractions.forEach { fraction ->
             ShimmerBlock(
                 modifier = Modifier.fillMaxWidth(fraction).height(16.dp),
+                radiusDp = TextBarRadius,
                 reduceMotion = reduceMotion,
             )
         }
@@ -101,7 +108,7 @@ fun ShimmerRows(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                ShimmerBlock(modifier = Modifier.size(56.dp), reduceMotion = reduceMotion)
+                ShimmerBlock(modifier = Modifier.size(56.dp), radiusDp = ImageBarRadius, reduceMotion = reduceMotion)
                 ShimmerTextStack(
                     modifier = Modifier.weight(1f),
                     fractions = listOf(0.7f, 0.5f, 0.5f),
@@ -131,15 +138,17 @@ fun ShimmerTiles(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 ShimmerBlock(
                     modifier = Modifier.size(80.dp),
-                    radiusDp = 12,
+                    radiusDp = ImageBarRadius,
                     reduceMotion = reduceMotion,
                 )
                 ShimmerBlock(
                     modifier = Modifier.width(60.dp).height(12.dp),
+                    radiusDp = TextBarRadius,
                     reduceMotion = reduceMotion,
                 )
                 ShimmerBlock(
                     modifier = Modifier.width(40.dp).height(12.dp),
+                    radiusDp = TextBarRadius,
                     reduceMotion = reduceMotion,
                 )
             }
@@ -161,9 +170,10 @@ fun ShimmerCategoryRows(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                ShimmerBlock(modifier = Modifier.size(32.dp), reduceMotion = reduceMotion)
+                ShimmerBlock(modifier = Modifier.size(32.dp), radiusDp = ImageBarRadius, reduceMotion = reduceMotion)
                 ShimmerBlock(
                     modifier = Modifier.weight(1f).height(24.dp),
+                    radiusDp = TextBarRadius,
                     reduceMotion = reduceMotion,
                 )
             }

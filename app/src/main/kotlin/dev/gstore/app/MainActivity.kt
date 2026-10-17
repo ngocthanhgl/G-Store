@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -55,6 +56,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowInsetsControllerCompat
@@ -251,7 +255,14 @@ private fun GStoreShell(container: AppContainer) {
                     // borders only for selected filters).
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.height(GStoreSpace.RowAction + GStoreSpace.Icon),
+                        // The bar owns the navigation-bar inset itself: a
+                        // fixed height plus M3's default insets would eat the
+                        // item row. Explicit zero insets + padding() keeps the
+                        // 64dp bar intact and the system bar clear of it.
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .height(GStoreSpace.RowAction + GStoreSpace.Icon),
                     ) {
                             DESTINATIONS.forEach { d ->
                                 val selected = entry?.destination?.hasRoute(d.route::class) == true
@@ -327,6 +338,9 @@ private fun Rail(
 ) {
     NavigationRail(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        // Full-height rail with no bottom bar under it: it has to keep its own
+        // last item clear of the system navigation bar.
+        modifier = Modifier.navigationBarsPadding(),
         header = {
             dev.gstore.ui.AppIcon(
                 avatarUrl = null,
@@ -361,6 +375,17 @@ private fun Rail(
     }
 }
 
+/**
+ * Walks [ContextWrapper] chain looking for a ViewModelStoreOwner (every
+ * Activity is one). Replaces the usual `context as ComponentActivity` cast,
+ * which lint rejects because a Context is not always an Activity.
+ */
+private tailrec fun Context.activityViewModelStoreOwner(): ViewModelStoreOwner? = when (this) {
+    is ViewModelStoreOwner -> this
+    is ContextWrapper -> baseContext.activityViewModelStoreOwner()
+    else -> null
+}
+
 @Composable
 private fun Content(
     nav: androidx.navigation.NavHostController,
@@ -369,6 +394,11 @@ private fun Content(
     onOpenRepo: (Repository) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Activity ViewModelStore, reached by unwrapping the composition Context
+    // instead of casting it: lint rejects Context->Activity casts, and this
+    // composable is a top-level function with no lexical access to MainActivity.
+    val shellOwner: ViewModelStoreOwner =
+        requireNotNull(LocalContext.current.activityViewModelStoreOwner())
     val scope = rememberCoroutineScope()
     // Appearance is collected once per composition and passed down; theme is
     // applied above in MainActivity, layout/density/radius/motion here (M7).
@@ -408,7 +438,7 @@ private fun Content(
     // catalog state. Screens stay destination-scoped, so entry effects
     // (installed refresh, permission re-check) still re-fire on return.
     val homeVm: HomeViewModel = viewModel(
-        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals) },
+        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync) },
     )
     val searchVm: SearchViewModel = viewModel(
         factory = vmFactory { SearchViewModel(container.catalog) },
@@ -421,6 +451,7 @@ private fun Content(
                 container.catalog,
                 container.tokens,
                 container.preferences,
+                container.starSync,
             )
         },
     )
@@ -565,6 +596,7 @@ private fun Content(
                     onRefreshInstalled = vm::refreshInstalled,
                     onOpenLogin = { nav.navigate(Settings) },
                     onDismissLoginPrompt = vm::dismissLoginPrompt,
+                    onSyncStars = vm::syncStarred,
                     snackbar = snackbar,
                     onDismissNotice = vm::dismissNotice,
                 )
@@ -609,7 +641,12 @@ private fun Content(
         }
         composable<Details> { backStack ->
             val route = backStack.toRoute<Details>()
+            // Owned by the Activity, keyed by repo: re-entering a repo you just
+            // left reuses its loaded state instead of re-running the whole
+            // load chain on every back-and-forth. shellOwner is the Activity's store,
+            // captured at shell scope so no Context cast is needed.
             val vm: DetailsViewModel = viewModel(
+                viewModelStoreOwner = shellOwner,
                 key = "details-${route.repoId}-${route.fullName}",
                 factory = vmFactory {
                     DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway, container.preferences)

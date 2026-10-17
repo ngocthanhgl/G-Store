@@ -70,6 +70,8 @@ private class FakeAssets : AssetDao {
         rows.values.filter { it.releaseId == releaseId }
     override suspend fun listEligibleByRelease(releaseId: Long): List<AssetEntity> =
         listByRelease(releaseId).filter { it.eligibleApk }
+    override suspend fun releaseIdsWithApk(releaseIds: List<Long>): List<Long> =
+        rows.values.filter { it.eligibleApk && it.releaseId in releaseIds }.map { it.releaseId }.distinct()
     override suspend fun upsertAll(assets: List<AssetEntity>) {
         assets.forEach { rows[it.id] = it }
     }

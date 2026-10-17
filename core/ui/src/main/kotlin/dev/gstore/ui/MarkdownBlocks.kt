@@ -53,6 +53,7 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 
 import dev.gstore.designsystem.cardShapeFor
+import dev.gstore.designsystem.imageShapeFor
 import dev.gstore.designsystem.pillShape
 
 /**
@@ -96,7 +97,7 @@ fun BlockView(block: Block, owner: String, repo: String, branch: String = "main"
         is Block.Quote -> Surface(
             tonalElevation = 0.dp,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shape = cardShapeFor(),
+            shape = imageShapeFor(),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium), verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
@@ -210,7 +211,7 @@ private fun CodeBlockView(block: Block.CodeBlock) {
     Surface(
         tonalElevation = 0.dp,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = cardShapeFor(),
+        shape = imageShapeFor(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium)) {
@@ -328,8 +329,10 @@ if (url.startsWith("https://")) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-.aspectRatio(16f / 10f)
-                    .clip(pillShape)
+                        .aspectRatio(16f / 10f)
+            // Was pillShape (percent = 50) on a full-text-width box: a real
+            // lens that cut into the image content. Images cap at 12dp.
+                        .clip(imageShapeFor())
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {

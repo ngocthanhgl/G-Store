@@ -1,6 +1,7 @@
 package dev.gstore.search
 
 import dev.gstore.ui.Fluent
+import dev.gstore.ui.safeTop
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +73,7 @@ fun SearchScreen(
         Modifier
             .fillMaxSize()
             .padding(horizontal = GStoreSpace.Gutter)
-            .statusBarsPadding()
+            .safeTop()
             .imePadding(),
     ) {
         Text(

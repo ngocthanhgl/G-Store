@@ -1,6 +1,7 @@
 package dev.gstore.home
 
 import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.ui.safeTop
 import dev.gstore.ui.CountPill
 import dev.gstore.ui.EmptyContent
 import dev.gstore.ui.GStoreSpace
@@ -10,6 +11,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
@@ -122,7 +124,7 @@ fun HomeScreen(
     PullToRefreshBox(
         isRefreshing = state.syncing,
         onRefresh = vm::refreshAll,
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        modifier = Modifier.fillMaxSize().safeTop(),
     ) {
         if (state.isEmpty && !state.syncing && !state.signalsLoading) {
             EmptyCatalog(
@@ -151,8 +153,9 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = GStoreSpace.Block),
+                ) {
                 item {
                     HomeHeader(
                         identity = state.identity,
@@ -580,7 +583,6 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-
 
 
 

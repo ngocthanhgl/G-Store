@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import dev.gstore.ui.safeTop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,7 +36,7 @@ fun ReadmeScreen(
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().statusBarsPadding()) {
+    Box(modifier.fillMaxSize().safeTop()) {
         when (state.status) {
 ReadmeStatus.LOADING -> {
                 // Skeleton lines, not a centred spinner: a spinner in an
@@ -138,7 +139,7 @@ private fun BlocksList(state: ReadmeUiState, modifier: Modifier = Modifier) {
                 start = GStoreSpace.Gutter,
                 end = GStoreSpace.Gutter,
                 top = GStoreSpace.Block,
-                bottom = GStoreSpace.BeforeHeader,
+                bottom = GStoreSpace.Block,
             ),
         ) {
             itemsIndexed(state.blocks, key = { index, _ -> index }) { _, block ->
