@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.designsystem.cardShapeFor
 import dev.gstore.model.Repository
+import dev.gstore.designsystem.LocalCardRadius
 
 /**
  * Vertical grid card — the GRID counterpart to [RepoCard]'s horizontal row.
@@ -41,7 +42,7 @@ fun GridCard(
     onOpen: () -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier,
-    cardRadiusDp: Int = 12,
+    cardRadiusDp: Int = LocalCardRadius.current,
 ) {
     Card(
         onClick = onOpen,

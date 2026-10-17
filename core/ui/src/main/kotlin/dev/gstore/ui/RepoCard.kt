@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.model.Repository
+import dev.gstore.designsystem.LocalCardRadius
 
 /** APK availability as known from cached catalog metadata — never a guarantee. */
 enum class ApkBadge { HAS_APK, UNKNOWN }
@@ -36,7 +37,7 @@ fun RepoCard(
     onOpen: () -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier,
-    cardRadiusDp: Int = 12,
+    cardRadiusDp: Int = LocalCardRadius.current,
 ) {
     AuroraListItem(
         modifier = modifier,

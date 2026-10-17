@@ -46,6 +46,7 @@ import dev.gstore.ui.AdaptiveCard
 import dev.gstore.ui.ApkBadge
 import dev.gstore.ui.AppIcon
 import dev.gstore.ui.GStoreSpace
+import dev.gstore.designsystem.LocalCardRadius
 
 @Composable
 fun SearchScreen(
@@ -54,7 +55,7 @@ fun SearchScreen(
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
-    cardRadiusDp: Int = 12,
+    cardRadiusDp: Int = LocalCardRadius.current,
 ) {
     val state by vm.state.collectAsState()
     val netResults by vm.networkResults.collectAsState()

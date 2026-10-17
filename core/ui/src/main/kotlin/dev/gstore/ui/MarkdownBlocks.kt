@@ -52,13 +52,27 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Size
 
+import dev.gstore.designsystem.cardShapeFor
+import dev.gstore.designsystem.pillShape
+
 /**
  * Shared Markdown block renderer (moved from :feature:readme so the details
  * screen can embed the same README rendering — one parser, one renderer,
  * no duplication, no feature-to-feature dependency).
  */
+/**
+ * Hard cap on block nesting. Markdown arrives from public repositories, so a
+ * release body can legitimately contain a thousand-deep list/quote chain.
+ * Every recursive edge funnels through this function, so one guard here bounds
+ * the whole renderer instead of trusting each call site to remember a limit.
+ * `shortcut:` rooms beyond 6 render nothing; raise this only with a measured
+ * reason, since each level costs real composable frames.
+ */
+private const val MAX_BLOCK_NESTING = 6
+
 @Composable
 fun BlockView(block: Block, owner: String, repo: String, branch: String = "main", depth: Int = 0) {
+    if (depth > MAX_BLOCK_NESTING) return
     when (block) {
         is Block.Heading -> {
             // Body copy is bodyMedium so every heading step stays visible above it.
@@ -82,11 +96,11 @@ fun BlockView(block: Block, owner: String, repo: String, branch: String = "main"
         is Block.Quote -> Surface(
             tonalElevation = 0.dp,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shape = RoundedCornerShape(GStoreSpace.Card.value.dp),
+            shape = cardShapeFor(),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium), verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
-                block.children.forEach { BlockView(it, owner, repo, branch) }
+                block.children.forEach { BlockView(it, owner, repo, branch, depth) }
             }
         }
         is Block.Table -> TableView(block)
@@ -196,7 +210,7 @@ private fun CodeBlockView(block: Block.CodeBlock) {
     Surface(
         tonalElevation = 0.dp,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = RoundedCornerShape(GStoreSpace.Card.value.dp),
+        shape = cardShapeFor(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Medium)) {
@@ -314,8 +328,8 @@ if (url.startsWith("https://")) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 10f)
-                        .clip(RoundedCornerShape(GStoreSpace.Small))
+.aspectRatio(16f / 10f)
+                    .clip(pillShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {

@@ -2,6 +2,7 @@ package dev.gstore.designsystem
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -9,7 +10,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -18,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.gstore.datastore.AppearanceSettings
 import dev.gstore.datastore.ThemeMode
+import dev.gstore.model.AppRadius
 
 /** Centralized tokens — no hardcoded colors or spacing outside this module. */
 object GStoreTokens {
@@ -72,17 +77,39 @@ private fun condensedType(): Typography {
     )
 }
 
-/** User-set card radius (4..20dp, clamped at read time in AppearanceSettings). */
-fun cardShapeFor(radiusDp: Int): androidx.compose.ui.graphics.Shape =
-    androidx.compose.foundation.shape.RoundedCornerShape(radiusDp.coerceIn(4, 20).dp)
+/**
+ * The one place the user's corner-radius setting lives at runtime.
+ *
+ * The Settings slider used to write to DataStore and change nothing on screen:
+ * every surface hardcoded its own radius. Threading an Int through every
+ * composable signature is what caused that in the first place, so the value
+ * goes through a CompositionLocal instead — any component reads it with no
+ * plumbing, which is what makes "drag the slider, the whole app follows" work.
+ *
+ * Provided by [GStoreTheme], so it is always in scope.
+ */
+val LocalCardRadius = staticCompositionLocalOf { AppRadius.DEFAULT }
 
 /**
- * Content-panel shape: fixed strong pill-adjacent 20dp. Panels are large
- * surfaces where a full stadium would read as a capsule; buttons and chips
- * use the M3 stadium/CircleShape directly.
+ * Shape for cards and content surfaces. Follows the user's slider.
+ *
+ * Hybrid model: controls (buttons, chips, filters, badges) use [pillShape] and
+ * are unaffected by the slider, because a chip that is "12dp rounded" instead
+ * of fully round reads as a mistake. Only large surfaces follow the slider.
  */
-fun panelShape(): androidx.compose.ui.graphics.Shape =
-    androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+@Composable
+fun cardShapeFor(radiusDp: Int = LocalCardRadius.current): Shape =
+    RoundedCornerShape(AppRadius.clamp(radiusDp).dp)
+
+/** Large content surface — same slider-driven scale as [cardShapeFor]. */
+@Composable
+fun panelShape(): Shape = cardShapeFor()
+
+/**
+ * Fully rounded control shape. Radius is half the height, so it stays a true
+ * stadium at any control size. Deliberately NOT slider-driven.
+ */
+val pillShape: Shape = RoundedCornerShape(percent = 50)
 
 /**
  * App theme. A custom accent overrides the seed only when it preserves
@@ -127,5 +154,9 @@ fun GStoreTheme(
         dark -> darkColorScheme(primary = seed)
         else -> lightColorScheme(primary = seed)
     }
-    MaterialTheme(colorScheme = scheme, typography = condensedType(), content = content)
+    MaterialTheme(
+        colorScheme = scheme,
+        typography = condensedType(),
+        content = { CompositionLocalProvider(LocalCardRadius provides settings.cardRadiusDp, content = content) },
+    )
 }

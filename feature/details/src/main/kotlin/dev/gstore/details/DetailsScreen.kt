@@ -1,11 +1,14 @@
-package dev.gstore.details
+package dev.gstore.details
+
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import dev.gstore.ui.AuroraSectionHeader
 import dev.gstore.ui.GStoreSpace
+import dev.gstore.ui.ShimmerBlock
+import coil3.request.ImageRequest
+import coil3.size.Size
 import dev.gstore.ui.Fluent
 
 import android.content.Intent
@@ -72,6 +75,7 @@ import dev.gstore.ui.parseMarkdown
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.layout.ContentScale
+import dev.gstore.designsystem.LocalCardRadius
 
 @Composable
 fun DetailsScreen(
@@ -88,7 +92,7 @@ fun DetailsScreen(
     canOpenApp: (String) -> Boolean,
     onOpenApp: (String) -> Unit,
     onOpenReadme: () -> Unit,
-    cardRadiusDp: Int = 12,
+    cardRadiusDp: Int = LocalCardRadius.current,
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -141,6 +145,10 @@ fun DetailsScreen(
     }?.asset
     Column(modifier.fillMaxSize()) {
     val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    // Owned by the screen, keyed by release id. Lazy saveable state is keyed
+    // by item INDEX, so holding this inside the changelog item made the
+    // registry throw whenever the release list shifted under it mid-load.
+    var changelogExpanded by rememberSaveable(state.selectedReleaseId) { mutableStateOf(false) }
 LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -189,17 +197,20 @@ LazyColumn(
                 findingApk = state.syncing || state.loadingAssets || state.scanningApks,
             )
         }
+        // Play Store order: what it looks like, before what it says. The
+        // gallery was the last thing on the page, which meant every visitor
+        // read a paragraph before seeing a single pixel of the app.
+        item { ScreenshotsRow(state.screenshots, reduceMotion) }
         val description = repo.description
         if (description != null) {
+            item { AuroraSectionHeader(title = "About this app", topGap = true) }
             item { DescriptionText(description) }
         }
-        item { FactsLine(repo) }
-        item { LinksRow(repo, onOpenReadme) }
         val busy = state.syncing || state.loadingRepo || state.scanningApks
         val syncError = state.syncError
         // The shared header owns the 24dp-above / 8dp-below rhythm, so no
         // hand-placed spacers bracket it and the rail starts 8dp down.
-        item { SectionTitle("Releases", apkReleases.size) }
+        item { AuroraSectionHeader(title = "What's new", count = apkReleases.size.takeIf { it > 0 }, topGap = true) }
         if (apkReleases.isEmpty() && busy && syncError == null) {
             // Still arriving: shimmer instead of "no releases" copy.
             item { ShimmerRows(count = 2, reduceMotion = reduceMotion) }
@@ -212,9 +223,16 @@ LazyColumn(
             }
         }
         selectedRelease(state)?.let { release ->
-            item { ChangelogFull(release, reduceMotion) }
+            item {
+                ChangelogFull(
+                    release = release,
+                    reduceMotion = reduceMotion,
+                    expanded = changelogExpanded,
+                    onToggle = { changelogExpanded = !changelogExpanded },
+                )
+            }
         }
-        item { ScreenshotsRow(state.screenshots, reduceMotion) }
+        item { MetaFooter(repo, onOpenReadme) }
     }
 }
 }
@@ -337,61 +355,84 @@ private fun DescriptionText(description: String) {
     )
 }
 
-/** Every fact on one ellipsis line; nothing when there is nothing to say. */
+/**
+ * Quiet metadata footer. Play Store puts provenance last and keeps it
+ * recessive, so this is plain bodySmall text plus link rows that look like
+ * list items — not a card, not a row of primary buttons. Every row is a
+ * 48dp touch target; the chevron is decorative.
+ */
 @Composable
-private fun FactsLine(repo: Repository) {
+private fun MetaFooter(repo: Repository, onOpenReadme: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
     val facts = listOfNotNull(
-        repo.language,
-        repo.license,
+        repo.license?.takeIf { it.isNotBlank() }?.let { "License $it" },
+        repo.language?.takeIf { it.isNotBlank() },
         repo.openIssues?.let { "$it open issues" },
-        "Branch ${repo.defaultBranch}",
+        repo.homepage?.takeIf { it.isNotBlank() }?.let { "Homepage $it" },
     )
     if (facts.isNotEmpty()) {
         Text(
             facts.joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = 2,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = GStoreSpace.Small),
+            modifier = Modifier.padding(top = GStoreSpace.Block),
         )
     }
-}
-
-/**
- * Repository / homepage / README as compact link buttons. They live in a
- * FlowRow, not a Row: three intrinsic-width text buttons cannot fit a 320dp
- * screen minus gutters, and a Row would clip them mid-glyph.
- */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun LinksRow(repo: Repository, onOpenReadme: () -> Unit) {
-    val uriHandler = LocalUriHandler.current
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-        modifier = Modifier.padding(vertical = GStoreSpace.Small),
-    ) {
-        TextButton(
-            onClick = { uriHandler.openUri("https://github.com/${repo.fullName}") },
-            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-            contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
-        ) { Text("Repository", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        repo.homepage?.takeIf { it.isNotBlank() }?.let { home ->
-            val url = if (home.startsWith("http")) home else "https://$home"
-            TextButton(
-                onClick = { uriHandler.openUri(url) },
-                modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-                contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
-            ) { Text("Homepage", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    val links = buildList {
+        add("Repository" to "https://github.com/${repo.fullName}")
+        repo.homepage?.takeIf { it.isNotBlank() }?.let {
+            add("Homepage" to if (it.startsWith("http")) it else "https://$it")
         }
-        TextButton(
-            onClick = onOpenReadme,
-            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-            contentPadding = PaddingValues(horizontal = GStoreSpace.Medium, vertical = 0.dp),
-        ) { Text("README", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    }
+    Column(modifier = Modifier.padding(top = GStoreSpace.AfterHeader)) {
+        links.forEach { (label, url) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = GStoreSpace.TouchTarget)
+                    .clickable { uriHandler.openUri(url) },
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Fluent.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(GStoreSpace.Icon),
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = GStoreSpace.TouchTarget)
+                .clickable { onOpenReadme() },
+        ) {
+            Text(
+                "Read more",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Fluent.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(GStoreSpace.Icon),
+            )
+        }
     }
 }
 
@@ -399,13 +440,6 @@ private fun formatCount(n: Int): String = when {
     n >= 1_000_000 -> "%.1fM".format(n / 1_000_000.0)
     n >= 1_000 -> "%.1fk".format(n / 1_000.0)
     else -> n.toString()
-}
-
-@Composable
-private fun SectionTitle(text: String, count: Int? = null) {
-    // The shared header: same titleLarge + tonal count pill + 24dp-above /
-    // 8dp-below rhythm as every other section in the app.
-    AuroraSectionHeader(title = text, count = count)
 }
 
 @Composable
@@ -496,9 +530,13 @@ private fun SyncErrorCard(message: String, onRetry: () -> Unit, cardRadiusDp: In
  * Parsed off the main thread with a shimmer until ready.
  */
 @Composable
-private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
+private fun ChangelogFull(
+    release: Release,
+    reduceMotion: Boolean,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
     val uriHandler = LocalUriHandler.current
-    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
@@ -512,7 +550,7 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
                 // so a text line alone would not be tappable enough.
                 .heightIn(min = GStoreSpace.TouchTarget)
                 .clip(CircleShape)
-                .clickable { expanded = !expanded }
+.clickable { onToggle() }
                 .padding(horizontal = GStoreSpace.Small),
         ) {
                 Text(
@@ -581,44 +619,54 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
     }
 /**
  * Repo-root screenshot gallery: image files only, up to 8, in a horizontal
- * rail. Shimmer while the contents API is still resolving.
+ * rail directly under the hero control. No heading of its own — this is the
+ * first thing on the page and a label above it would be noise.
  */
 @Composable
 private fun ScreenshotsRow(items: List<ScreenshotItem>, reduceMotion: Boolean) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle("Screenshots")
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(items, key = { it.name }) { screenshot ->
-                val imageUrl = screenshot.url
-                var loaded by remember(screenshot.url) { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier.size(104.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (!loaded && imageUrl.isNotBlank()) {
-                        ShimmerRows(count = 1, reduceMotion = reduceMotion)
-                    }
-                    if (imageUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(104.dp)
-                                .clip(panelShape()),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            onSuccess = { _ -> loaded = true },
-                            onError = { _ -> loaded = false },
-                        )
-                    }
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        contentPadding = PaddingValues(vertical = GStoreSpace.Small),
+    ) {
+        items(items, key = { it.name }) { screenshot ->
+            val imageUrl = screenshot.url
+            var loaded by remember(screenshot.url) { mutableStateOf(false) }
+            Box(
+                modifier = Modifier
+                    .size(ScreenshotSize)
+                    .clip(panelShape()),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!loaded && imageUrl.isNotBlank()) {
+                    ShimmerBlock(Modifier.fillMaxSize(), reduceMotion = reduceMotion)
+                }
+                if (imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUrl)
+                            // Cap decode resolution instead of trusting the
+                            // uploaded dimensions; a 140dp tile at xxhdpi is
+                            // ~560px.
+                            .size(Size(560, 560))
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(ScreenshotSize)
+                            .clip(panelShape()),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        onSuccess = { _ -> loaded = true },
+                        onError = { _ -> loaded = false },
+                    )
                 }
             }
         }
     }
 }
+
+/** Screenshot tile edge: 140dp reads as artwork, not as a thumbnail. */
+private val ScreenshotSize = 140.dp
 
 /**
  * Bare hero control, no card chrome: one action per state, always visible.

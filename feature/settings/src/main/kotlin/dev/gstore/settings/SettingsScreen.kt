@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.AppIcon
 import dev.gstore.ui.AuroraSectionHeader
+import dev.gstore.model.AppRadius
 import dev.gstore.ui.Fluent
 import dev.gstore.ui.GStoreSpace
 import dev.gstore.datastore.AppearanceSettings
@@ -70,6 +72,21 @@ fun SettingsScreen(
     vm: SettingsViewModel,
     appVersion: String,
 ) {
+    val identity by vm.identity.collectAsState()
+    val loginBusy by vm.loginBusy.collectAsState()
+    val loginError by vm.loginError.collectAsState()
+    // Hoisted out of the list on purpose. A LazyColumn disposes item
+    // composition when the item scrolls out of view, which silently reverted
+    // showLogin to false mid-typing; rememberSaveable also survives rotation.
+    var showLogin by rememberSaveable { mutableStateOf(false) }
+    var submitted by rememberSaveable { mutableStateOf(false) }
+    // Only a completed submit may dismiss this dialog. Keying the close on
+    // "identity exists" was wrong twice over: GitHubIdentity is non-nullable
+    // (logged out == GitHubIdentity(login = "")), so that condition is always
+    // true and the dialog closed the instant it opened.
+    LaunchedEffect(identity.login) {
+        if (submitted && identity.login.isNotBlank()) showLogin = false
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -97,22 +114,20 @@ fun SettingsScreen(
             }
         }
         item {
-            val identity by vm.identity.collectAsState()
-            val loginBusy by vm.loginBusy.collectAsState()
-            val loginError by vm.loginError.collectAsState()
-            var showLogin by remember { mutableStateOf(false) }
             SettingGroup("GitHub") {
                 if (identity.login.isBlank()) {
                     Text(
-                        "Anonymous browsing: 60 requests/hour. Log in to raise " +
-                            "it to 5,000 — a token with no scopes is enough.",
+                        "Anonymous: 60 requests/hour. Log in for 5,000.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 4,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Button(
-                        onClick = { showLogin = true },
+                        onClick = {
+                        submitted = false
+                        showLogin = true
+                    },
                         modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
                     ) {
                         Text("Log in with token", maxLines = 1)
@@ -151,18 +166,6 @@ fun SettingsScreen(
                 if (loginBusy) {
                     CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
                 }
-            }
-            if (showLogin) {
-                // The dialog stays mounted while the login round-trip is in
-                // flight and closes itself the moment an identity lands.
-                LaunchedEffect(identity) {
-                    if (identity != null) showLogin = false
-                }
-                LoginDialog(
-                    busy = loginBusy,
-                    onDismiss = { if (!loginBusy) showLogin = false },
-                    onConfirm = { vm.loginWithToken(it) },
-                )
             }
         }
         item {
@@ -215,6 +218,13 @@ fun SettingsScreen(
                         maxLines = 1,
                     )
                 }
+                Text(
+                    "Cards and surfaces. Buttons and chips stay fully round.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 // Drag updates locally; DataStore writes once per gesture so a
                 // write-storm can never jank or drop the final value.
                 var radius by remember(appearance.cardRadiusDp) {
@@ -224,8 +234,8 @@ fun SettingsScreen(
                     value = radius,
                     onValueChange = { radius = it },
                     onValueChangeFinished = { vm.setCardRadius(radius.toInt()) },
-                    valueRange = 4f..20f,
-                    steps = 15,
+                    valueRange = AppRadius.MIN.toFloat()..AppRadius.MAX.toFloat(),
+                    steps = AppRadius.MAX - AppRadius.MIN - 1,
                     // Pill track: Slider has no shape param, so the track
                     // slot carries the rounded bar instead of M3's thin line.
                     // The slot also hosts the 20dp thumb, so it must be at
@@ -272,6 +282,16 @@ fun SettingsScreen(
             }
         }
     }
+    if (showLogin) {
+        LoginDialog(
+            busy = loginBusy,
+            onDismiss = { if (!loginBusy) showLogin = false },
+            onConfirm = {
+                submitted = true
+                vm.loginWithToken(it)
+            },
+        )
+    }
 }
 
 /**
@@ -282,7 +302,7 @@ fun SettingsScreen(
  */
 @Composable
 private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
     val uriHandler = LocalUriHandler.current
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -310,7 +330,7 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
                 }
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it.trim() },
+                    onValueChange = { text = it },
                     label = { Text("Personal access token") },
                     singleLine = true,
                     shape = CircleShape,

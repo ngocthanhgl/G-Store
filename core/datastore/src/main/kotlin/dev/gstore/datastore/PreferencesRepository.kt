@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.gstore.model.AppRadius
 import dev.gstore.model.HomeSection
 import dev.gstore.model.SectionConfig
 import dev.gstore.model.TrendingWeights
@@ -32,7 +33,7 @@ data class AppearanceSettings(
     val accentArgb: Int? = null,
     val density: CardDensity = CardDensity.COMPACT,
     val layout: HomeLayout = HomeLayout.LIST,
-    val cardRadiusDp: Int = 12,
+    val cardRadiusDp: Int = AppRadius.DEFAULT,
     val reduceMotion: Boolean = false,
     /** Beta builds participate in pick/download/update. Off = stable only. */
     val includePrereleases: Boolean = false,
@@ -45,7 +46,11 @@ class PreferencesRepository(private val context: Context) {
         val ACCENT = intPreferencesKey("accent_argb")
         val DENSITY = stringPreferencesKey("density")
         val LAYOUT = stringPreferencesKey("layout")
-        val RADIUS = intPreferencesKey("card_radius_dp")
+        // Key renamed from "card_radius_dp". Every value stored under the old key
+    // was meaningless — the slider wrote here and nothing read it — so keeping
+    // them would pin existing users to a radius they never chose and would miss
+    // the new default. The stale key is intentionally left unread.
+    val CARD_RADIUS = intPreferencesKey("card_radius_dp_v2")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
     val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
         val SECTION_ORDER = stringPreferencesKey("section_order")
@@ -102,7 +107,7 @@ class PreferencesRepository(private val context: Context) {
             layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "LIST") }
                 .getOrDefault(HomeLayout.LIST),
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).
-            cardRadiusDp = (p[Keys.RADIUS] ?: 12).coerceIn(4, 20),
+            cardRadiusDp = AppRadius.clamp(p[Keys.CARD_RADIUS] ?: AppRadius.DEFAULT),
             reduceMotion = p[Keys.REDUCE_MOTION] ?: false,
             includePrereleases = p[Keys.INCLUDE_PRERELEASES] ?: false,
         )
@@ -127,7 +132,7 @@ class PreferencesRepository(private val context: Context) {
     }
 
     suspend fun setCardRadiusDp(radiusDp: Int) {
-        context.store.edit { it[Keys.RADIUS] = radiusDp.coerceIn(4, 20) }
+        context.store.edit { it[Keys.CARD_RADIUS] = AppRadius.clamp(radiusDp) }
     }
 
     suspend fun setLayout(layout: HomeLayout) {

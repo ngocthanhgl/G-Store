@@ -66,6 +66,7 @@ import dev.gstore.ui.AppIcon
 import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
 import dev.gstore.ui.ShimmerRows
+import dev.gstore.designsystem.LocalCardRadius
 
 private const val COLLAPSED_COUNT = 5
 
@@ -86,7 +87,7 @@ fun HomeScreen(
     snackbar: SnackbarHostState,
     grid: Boolean = false,
     compact: Boolean = false,
-    cardRadiusDp: Int = 12,
+    cardRadiusDp: Int = LocalCardRadius.current,
     reduceMotion: Boolean = false,
 ) {
     val state by vm.state.collectAsState()
@@ -387,11 +388,11 @@ private fun CatalogBlock(
     onOpen: (Repository) -> Unit,
     onToggleFavorite: (Repository) -> Unit,
 ) {
-    // Collapsed by default: chips only, no auto-expanded section.
-    // Tapping a filter expands; tapping again collapses back to chips
-    // (choice survives rotation via saveable).
-    var expanded by rememberSaveable { mutableStateOf<CatalogFilter?>(null) }
-    val shown = if (expanded != null) items.take(10) else emptyList()
+    // The chips always lead to a visible list. An earlier version gated the
+    // results behind tapping a chip, so the screen opened with nothing but a
+    // row of filters — the home of an app store should show apps.
+    val current = filter
+    val shown = items.take(12)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -413,13 +414,10 @@ private fun CatalogBlock(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
             CatalogFilter.entries.forEach { option ->
-                val open = expanded == option
+                val open = current == option
                 FilterChip(
                     selected = open,
-                    onClick = {
-                        onFilter(option)
-                        expanded = if (open) null else option
-                    },
+                    onClick = { onFilter(option) },
                     label = { Text(filterLabel(option), maxLines = 1) },
                     leadingIcon = if (open) {
                         {
@@ -443,11 +441,7 @@ private fun CatalogBlock(
                 )
             }
         }
-        val current = expanded
-        // Collapsed chips show nothing below: no hint line, no blank box.
-        // The null branch stays first so `current` smart-casts below.
-        if (current == null) {
-        } else if (items.isEmpty() && syncing) {
+        if (items.isEmpty() && syncing) {
             // Genuine load in flight: Aurora sweep placeholders, never blank.
             ShimmerRows(count = 5, reduceMotion = reduceMotion)
         } else if (items.isEmpty()) {
@@ -458,7 +452,7 @@ private fun CatalogBlock(
             )
         } else {
             Text(
-                "${filterLabel(current)} · top ${shown.size} of ${items.size}",
+                "${filterLabel(current)} - ${shown.size} of ${items.size} apps",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

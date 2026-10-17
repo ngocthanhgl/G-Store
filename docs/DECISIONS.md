@@ -980,3 +980,83 @@ the fallback the audit asked for, leaving a broken README image as a silent
 empty rectangle (violating DESIGN.md). Replaced with an explicit reserved Box
 that paints "Loading image…" / "Image unavailable" underneath the image and
 clears it from the load callbacks — no new Coil API needed.
+## 35. v1.1.2 - crash fixes, live radius, Play Store details order
+
+Four user reports, each traced to a cause rather than a symptom.
+
+### 35.1 Details screen crashed (three suspects, all fixed)
+1. **Unbounded Markdown recursion.** BlockView recursed through blockquote
+   and list nesting with a depth counter that was never checked, and the
+   quote branch reset it to 0 - so attacker-controlled changelog text such as
+   deeply nested >>> chains drove it to stack overflow.
+   Fix: MAX_BLOCK_NESTING = 6 with a single choke-point guard at the top of
+   BlockView, and the quote branch now forwards depth instead of resetting.
+2. **irst() on flows that can be empty.** loadAssets called
+   	racker.observe(best.id).first() and the init block called
+   prefs.appearance.first() with no guard; NoSuchElementException in
+   iewModelScope takes the process down.
+   Fix: loadAssets split into a wrapper (owns loadingAssets, rethrows
+   CancellationException) plus loadAssetsInner inside 	ry, with
+   catch (t: Throwable) restoring a defined state; both irst() calls
+   became irstOrNull().
+3. **ememberSaveable inside a conditional lazy-list item.** Lazy saveable
+   state is keyed by ITEM INDEX, so adding or removing a release made the
+   index-keyed Boolean state illegal and threw.
+   Fix: hoisted to the composable body and keyed by state.selectedReleaseId.
+
+### 35.2 Login screen flashed and closed itself
+GitHubIdentity is non-nullable (TokenStore models logged-out as
+login = ""), so the guard if (identity != null) showLogin = false was
+always true and the close effect fired the instant the dialog opened.
+Aggravated by showLogin and the token text being plain emember inside a
+LazyColumn item {}, which is disposed on scroll.
+
+Fix: identity.login.isNotBlank(), a submitted flag that only arms the
+close effect after an actual submit, ememberSaveable for the dialog flag and
+token text, and the dialog moved out of the list body so scrolling cannot
+dispose it. Anonymous-usage copy cut to two lines.
+
+### 35.3 The corner-radius slider was dead
+The Settings slider wrote card_radius_dp to DataStore and nothing read it:
+cardShapeFor() had zero call sites, panelShape() was hardcoded to 20dp,
+and five surfaces hardcoded RoundedCornerShape.
+
+Fix: AppRadius (0-28dp, default 24) in :core:model; LocalCardRadius
+composition local provided by GStoreTheme; cardShapeFor(radiusDp =
+LocalCardRadius.current); panelShape() now delegates to it; every surface
+retargeted. Controls (pillShape) stay fully round per the agreed hybrid rule
+- buttons and chips are pills by definition, cards follow the slider.
+The DataStore key was renamed to card_radius_dp_v2: every previously stored
+value was meaningless because nothing read it, and keeping them would have
+pinned users to a radius they never actually chose.
+
+Kept hardcoded on purpose: the launcher-icon squircle on AppIcon and the
+Installed tile, which are platform icon conventions rather than surfaces.
+
+### 35.4 Details reordered to Play Store, catalog chips un-collapsed
+- Screenshots moved from the bottom of the page to directly under the hero
+  control (the agreed order), grown 104dp -> 140dp, lost their redundant
+  heading, and now decode at a capped 560px instead of full resolution.
+  Shimmer placeholder switched to a single block to match the square.
+- FactsLine + the three-button LinksRow merged into one quiet
+  MetaFooter: bodySmall facts plus link rows shaped like list items
+  (48dp targets, decorative chevron) instead of three loud buttons.
+- Sections use the shared AuroraSectionHeader: "About this app",
+  "What's new". The private SectionTitle wrapper and FlowRow import went
+  away with their last callers.
+- Home's catalog chips no longer gate the results: tapping a chip re-sorts
+  and shows 12 apps immediately. Previously the screen opened with a row of
+  filters and nothing under them.
+
+### 35.5 Verification
+:app:assembleDebug, :app:testDebugUnitTest (113/113), :app:lintDebug and
+:app:assembleRelease all exit 0; impeccable detect --json over the three
+touched screens returns []. Compile errors hit and fixed along the way:
+AuroraSectionHeader's first positional parameter is modifier, so the two
+new headers needed named 	itle =; ImageRequest lives in coil3.request,
+not coil.request (the unresolved import silently degraded the builder chain
+into Modifier.size, producing a confusing "Unresolved reference 'build'").
+
+Honest limits: no emulator is attached to this workstation, so the pill at
+0/24dp, the 48dp targets and AMOLED contrast are verified by construction,
+lint and the detector - not by screenshot.

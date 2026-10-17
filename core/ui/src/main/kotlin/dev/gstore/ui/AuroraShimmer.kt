@@ -31,6 +31,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 
+import dev.gstore.designsystem.LocalCardRadius
+import dev.gstore.designsystem.cardShapeFor
+
 /**
  * Aurora-style loading placeholders: a travelling diagonal highlight sweep
  * (not an alpha pulse) over faithful per-screen layouts — list rows, rail
@@ -59,10 +62,10 @@ fun shimmerBrush(reduceMotion: Boolean = false): Brush {
 }
 
 @Composable
-fun ShimmerBlock(modifier: Modifier, radiusDp: Int = 8, reduceMotion: Boolean = false) {
+fun ShimmerBlock(modifier: Modifier, radiusDp: Int = LocalCardRadius.current, reduceMotion: Boolean = false) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(radiusDp.dp))
+            .clip(cardShapeFor(radiusDp))
             .background(shimmerBrush(reduceMotion)),
     )
 }

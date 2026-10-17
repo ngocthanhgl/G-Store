@@ -18,13 +18,14 @@ import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
 import dev.gstore.network.ApiResponse
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -129,7 +130,7 @@ class DetailsViewModel(
             resolvedId.flatMapLatest { id -> catalog.observeReleases(id) }.collectLatest { releases ->
                 val current = _state.value
                 val selected = current.selectedReleaseId
-                val includePre = prefs.appearance.first().includePrereleases
+                val includePre = prefs.appearance.firstOrNull()?.includePrereleases ?: false
                 val next = if (selected != null && releases.any { it.id == selected }) selected
                 else defaultRelease(releases, includePre) ?: releases.firstOrNull()?.id
                 _state.value = current.copy(releases = releases, selectedReleaseId = next)
@@ -276,33 +277,46 @@ class DetailsViewModel(
     private fun loadAssets(releaseId: Long) {
         viewModelScope.launch {
             _state.value = _state.value.copy(loadingAssets = true)
-            val rows = catalog.allAssets(releaseId).map { asset ->
-                val verdict = classifyAsset(asset.filename, asset.contentType, asset.size)
-                AssetRow(asset, verdict, artifactOf(asset.id, asset.filename, null, verdict.kind))
+            try {
+                loadAssetsInner(releaseId)
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (t: Throwable) {
+                // Asset rows and the installed-state probe both read storage and
+                // PackageManager. A failure here is a degraded hero button, never
+                // a reason to take the process down with an uncaught coroutine.
+                heroJob?.cancel()
+                _state.value = _state.value.copy(loadingAssets = false, hero = HeroDlState.IdleDownload)
             }
-            _state.value = _state.value.copy(assetRows = rows, loadingAssets = false)
-            val best = rows.firstOrNull {
-                it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
-            }?.asset
-            if (best != null) {
-                // Initial check: is this APK already installed (via a previous
-                // G Store download)? If so, show Open/Uninstall immediately
-                // instead of "Download".
-                val existing = tracker.observe(best.id).first()
-                if (existing != null && existing.status == "COMPLETED") {
-                    val pkg = existing.packageName
-                    if (pkg != null) {
-                        val info = withContext(Dispatchers.IO) {
-                            installed.installedPackages(setOf(pkg))[pkg]
-                        }
-                        if (info != null) {
-                            _state.value = _state.value.copy(
-                                hero = HeroDlState.Installed(pkg, existing.versionName),
-                                installedPackageName = pkg,
-                            )
-                        } else {
-                            watchHero(best)
-                        }
+        }
+    }
+
+    private suspend fun loadAssetsInner(releaseId: Long) {
+        val rows = catalog.allAssets(releaseId).map { asset ->
+            val verdict = classifyAsset(asset.filename, asset.contentType, asset.size)
+            AssetRow(asset, verdict, artifactOf(asset.id, asset.filename, null, verdict.kind))
+        }
+        _state.value = _state.value.copy(assetRows = rows, loadingAssets = false)
+        val best = rows.firstOrNull {
+            it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
+        }?.asset
+        if (best != null) {
+            // Initial check: is this APK already installed (via a previous
+            // G Store download)? If so, show Open/Uninstall immediately
+            // instead of "Download". firstOrNull, not first: an empty flow
+            // here used to throw NoSuchElementException out of the scope.
+            val existing = tracker.observe(best.id).firstOrNull()
+            if (existing != null && existing.status == "COMPLETED") {
+                val pkg = existing.packageName
+                if (pkg != null) {
+                    val info = withContext(Dispatchers.IO) {
+                        installed.installedPackages(setOf(pkg))[pkg]
+                    }
+                    if (info != null) {
+                        _state.value = _state.value.copy(
+                            hero = HeroDlState.Installed(pkg, existing.versionName),
+                            installedPackageName = pkg,
+                        )
                     } else {
                         watchHero(best)
                     }
@@ -310,9 +324,11 @@ class DetailsViewModel(
                     watchHero(best)
                 }
             } else {
-                heroJob?.cancel()
-                _state.value = _state.value.copy(hero = HeroDlState.IdleDownload)
+                watchHero(best)
             }
+        } else {
+            heroJob?.cancel()
+            _state.value = _state.value.copy(hero = HeroDlState.IdleDownload)
         }
     }
 
