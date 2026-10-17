@@ -631,8 +631,8 @@
    "owner": "JunkFood02",
    "avatar_url": "https://avatars.githubusercontent.com/u/69683722?v=4",
    "description": "🦭 Video/Audio Downloader for Android, based on yt-dlp",
-   "stars": 29787,
-   "forks": 1485,
+   "stars": 29795,
+   "forks": 1484,
    "topics": [
     "android",
     "f-droid",
@@ -645,7 +645,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:27:12Z",
+   "updated_at": "2026-10-17T13:27:12Z",
    "created_at": "2022-04-15T01:15:25Z",
    "license": "GPL-3.0"
   },
@@ -736,7 +736,7 @@
    "owner": "koodo-reader",
    "avatar_url": "https://avatars.githubusercontent.com/u/149913075?v=4",
    "description": "A modern ebook manager and reader with sync and backup capacities for Windows, macOS, Linux, Android, iOS and Web",
-   "stars": 28535,
+   "stars": 28543,
    "forks": 2138,
    "topics": [
     "book",
@@ -760,7 +760,7 @@
    ],
    "archived": false,
    "default_branch": "dev",
-   "updated_at": "2026-10-17T06:46:24Z",
+   "updated_at": "2026-10-17T12:01:30Z",
    "created_at": "2020-03-05T02:18:30Z",
    "license": "AGPL-3.0"
   },
@@ -1750,7 +1750,7 @@
    "owner": "T8RIN",
    "avatar_url": "https://avatars.githubusercontent.com/u/52178347?v=4",
    "description": "🖼️ Image Toolbox is a powerful app for advanced image manipulation. It offers dozens of features, from basic tools like crop and draw to filters, OCR, and a wide range of image processing options",
-   "stars": 15036,
+   "stars": 15042,
    "forks": 650,
    "topics": [
     "ai",
@@ -1776,7 +1776,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T06:13:26Z",
+   "updated_at": "2026-10-17T13:27:46Z",
    "created_at": "2022-04-06T20:06:28Z",
    "license": "Apache-2.0"
   },
@@ -3683,7 +3683,7 @@
    "owner": "ReadYouApp",
    "avatar_url": "https://avatars.githubusercontent.com/u/221981456?v=4",
    "description": "An Android RSS reader presented in Material You style.",
-   "stars": 7603,
+   "stars": 7602,
    "forks": 339,
    "topics": [
     "android",
@@ -3698,7 +3698,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:34:47Z",
+   "updated_at": "2026-10-17T13:17:30Z",
    "created_at": "2022-03-01T16:58:16Z",
    "license": "GPL-3.0"
   },
@@ -3830,7 +3830,7 @@
    "owner": "XayahSuSuSu",
    "avatar_url": "https://avatars.githubusercontent.com/u/44322170?v=4",
    "description": "DataBackup for Android 7.0+",
-   "stars": 7469,
+   "stars": 7468,
    "forks": 334,
    "topics": [
     "android",
@@ -3841,7 +3841,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T05:21:25Z",
+   "updated_at": "2026-10-17T13:12:51Z",
    "created_at": "2021-11-22T02:42:21Z",
    "license": "GPL-3.0"
   },
@@ -3862,7 +3862,7 @@
    "owner": "LibChecker",
    "avatar_url": "https://avatars.githubusercontent.com/u/116417672?v=4",
    "description": "An app to view libraries used in apps in your device.",
-   "stars": 7263,
+   "stars": 7265,
    "forks": 438,
    "topics": [
     "android",
@@ -3872,7 +3872,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T02:30:57Z",
+   "updated_at": "2026-10-17T07:06:04Z",
    "created_at": "2020-03-19T03:21:14Z",
    "license": "Apache-2.0"
   },
@@ -4061,7 +4061,7 @@
    "owner": "plainhub",
    "avatar_url": "https://avatars.githubusercontent.com/u/262618287?v=4",
    "description": "🔥 PlainApp is an open-source app that lets you securely manage your phone from a web browser. Access files, media, contacts, SMS, calls, and more through a simple, easy-to-use interface on your desktop.",
-   "stars": 6950,
+   "stars": 6953,
    "forks": 428,
    "topics": [
     "android",
@@ -4087,7 +4087,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T02:49:10Z",
+   "updated_at": "2026-10-17T12:19:47Z",
    "created_at": "2021-10-17T10:03:14Z",
    "license": "AGPL-3.0"
   },
@@ -4912,7 +4912,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/32685733?v=4",
    "description": "Bromite is a Chromium fork with ad blocking and privacy enhancements; take back your browser!",
    "stars": 6322,
-   "forks": 641,
+   "forks": 642,
    "topics": [
     "adblock",
     "adblocking",
@@ -5363,8 +5363,8 @@
    "owner": "celzero",
    "avatar_url": "https://avatars.githubusercontent.com/u/68689239?v=4",
    "description": "DNS over HTTPS / DNS over Tor / DNSCrypt client, WireGuard proxifier, firewall, and connection tracker for Android.",
-   "stars": 5599,
-   "forks": 350,
+   "stars": 5604,
+   "forks": 351,
    "topics": [
     "android",
     "android-app",
@@ -5385,7 +5385,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:41:53Z",
+   "updated_at": "2026-10-17T13:34:58Z",
    "created_at": "2020-06-08T13:41:18Z",
    "license": "Apache-2.0"
   },
@@ -5443,7 +5443,7 @@
    "owner": "NeoApplications",
    "avatar_url": "https://avatars.githubusercontent.com/u/101910870?v=4",
    "description": "An F-Droid client with modern UI and an arsenal of extra features.",
-   "stars": 5459,
+   "stars": 5464,
    "forks": 190,
    "topics": [
     "android",
@@ -5453,7 +5453,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T05:51:54Z",
+   "updated_at": "2026-10-17T11:54:53Z",
    "created_at": "2021-03-07T12:56:05Z",
    "license": "GPL-3.0"
   },
@@ -5537,7 +5537,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T00:31:25Z",
+   "updated_at": "2026-10-17T12:08:27Z",
    "created_at": "2017-07-30T23:59:30Z",
    "license": "GPL-3.0"
   },
@@ -5637,7 +5637,7 @@
    "owner": "simondankelmann",
    "avatar_url": "https://avatars.githubusercontent.com/u/5880491?v=4",
    "description": "",
-   "stars": 4958,
+   "stars": 4957,
    "forks": 406,
    "topics": [
     "android",
@@ -5647,7 +5647,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T02:58:34Z",
+   "updated_at": "2026-10-17T12:13:05Z",
    "created_at": "2023-10-20T11:54:26Z",
    "license": "GPL-3.0"
   },
@@ -5668,7 +5668,7 @@
    "owner": "emanuele-f",
    "avatar_url": "https://avatars.githubusercontent.com/u/5488003?v=4",
    "description": "No-root network monitor, firewall and PCAP dumper for Android",
-   "stars": 4926,
+   "stars": 4927,
    "forks": 561,
    "topics": [
     "android",
@@ -5686,7 +5686,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T04:25:24Z",
+   "updated_at": "2026-10-17T13:06:11Z",
    "created_at": "2020-01-06T18:11:27Z",
    "license": "GPL-3.0"
   },
@@ -5727,7 +5727,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:24:57Z",
+   "updated_at": "2026-10-17T12:17:08Z",
    "created_at": "2022-07-22T03:39:01Z",
    "license": "GPL-3.0"
   },
@@ -6109,7 +6109,7 @@
    "owner": "rumboalla",
    "avatar_url": "https://avatars.githubusercontent.com/u/21153554?v=4",
    "description": "APKUpdater is an open source tool that simplifies the process of finding updates for your installed apps.",
-   "stars": 4043,
+   "stars": 4044,
    "forks": 285,
    "topics": [
     "android",
@@ -6133,7 +6133,7 @@
    ],
    "archived": false,
    "default_branch": "3.x",
-   "updated_at": "2026-10-16T15:50:11Z",
+   "updated_at": "2026-10-17T08:24:19Z",
    "created_at": "2016-08-21T09:18:13Z",
    "license": "GPL-3.0"
   },
@@ -6313,7 +6313,7 @@
    ],
    "archived": false,
    "default_branch": "beta",
-   "updated_at": "2026-10-17T03:17:54Z",
+   "updated_at": "2026-10-17T09:53:49Z",
    "created_at": "2012-10-27T13:20:30Z",
    "license": "GPL-3.0"
   },
@@ -7470,7 +7470,7 @@
    "owner": "lihenggui",
    "avatar_url": "https://avatars.githubusercontent.com/u/5171312?v=4",
    "description": "Utilize an integrated firewall to manage application components.",
-   "stars": 2446,
+   "stars": 2447,
    "forks": 103,
    "topics": [
     "android",
@@ -7480,7 +7480,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T04:36:27Z",
+   "updated_at": "2026-10-17T12:45:04Z",
    "created_at": "2017-12-26T11:45:16Z",
    "license": "Apache-2.0"
   },
@@ -7533,12 +7533,12 @@
    "owner": "AhmetCanArslan",
    "avatar_url": "https://avatars.githubusercontent.com/u/107195095?v=4",
    "description": "Lightweight, no vpn firewall solution for Android 11+",
-   "stars": 2374,
+   "stars": 2376,
    "forks": 69,
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T18:05:40Z",
+   "updated_at": "2026-10-17T13:03:10Z",
    "created_at": "2025-10-27T21:49:44Z",
    "license": "GPL-3.0"
   },
@@ -7559,7 +7559,7 @@
    "owner": "FoedusProgramme",
    "avatar_url": "https://avatars.githubusercontent.com/u/157073664?v=4",
    "description": "A sane music player built with media3 and material design library that is following android's standard strictly.",
-   "stars": 2350,
+   "stars": 2348,
    "forks": 138,
    "topics": [
     "android",
@@ -7575,7 +7575,7 @@
    ],
    "archived": false,
    "default_branch": "beta",
-   "updated_at": "2026-10-17T06:10:03Z",
+   "updated_at": "2026-10-17T10:03:09Z",
    "created_at": "2023-08-02T07:57:11Z",
    "license": "GPL-3.0"
   },
@@ -9101,7 +9101,7 @@
    "owner": "Arcticons-Team",
    "avatar_url": "https://avatars.githubusercontent.com/u/154688468?v=4",
    "description": "A monotone line-based icon pack for android",
-   "stars": 1584,
+   "stars": 1585,
    "forks": 468,
    "topics": [
     "android",
@@ -9116,7 +9116,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T22:15:05Z",
+   "updated_at": "2026-10-17T12:42:54Z",
    "created_at": "2020-10-23T11:38:17Z",
    "license": "GPL-3.0"
   },
@@ -9288,7 +9288,7 @@
    "owner": "potatameister",
    "avatar_url": "https://avatars.githubusercontent.com/u/180633607?v=4",
    "description": "Privacy-first PDF utility (Zero-Server Architecture). Merge, split, compress, and edit PDFs 100% locally on your device. No uploads, no servers, no tracking.",
-   "stars": 1506,
+   "stars": 1507,
    "forks": 105,
    "topics": [
     "android",
@@ -9307,7 +9307,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:33:24Z",
+   "updated_at": "2026-10-17T09:19:12Z",
    "created_at": "2026-01-26T08:49:20Z",
    "license": "AGPL-3.0"
   },
@@ -11213,7 +11213,7 @@
    "owner": "VinylMusicPlayer",
    "avatar_url": "https://avatars.githubusercontent.com/u/123574277?v=4",
    "description": "A material designed music player for Android",
-   "stars": 996,
+   "stars": 997,
    "forks": 162,
    "topics": [
     "android",
@@ -11226,7 +11226,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-14T03:18:14Z",
+   "updated_at": "2026-10-17T11:20:49Z",
    "created_at": "2017-12-27T15:32:23Z",
    "license": "GPL-3.0"
   },
@@ -11347,7 +11347,7 @@
    "owner": "InlitX",
    "avatar_url": "https://avatars.githubusercontent.com/u/193412982?v=4",
    "description": " Offline gym log for Android. No account, no ads, no internet.",
-   "stars": 956,
+   "stars": 961,
    "forks": 107,
    "topics": [
     "android",
@@ -11367,7 +11367,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:03:31Z",
+   "updated_at": "2026-10-17T12:15:16Z",
    "created_at": "2026-08-05T12:02:49Z",
    "license": "GPL-3.0"
   },
@@ -12572,7 +12572,7 @@
    "owner": "Kin69",
    "avatar_url": "https://avatars.githubusercontent.com/u/109698804?v=4",
    "description": "Athena is a Material You (Material 3) firewall and ad blocker that works seamlessly on both rooted and non-rooted devices.",
-   "stars": 724,
+   "stars": 725,
    "forks": 40,
    "topics": [
     "android",
@@ -12596,7 +12596,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T21:48:46Z",
+   "updated_at": "2026-10-17T12:50:56Z",
    "created_at": "2025-03-14T08:56:31Z",
    "license": "GPL-3.0"
   },
@@ -12636,6 +12636,43 @@
    "id": 341894491,
    "tag": "v1.10.0",
    "published_at": "2026-06-19T11:11:01Z",
+   "prerelease": false,
+   "apk_count": 2
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1204820321,
+   "full_name": "eyalm2000/adns",
+   "owner": "eyalm2000",
+   "avatar_url": "https://avatars.githubusercontent.com/u/141010573?v=4",
+   "description": "Android's Private DNS Supercharged",
+   "stars": 707,
+   "forks": 24,
+   "topics": [
+    "adblock",
+    "adblocker",
+    "android",
+    "dns",
+    "material-3",
+    "material-3-expressive",
+    "nextdns",
+    "nextdns-android",
+    "private-dns",
+    "shizuku"
+   ],
+   "archived": false,
+   "default_branch": "master",
+   "updated_at": "2026-10-17T10:20:01Z",
+   "created_at": "2026-04-08T11:14:02Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 402541897,
+   "tag": "v2.1.8",
+   "published_at": "2026-10-03T14:13:54Z",
    "prerelease": false,
    "apk_count": 2
   }
@@ -12706,43 +12743,6 @@
    "published_at": "2026-10-12T22:32:33Z",
    "prerelease": false,
    "apk_count": 3
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1204820321,
-   "full_name": "eyalm2000/adns",
-   "owner": "eyalm2000",
-   "avatar_url": "https://avatars.githubusercontent.com/u/141010573?v=4",
-   "description": "Android's Private DNS Supercharged",
-   "stars": 704,
-   "forks": 24,
-   "topics": [
-    "adblock",
-    "adblocker",
-    "android",
-    "dns",
-    "material-3",
-    "material-3-expressive",
-    "nextdns",
-    "nextdns-android",
-    "private-dns",
-    "shizuku"
-   ],
-   "archived": false,
-   "default_branch": "master",
-   "updated_at": "2026-10-17T03:11:25Z",
-   "created_at": "2026-04-08T11:14:02Z",
-   "license": "MIT"
-  },
-  "release": {
-   "id": 402541897,
-   "tag": "v2.1.8",
-   "published_at": "2026-10-03T14:13:54Z",
-   "prerelease": false,
-   "apk_count": 2
   }
  },
  {
@@ -13231,7 +13231,7 @@
    "owner": "krvstek",
    "avatar_url": "https://avatars.githubusercontent.com/u/138402769?v=4",
    "description": "📦 Pre-built APKs from various patch sources",
-   "stars": 675,
+   "stars": 674,
    "forks": 22,
    "topics": [
     "adblock",
@@ -13250,7 +13250,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T11:38:34Z",
+   "updated_at": "2026-10-17T12:32:09Z",
    "created_at": "2024-11-17T13:50:24Z",
    "license": "GPL-3.0"
   },
@@ -15152,7 +15152,7 @@
    "avatar_url": "https://avatars.githubusercontent.com/u/32138575?v=4",
    "description": "An Android app for turning the screen off while keeping apps running.",
    "stars": 557,
-   "forks": 35,
+   "forks": 36,
    "topics": [
     "android",
     "android-app",
@@ -15518,7 +15518,7 @@
    "owner": "ZTFtrue",
    "avatar_url": "https://avatars.githubusercontent.com/u/13563890?v=4",
    "description": "A music player on android platform, developed by Android composer",
-   "stars": 537,
+   "stars": 536,
    "forks": 35,
    "topics": [
     "android-app",
@@ -15532,7 +15532,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T03:57:23Z",
+   "updated_at": "2026-10-17T09:53:07Z",
    "created_at": "2024-01-17T08:07:21Z",
    "license": "Apache-2.0"
   },
@@ -15799,6 +15799,43 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1335438980,
+   "full_name": "BareBrowser/bare-browser",
+   "owner": "BareBrowser",
+   "avatar_url": "https://avatars.githubusercontent.com/u/322376901?v=4",
+   "description": "Bare is a de-Googled Chromium build for Android, built for privacy, control, and freedom on the web. It strips Google tracking, telemetry, and AI integration while keeping browser extensions and uBlock Origin. It adds background video playb",
+   "stars": 524,
+   "forks": 10,
+   "topics": [
+    "adblock",
+    "android",
+    "android-browser",
+    "browser",
+    "browser-extensions",
+    "chromium",
+    "degoogled",
+    "mobile-browser",
+    "privacy",
+    "ublock-origin"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T13:23:49Z",
+   "created_at": "2026-08-15T21:42:56Z",
+   "license": "BSD-3-Clause"
+  },
+  "release": {
+   "id": 413424952,
+   "tag": "v1.0.0",
+   "published_at": "2026-10-15T04:42:22Z",
+   "prerelease": false,
+   "apk_count": 7
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-13",
   "repo": {
    "id": 790226328,
@@ -15854,43 +15891,6 @@
    "published_at": "2026-10-12T16:38:53Z",
    "prerelease": false,
    "apk_count": 4
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1335438980,
-   "full_name": "BareBrowser/bare-browser",
-   "owner": "BareBrowser",
-   "avatar_url": "https://avatars.githubusercontent.com/u/322376901?v=4",
-   "description": "Bare is a de-Googled Chromium build for Android, built for privacy, control, and freedom on the web. It strips Google tracking, telemetry, and AI integration while keeping browser extensions and uBlock Origin. It adds background video playb",
-   "stars": 522,
-   "forks": 10,
-   "topics": [
-    "adblock",
-    "android",
-    "android-browser",
-    "browser",
-    "browser-extensions",
-    "chromium",
-    "degoogled",
-    "mobile-browser",
-    "privacy",
-    "ublock-origin"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T05:12:29Z",
-   "created_at": "2026-08-15T21:42:56Z",
-   "license": "BSD-3-Clause"
-  },
-  "release": {
-   "id": 413424952,
-   "tag": "v1.0.0",
-   "published_at": "2026-10-15T04:42:22Z",
-   "prerelease": false,
-   "apk_count": 7
   }
  },
  {
@@ -16954,7 +16954,7 @@
    "owner": "biplobsd",
    "avatar_url": "https://avatars.githubusercontent.com/u/43641536?v=4",
    "description": "Monitor running services on your Android device. With a clean and intuitive interface, you can easily view system and user apps, check their status efficiently.",
-   "stars": 451,
+   "stars": 452,
    "forks": 26,
    "topics": [
     "android",
@@ -16974,7 +16974,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T08:42:18Z",
+   "updated_at": "2026-10-17T11:50:13Z",
    "created_at": "2025-11-21T20:48:32Z",
    "license": "MIT"
   },
@@ -20190,8 +20190,8 @@
    "owner": "Mahmud0808",
    "avatar_url": "https://avatars.githubusercontent.com/u/29881338?v=4",
    "description": "Turn a private Telegram channel into your personal cloud drive. Android, Windows, Linux and macOS, auto backup, optional E2E encryption, built-in file manager and player.",
-   "stars": 296,
-   "forks": 28,
+   "stars": 297,
+   "forks": 29,
    "topics": [
     "android",
     "backup",
@@ -20209,7 +20209,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-17T05:55:05Z",
+   "updated_at": "2026-10-17T12:20:25Z",
    "created_at": "2026-08-21T16:10:36Z",
    "license": "Apache-2.0"
   },
@@ -23123,7 +23123,7 @@
    "owner": "gitakoos",
    "avatar_url": "https://avatars.githubusercontent.com/u/236900675?v=4",
    "description": "Unofficial open-source Proton Drive Photos client for Android. End-to-end encrypted backup, albums, hidden vault.",
-   "stars": 190,
+   "stars": 191,
    "forks": 12,
    "topics": [
     "android",
@@ -23135,7 +23135,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T00:09:46Z",
+   "updated_at": "2026-10-17T08:24:32Z",
    "created_at": "2026-05-19T07:39:34Z",
    "license": "GPL-3.0"
   },
@@ -24831,6 +24831,44 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1225835752,
+   "full_name": "SysAdminDoc/AppManagerNG",
+   "owner": "SysAdminDoc",
+   "avatar_url": "https://avatars.githubusercontent.com/u/54586742?v=4",
+   "description": "Inspect, debloat, back up, freeze, and control Android apps from one open-source package manager. Works without root, with Shizuku, ADB, or root when needed.",
+   "stars": 148,
+   "forks": 9,
+   "topics": [
+    "adb",
+    "android",
+    "app-manager",
+    "backup",
+    "debloat",
+    "java",
+    "open-source",
+    "package-manager",
+    "privacy",
+    "root",
+    "shizuku"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T13:00:19Z",
+   "created_at": "2026-04-30T17:34:36Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 383136260,
+   "tag": "v0.6.23",
+   "published_at": "2026-09-05T04:44:14Z",
+   "prerelease": false,
+   "apk_count": 9
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-13",
   "repo": {
    "id": 580873469,
@@ -24898,44 +24936,6 @@
    "published_at": "2021-11-02T14:45:37Z",
    "prerelease": false,
    "apk_count": 3
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1225835752,
-   "full_name": "SysAdminDoc/AppManagerNG",
-   "owner": "SysAdminDoc",
-   "avatar_url": "https://avatars.githubusercontent.com/u/54586742?v=4",
-   "description": "Inspect, debloat, back up, freeze, and control Android apps from one open-source package manager. Works without root, with Shizuku, ADB, or root when needed.",
-   "stars": 147,
-   "forks": 9,
-   "topics": [
-    "adb",
-    "android",
-    "app-manager",
-    "backup",
-    "debloat",
-    "java",
-    "open-source",
-    "package-manager",
-    "privacy",
-    "root",
-    "shizuku"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-16T04:23:11Z",
-   "created_at": "2026-04-30T17:34:36Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 383136260,
-   "tag": "v0.6.23",
-   "published_at": "2026-09-05T04:44:14Z",
-   "prerelease": false,
-   "apk_count": 9
   }
  },
  {
@@ -25377,7 +25377,7 @@
    "owner": "chmouel",
    "avatar_url": "https://avatars.githubusercontent.com/u/98980?v=4",
    "description": "Open-source EPUB reader and remote library client for Android, with a Kindle-inspired reading experience",
-   "stars": 137,
+   "stars": 136,
    "forks": 7,
    "topics": [
     "ai-assisted",
@@ -25397,7 +25397,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T18:03:03Z",
+   "updated_at": "2026-10-17T12:33:35Z",
    "created_at": "2026-07-28T21:22:53Z",
    "license": "MIT"
   },
@@ -32313,6 +32313,47 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1418930230,
+   "full_name": "kota-zo/myspoti",
+   "owner": "kota-zo",
+   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
+   "description": "Native Android client for Spotify, built with Jetpack Compose",
+   "stars": 60,
+   "forks": 3,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "jetpack-compose",
+    "kotlin",
+    "lyrics",
+    "music-player",
+    "music-video",
+    "myspoti",
+    "spotify",
+    "spotify-adblocker",
+    "spotify-client",
+    "spotify-connect",
+    "spotui"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T13:32:35Z",
+   "created_at": "2026-10-14T13:01:34Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 415709733,
+   "tag": "v2.0.0-beta.6",
+   "published_at": "2026-10-17T09:40:36Z",
+   "prerelease": true,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-13",
   "repo": {
    "id": 910641406,
@@ -32881,6 +32922,41 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
+   "id": 1329585359,
+   "full_name": "EZ-eta/kinetica",
+   "owner": "EZ-eta",
+   "avatar_url": "https://avatars.githubusercontent.com/u/118127959?v=4",
+   "description": "Privacy-friendly Android keyboard with two-thumb swipe input",
+   "stars": 51,
+   "forks": 13,
+   "topics": [
+    "android",
+    "f-droid",
+    "gesture-typing",
+    "ime",
+    "keyboard",
+    "kotlin",
+    "privacy",
+    "swipe-typing"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T12:23:23Z",
+   "created_at": "2026-08-10T08:15:09Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 412935290,
+   "tag": "v2.1.0",
+   "published_at": "2026-10-14T16:25:19Z",
+   "prerelease": false,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
    "id": 369801272,
    "full_name": "arsvechkarev/Vault",
    "owner": "arsvechkarev",
@@ -32912,41 +32988,6 @@
    "id": 144546644,
    "tag": "1.0.4",
    "published_at": "2024-03-03T17:02:36Z",
-   "prerelease": false,
-   "apk_count": 1
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1329585359,
-   "full_name": "EZ-eta/kinetica",
-   "owner": "EZ-eta",
-   "avatar_url": "https://avatars.githubusercontent.com/u/118127959?v=4",
-   "description": "Privacy-friendly Android keyboard with two-thumb swipe input",
-   "stars": 50,
-   "forks": 13,
-   "topics": [
-    "android",
-    "f-droid",
-    "gesture-typing",
-    "ime",
-    "keyboard",
-    "kotlin",
-    "privacy",
-    "swipe-typing"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-14T16:21:28Z",
-   "created_at": "2026-08-10T08:15:09Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 412935290,
-   "tag": "v2.1.0",
-   "published_at": "2026-10-14T16:25:19Z",
    "prerelease": false,
    "apk_count": 1
   }
@@ -33146,47 +33187,6 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
-   "id": 1418930230,
-   "full_name": "kota-zo/myspoti",
-   "owner": "kota-zo",
-   "avatar_url": "https://avatars.githubusercontent.com/u/193484410?v=4",
-   "description": "Native Android client for Spotify, built with Jetpack Compose",
-   "stars": 46,
-   "forks": 2,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "jetpack-compose",
-    "kotlin",
-    "lyrics",
-    "music-player",
-    "music-video",
-    "myspoti",
-    "spotify",
-    "spotify-adblocker",
-    "spotify-client",
-    "spotify-connect",
-    "spotui"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-17T06:38:13Z",
-   "created_at": "2026-10-14T13:01:34Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 415487800,
-   "tag": "v2.0.0-beta.5",
-   "published_at": "2026-10-17T00:27:47Z",
-   "prerelease": true,
-   "apk_count": 1
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
    "id": 1286932324,
    "full_name": "Secure-Phone-apps/Secure-Dialer",
    "owner": "Secure-Phone-apps",
@@ -33218,7 +33218,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T05:20:04Z",
+   "updated_at": "2026-10-17T09:06:25Z",
    "created_at": "2026-07-02T08:20:01Z",
    "license": "GPL-3.0"
   },
@@ -33453,6 +33453,53 @@
    "published_at": "2019-01-02T09:38:52Z",
    "prerelease": false,
    "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1408705748,
+   "full_name": "yashoncode/metube",
+   "owner": "yashoncode",
+   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
+   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
+   "stars": 40,
+   "forks": 3,
+   "topics": [
+    "ad-free",
+    "adblock",
+    "android",
+    "android-app",
+    "apk",
+    "background-play",
+    "dearrow",
+    "frosted-glass",
+    "glassmorphism",
+    "liquid-glass",
+    "media3",
+    "newtube",
+    "picture-in-picture",
+    "return-youtube-dislike",
+    "smarttube",
+    "sponsorblock",
+    "youtube",
+    "youtube-alternative",
+    "youtube-client",
+    "youtube-downloader"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T13:23:35Z",
+   "created_at": "2026-10-07T11:50:27Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 415600829,
+   "tag": "v2.9.8",
+   "published_at": "2026-10-17T05:25:02Z",
+   "prerelease": false,
+   "apk_count": 6
   }
  },
  {
@@ -33994,6 +34041,32 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1349809510,
+   "full_name": "codegeasse1/hikari-adblock",
+   "owner": "codegeasse1",
+   "avatar_url": "https://avatars.githubusercontent.com/u/244200462?v=4",
+   "description": "Hikari AdBlock — free, open-source, no-root Android ad blocker. Blocks ads, trackers and malware system-wide via a local VPN DNS filter. Built with Kotlin & Jetpack Compose.",
+   "stars": 33,
+   "forks": 1,
+   "topics": [],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T12:18:20Z",
+   "created_at": "2026-08-28T16:20:16Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 386918391,
+   "tag": "v1.2.3",
+   "published_at": "2026-09-11T09:26:32Z",
+   "prerelease": false,
+   "apk_count": 5
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-16",
   "repo": {
    "id": 1163695448,
@@ -34043,32 +34116,6 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
-   "id": 1349809510,
-   "full_name": "codegeasse1/hikari-adblock",
-   "owner": "codegeasse1",
-   "avatar_url": "https://avatars.githubusercontent.com/u/244200462?v=4",
-   "description": "Hikari AdBlock — free, open-source, no-root Android ad blocker. Blocks ads, trackers and malware system-wide via a local VPN DNS filter. Built with Kotlin & Jetpack Compose.",
-   "stars": 32,
-   "forks": 1,
-   "topics": [],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-14T03:23:05Z",
-   "created_at": "2026-08-28T16:20:16Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 386918391,
-   "tag": "v1.2.3",
-   "published_at": "2026-09-11T09:26:32Z",
-   "prerelease": false,
-   "apk_count": 5
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
    "id": 980646800,
    "full_name": "DistriNet/LANShield",
    "owner": "DistriNet",
@@ -34099,47 +34146,26 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
-   "id": 1408705748,
-   "full_name": "yashoncode/metube",
-   "owner": "yashoncode",
-   "avatar_url": "https://avatars.githubusercontent.com/u/174107281?v=4",
-   "description": "MeTube: ad-free YouTube client for Android with a frosted liquid glass UI. Background play, picture-in-picture, downloads, Shorts, SponsorBlock, no ads. Fork of NewTube / SmartTube.",
+   "id": 1322778392,
+   "full_name": "AshkanRafiee/Libre-Contacts-Backup",
+   "owner": "AshkanRafiee",
+   "avatar_url": "https://avatars.githubusercontent.com/u/35492414?v=4",
+   "description": "Libre Contacts Backup is a FLOSS native Android contact backup app that works entirely offline, encrypts your backups, and has no third-party runtime dependencies.",
    "stars": 32,
-   "forks": 3,
-   "topics": [
-    "ad-free",
-    "adblock",
-    "android",
-    "android-app",
-    "apk",
-    "background-play",
-    "dearrow",
-    "frosted-glass",
-    "glassmorphism",
-    "liquid-glass",
-    "media3",
-    "newtube",
-    "picture-in-picture",
-    "return-youtube-dislike",
-    "smarttube",
-    "sponsorblock",
-    "youtube",
-    "youtube-alternative",
-    "youtube-client",
-    "youtube-downloader"
-   ],
+   "forks": 2,
+   "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:01:40Z",
-   "created_at": "2026-10-07T11:50:27Z",
-   "license": "MIT"
+   "updated_at": "2026-10-17T13:22:42Z",
+   "created_at": "2026-08-04T09:46:01Z",
+   "license": "GPL-3.0"
   },
   "release": {
-   "id": 415600829,
-   "tag": "v2.9.8",
-   "published_at": "2026-10-17T05:25:02Z",
+   "id": 414959613,
+   "tag": "v2.8.0",
+   "published_at": "2026-10-16T12:51:09Z",
    "prerelease": false,
-   "apk_count": 6
+   "apk_count": 3
   }
  },
  {
@@ -34177,32 +34203,6 @@
    "id": 194263094,
    "tag": "release-2.2",
    "published_at": "2025-01-11T20:38:10Z",
-   "prerelease": false,
-   "apk_count": 3
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1322778392,
-   "full_name": "AshkanRafiee/Libre-Contacts-Backup",
-   "owner": "AshkanRafiee",
-   "avatar_url": "https://avatars.githubusercontent.com/u/35492414?v=4",
-   "description": "Libre Contacts Backup is a FLOSS native Android contact backup app that works entirely offline, encrypts your backups, and has no third-party runtime dependencies.",
-   "stars": 31,
-   "forks": 2,
-   "topics": [],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-16T20:20:30Z",
-   "created_at": "2026-08-04T09:46:01Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 414959613,
-   "tag": "v2.8.0",
-   "published_at": "2026-10-16T12:51:09Z",
    "prerelease": false,
    "apk_count": 3
   }
@@ -35387,6 +35387,43 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1287036472,
+   "full_name": "Acamol/Captain-qBit",
+   "owner": "Acamol",
+   "avatar_url": "https://avatars.githubusercontent.com/u/40899785?v=4",
+   "description": "Free, open-source Android app for remotely managing qBittorrent. No ads, no tracking.",
+   "stars": 22,
+   "forks": 2,
+   "topics": [
+    "android",
+    "f-droid",
+    "jetpack-compose",
+    "kotlin",
+    "kotlin-android",
+    "qbittorrent",
+    "qbittorrent-client",
+    "qbittorrent-remote",
+    "rss",
+    "torrent"
+   ],
+   "archived": false,
+   "default_branch": "develop",
+   "updated_at": "2026-10-17T11:44:57Z",
+   "created_at": "2026-07-02T10:15:40Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 408227564,
+   "tag": "v1.6.0",
+   "published_at": "2026-10-09T18:40:47Z",
+   "prerelease": false,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-16",
   "repo": {
    "id": 1235827166,
@@ -35540,43 +35577,6 @@
   "schema": 1,
   "last_verified": "2026-10-17",
   "repo": {
-   "id": 1287036472,
-   "full_name": "Acamol/Captain-qBit",
-   "owner": "Acamol",
-   "avatar_url": "https://avatars.githubusercontent.com/u/40899785?v=4",
-   "description": "Free, open-source Android app for remotely managing qBittorrent. No ads, no tracking.",
-   "stars": 21,
-   "forks": 2,
-   "topics": [
-    "android",
-    "f-droid",
-    "jetpack-compose",
-    "kotlin",
-    "kotlin-android",
-    "qbittorrent",
-    "qbittorrent-client",
-    "qbittorrent-remote",
-    "rss",
-    "torrent"
-   ],
-   "archived": false,
-   "default_branch": "develop",
-   "updated_at": "2026-10-15T13:15:58Z",
-   "created_at": "2026-07-02T10:15:40Z",
-   "license": "GPL-3.0"
-  },
-  "release": {
-   "id": 408227564,
-   "tag": "v1.6.0",
-   "published_at": "2026-10-09T18:40:47Z",
-   "prerelease": false,
-   "apk_count": 1
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
    "id": 408193661,
    "full_name": "Sesu8642/InfusionTimer",
    "owner": "Sesu8642",
@@ -35636,7 +35636,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-12T11:14:48Z",
+   "updated_at": "2026-10-17T13:11:43Z",
    "created_at": "2025-09-09T06:56:11Z",
    "license": "GPL-3.0"
   },
@@ -35767,6 +35767,42 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1342528049,
+   "full_name": "Chiranth-Janardhan-moger/webstack",
+   "owner": "Chiranth-Janardhan-moger",
+   "avatar_url": "https://avatars.githubusercontent.com/u/194138053?v=4",
+   "description": "Visual bookmark stack and website manager for Android built with Jetpack Compose, Room DB, and Material 3.",
+   "stars": 21,
+   "forks": 3,
+   "topics": [
+    "android",
+    "bookmarks",
+    "f-droid",
+    "fdroid",
+    "jetpack-compose",
+    "kotlin",
+    "material3",
+    "open-source",
+    "room-database"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T08:25:26Z",
+   "created_at": "2026-08-22T06:53:32Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 412867175,
+   "tag": "v1.1.3",
+   "published_at": "2026-10-14T15:18:56Z",
+   "prerelease": false,
+   "apk_count": 3
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-16",
   "repo": {
    "id": 45132028,
@@ -35883,42 +35919,6 @@
    "published_at": "2024-08-08T07:07:13Z",
    "prerelease": false,
    "apk_count": 1
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1342528049,
-   "full_name": "Chiranth-Janardhan-moger/webstack",
-   "owner": "Chiranth-Janardhan-moger",
-   "avatar_url": "https://avatars.githubusercontent.com/u/194138053?v=4",
-   "description": "Visual bookmark stack and website manager for Android built with Jetpack Compose, Room DB, and Material 3.",
-   "stars": 20,
-   "forks": 3,
-   "topics": [
-    "android",
-    "bookmarks",
-    "f-droid",
-    "fdroid",
-    "jetpack-compose",
-    "kotlin",
-    "material3",
-    "open-source",
-    "room-database"
-   ],
-   "archived": false,
-   "default_branch": "main",
-   "updated_at": "2026-10-16T14:04:05Z",
-   "created_at": "2026-08-22T06:53:32Z",
-   "license": "MIT"
-  },
-  "release": {
-   "id": 412867175,
-   "tag": "v1.1.3",
-   "published_at": "2026-10-14T15:18:56Z",
-   "prerelease": false,
-   "apk_count": 3
   }
  },
  {
@@ -36427,14 +36427,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-15T15:36:59Z",
+   "updated_at": "2026-10-17T10:05:36Z",
    "created_at": "2026-06-23T11:07:35Z",
    "license": "Apache-2.0"
   },
   "release": {
-   "id": 413980837,
-   "tag": "v0.8.7",
-   "published_at": "2026-10-15T15:36:30Z",
+   "id": 415724891,
+   "tag": "v0.8.8",
+   "published_at": "2026-10-17T10:06:07Z",
    "prerelease": false,
    "apk_count": 1
   }
@@ -37217,6 +37217,37 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1340034681,
+   "full_name": "m00sfett/KeepADB",
+   "owner": "m00sfett",
+   "avatar_url": "https://avatars.githubusercontent.com/u/27900324?v=4",
+   "description": "KeepADB — keep Android Wireless Debugging active via app, widget, and Quick Settings tile",
+   "stars": 13,
+   "forks": 0,
+   "topics": [
+    "adb",
+    "android",
+    "f-droid",
+    "wireless-debugging"
+   ],
+   "archived": false,
+   "default_branch": "master",
+   "updated_at": "2026-10-17T08:51:04Z",
+   "created_at": "2026-08-19T21:21:46Z",
+   "license": "AGPL-3.0"
+  },
+  "release": {
+   "id": 395599050,
+   "tag": "v1.8.38",
+   "published_at": "2026-09-24T11:21:35Z",
+   "prerelease": false,
+   "apk_count": 2
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-16",
   "repo": {
    "id": 164343599,
@@ -37374,37 +37405,6 @@
    "published_at": "2024-08-14T07:47:06Z",
    "prerelease": false,
    "apk_count": 1
-  }
- },
- {
-  "schema": 1,
-  "last_verified": "2026-10-17",
-  "repo": {
-   "id": 1340034681,
-   "full_name": "m00sfett/KeepADB",
-   "owner": "m00sfett",
-   "avatar_url": "https://avatars.githubusercontent.com/u/27900324?v=4",
-   "description": "KeepADB — keep Android Wireless Debugging active via app, widget, and Quick Settings tile",
-   "stars": 12,
-   "forks": 0,
-   "topics": [
-    "adb",
-    "android",
-    "f-droid",
-    "wireless-debugging"
-   ],
-   "archived": false,
-   "default_branch": "master",
-   "updated_at": "2026-10-16T16:58:28Z",
-   "created_at": "2026-08-19T21:21:46Z",
-   "license": "AGPL-3.0"
-  },
-  "release": {
-   "id": 395599050,
-   "tag": "v1.8.38",
-   "published_at": "2026-09-24T11:21:35Z",
-   "prerelease": false,
-   "apk_count": 2
   }
  },
  {
@@ -38851,7 +38851,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:26:38Z",
+   "updated_at": "2026-10-17T06:59:19Z",
    "created_at": "2026-01-04T08:26:09Z",
    "license": "MIT"
   },
@@ -40528,7 +40528,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-09T20:21:44Z",
+   "updated_at": "2026-10-17T09:01:20Z",
    "created_at": "2025-10-07T15:55:31Z",
    "license": "GPL-3.0"
   },
@@ -47354,6 +47354,41 @@
  },
  {
   "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1368382018,
+   "full_name": "logan37/plain-journal",
+   "owner": "logan37",
+   "avatar_url": "https://avatars.githubusercontent.com/u/72622645?v=4",
+   "description": " Plain Journal - a private daily journal tracker (mood, food, period, weather) ",
+   "stars": 2,
+   "forks": 0,
+   "topics": [
+    "android",
+    "dart",
+    "f-droid",
+    "flutter",
+    "journal",
+    "mood-tracker",
+    "offline",
+    "privacy"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T11:40:56Z",
+   "created_at": "2026-09-13T12:50:16Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 397286575,
+   "tag": "v1.0.2",
+   "published_at": "2026-09-26T15:27:00Z",
+   "prerelease": false,
+   "apk_count": 2
+  }
+ },
+ {
+  "schema": 1,
   "last_verified": "2026-10-16",
   "repo": {
    "id": 383505941,
@@ -49122,16 +49157,16 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T20:17:47Z",
+   "updated_at": "2026-10-17T12:51:49Z",
    "created_at": "2026-04-04T12:31:50Z",
    "license": "GPL-3.0"
   },
   "release": {
-   "id": 415345814,
-   "tag": "v1.109.0",
-   "published_at": "2026-10-16T20:17:49Z",
+   "id": 415802223,
+   "tag": "v1.111.1",
+   "published_at": "2026-10-17T12:51:50Z",
    "prerelease": false,
-   "apk_count": 19
+   "apk_count": 20
   }
  },
  {
@@ -49997,7 +50032,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T17:25:12Z",
+   "updated_at": "2026-10-17T11:38:40Z",
    "created_at": "2026-09-04T03:10:56Z",
    "license": "GPL-3.0"
   },
@@ -50454,7 +50489,7 @@
    ],
    "archived": false,
    "default_branch": "master",
-   "updated_at": "2026-10-15T03:51:29Z",
+   "updated_at": "2026-10-17T13:33:14Z",
    "created_at": "2026-10-12T02:51:08Z",
    "license": "GPL-3.0"
   },
@@ -50700,14 +50735,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T03:49:37Z",
+   "updated_at": "2026-10-17T10:23:58Z",
    "created_at": "2026-05-30T05:59:19Z",
    "license": null
   },
   "release": {
-   "id": 415566972,
-   "tag": "android-v1.2.0",
-   "published_at": "2026-10-17T03:47:21Z",
+   "id": 415678295,
+   "tag": "android-v1.4.0",
+   "published_at": "2026-10-17T08:31:29Z",
    "prerelease": false,
    "apk_count": 1
   }
@@ -51374,7 +51409,7 @@
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-16T11:07:49Z",
+   "updated_at": "2026-10-17T13:27:25Z",
    "created_at": "2026-09-28T10:14:35Z",
    "license": null
   },
@@ -52525,6 +52560,107 @@
    "published_at": "2026-09-26T15:50:43Z",
    "prerelease": false,
    "apk_count": 2
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1404470113,
+   "full_name": "barq-al-layl/Burkan",
+   "owner": "barq-al-layl",
+   "avatar_url": "https://avatars.githubusercontent.com/u/56018170?v=4",
+   "description": "Keeps the Vulkan renderer active on Samsung Galaxy S23 phones after every restart, without a computer or root.",
+   "stars": 1,
+   "forks": 0,
+   "topics": [
+    "adb",
+    "android",
+    "f-droid",
+    "galaxy-s23",
+    "samsung",
+    "vulkan",
+    "wireless-debugging"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T10:46:44Z",
+   "created_at": "2026-10-04T13:54:00Z",
+   "license": "Apache-2.0"
+  },
+  "release": {
+   "id": 413631867,
+   "tag": "v1.1.0",
+   "published_at": "2026-10-15T09:32:05Z",
+   "prerelease": false,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1422985429,
+   "full_name": "Zierch/expense_tracker",
+   "owner": "Zierch",
+   "avatar_url": "https://avatars.githubusercontent.com/u/153695014?v=4",
+   "description": "Android expense & income tracker in Flutter - monthly JSON backup to your own Google Drive",
+   "stars": 1,
+   "forks": 0,
+   "topics": [],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T08:54:23Z",
+   "created_at": "2026-10-17T05:35:14Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 415685902,
+   "tag": "v1.1.0",
+   "published_at": "2026-10-17T08:51:23Z",
+   "prerelease": false,
+   "apk_count": 1
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1338648664,
+   "full_name": "Pedroj-64/inklus",
+   "owner": "Pedroj-64",
+   "avatar_url": "https://avatars.githubusercontent.com/u/159482355?v=4",
+   "description": "Free, open-source handwriting & note-taking app for stylus tablets. Pressure-sensitive ink, palm rejection, infinite canvas, lasso, ruler, OCR, PDF annotation, optional Google Drive backup. Offline-first, no ads, no accounts, no analytics. ",
+   "stars": 1,
+   "forks": 0,
+   "topics": [
+    "android",
+    "dart",
+    "digital-ink",
+    "flutter",
+    "goodnotes-alternative",
+    "handwriting",
+    "note-taking",
+    "ocr",
+    "offline-first",
+    "open-source",
+    "pdf-annotation",
+    "s-pen",
+    "stylus",
+    "tablet"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T12:29:24Z",
+   "created_at": "2026-08-18T17:03:08Z",
+   "license": "GPL-3.0"
+  },
+  "release": {
+   "id": 414427988,
+   "tag": "v1.9.0",
+   "published_at": "2026-10-16T01:11:46Z",
+   "prerelease": false,
+   "apk_count": 6
   }
  },
  {
@@ -57114,14 +57250,14 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-15T06:56:04Z",
+   "updated_at": "2026-10-17T10:24:45Z",
    "created_at": "2026-10-14T09:35:58Z",
    "license": null
   },
   "release": {
-   "id": 413464811,
-   "tag": "v1.1.0",
-   "published_at": "2026-10-15T06:00:43Z",
+   "id": 415719958,
+   "tag": "v1.1.1",
+   "published_at": "2026-10-17T09:59:43Z",
    "prerelease": false,
    "apk_count": 1
   }
@@ -57781,7 +57917,7 @@
    "topics": [],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T00:33:36Z",
+   "updated_at": "2026-10-17T12:47:36Z",
    "created_at": "2026-10-12T00:46:58Z",
    "license": "Apache-2.0"
   },
@@ -57820,7 +57956,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-15T18:49:48Z",
+   "updated_at": "2026-10-17T10:06:23Z",
    "created_at": "2026-10-12T06:05:13Z",
    "license": "GPL-3.0"
   },
@@ -57895,10 +58031,17 @@
    "description": "Triora is a powerful Android privacy tool that uses a local VPN firewall to silently detect and block hidden background trackers before they can harvest your data.\"",
    "stars": 0,
    "forks": 0,
-   "topics": [],
+   "topics": [
+    "android",
+    "android-firewall",
+    "privacy-protection",
+    "privacy-protection-for-browsers",
+    "privacy-protection-security",
+    "privacy-protection-tool"
+   ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-08-02T10:39:28Z",
+   "updated_at": "2026-10-17T09:55:48Z",
    "created_at": "2026-07-27T19:02:17Z",
    "license": "MIT"
   },
@@ -58131,7 +58274,7 @@
    ],
    "archived": false,
    "default_branch": "main",
-   "updated_at": "2026-10-17T06:14:05Z",
+   "updated_at": "2026-10-17T09:56:07Z",
    "created_at": "2026-09-20T21:59:45Z",
    "license": "GPL-3.0"
   },
@@ -58141,6 +58284,42 @@
    "published_at": "2026-10-17T07:25:24Z",
    "prerelease": true,
    "apk_count": 4
+  }
+ },
+ {
+  "schema": 1,
+  "last_verified": "2026-10-17",
+  "repo": {
+   "id": 1354994038,
+   "full_name": "anand34577/openwrt-android-app",
+   "owner": "anand34577",
+   "avatar_url": "https://avatars.githubusercontent.com/u/76194471?v=4",
+   "description": "Native Android app to manage your OpenWrt router from your phone over ubus JSON-RPC: devices, Wi-Fi, firewall, DHCP and system tools, with nothing to install on the router.",
+   "stars": 0,
+   "forks": 0,
+   "topics": [
+    "android",
+    "jetpack-compose",
+    "kotlin",
+    "luci",
+    "networking",
+    "openwrt",
+    "router",
+    "ubus",
+    "wifi"
+   ],
+   "archived": false,
+   "default_branch": "main",
+   "updated_at": "2026-10-17T08:53:25Z",
+   "created_at": "2026-09-02T16:35:24Z",
+   "license": "MIT"
+  },
+  "release": {
+   "id": 403018131,
+   "tag": "v2.3.0",
+   "published_at": "2026-10-04T12:46:50Z",
+   "prerelease": false,
+   "apk_count": 2
   }
  }
 ]
