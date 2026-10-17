@@ -1,25 +1,25 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-16T10:03:35.817751+00:00",
+ "scanned_at": "2026-10-17T06:08:22.658304+00:00",
  "tool": "tools/scan.py",
- "query_set": 5,
+ "query_set": 6,
  "queries": [
-  "android notes todo archived:false fork:false",
-  "android rss reader archived:false fork:false",
-  "android weather archived:false fork:false",
-  "android password manager archived:false fork:false"
+  "topic:f-droid archived:false fork:false",
+  "android adblock archived:false fork:false",
+  "android firewall archived:false fork:false",
+  "android backup archived:false fork:false"
  ],
- "candidates": 2072,
- "checked": 2072,
- "verified_today": 368,
- "carried_over": 772,
+ "candidates": 1830,
+ "checked": 1830,
+ "verified_today": 581,
+ "carried_over": 1134,
  "dropped_stale": 0,
- "matches": 1134,
- "index_matches": 1134,
- "index_bytes": 953254,
+ "matches": 1681,
+ "index_matches": 1681,
+ "index_bytes": 1419635,
  "truncated": false,
  "deadline_hit": false,
  "complete": true,
  "error": null,
- "duration_s": 4538.0
+ "duration_s": 3790.7
 }
