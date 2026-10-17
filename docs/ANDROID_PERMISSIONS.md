@@ -29,6 +29,14 @@ sw>600dp (no fixed-orientation reliance).
 Test cases per permission: grant → feature works; deny → fallback shown;
 deny+don't-ask → deep-link to settings; upgrade targetSdk → re-verify.
 
+Installation handoff: the app explains the source-specific grant before
+opening `Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES` on explicit user action.
+On return to the resumed activity it re-checks
+`PackageManager.canRequestPackageInstalls()`; only a confirmed grant resumes
+the pending APK handoff to Android's package installer. The explanation UI
+respects safe drawing insets. Denial or cancellation leaves the download
+available and does not initiate installation.
+
 ## M6 verification (2026-10-10, `aapt d badging` on app-debug.apk)
 
 - Declared by us: `INTERNET`, `REQUEST_INSTALL_PACKAGES` only.

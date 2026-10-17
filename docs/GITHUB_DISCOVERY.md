@@ -118,3 +118,16 @@ tripped the 2MiB response cap). The bot also writes catalog/index.json
 ~0.5MB); the app pulls the index and imports repo+release rows only.
 Full per-release asset lists lazy-load when a details screen opens.
 scan.yml commits both files.
+
+## 8 - Catalog categories and repository screenshots
+Index imports refresh repository topics from each current scan instead of
+preserving stale cached topics indefinitely; this keeps category membership
+aligned with the scanner's current GitHub metadata. Locally enriched
+descriptions remain intact when the slim index omits the full description.
+
+Details screenshots are a best-effort presentation feature, not catalog
+eligibility evidence. The client currently considers image files in the
+repository root, prioritizes screenshot/preview/demo-style names, excludes
+common logo/banner/icon/cover names, and accepts only HTTPS
+`raw.githubusercontent.com` URLs. Ambiguous assets and images nested below the
+root may be missed; no measured precision percentage is claimed.

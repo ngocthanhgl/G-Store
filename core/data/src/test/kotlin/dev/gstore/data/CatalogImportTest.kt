@@ -149,7 +149,7 @@ class CatalogImportTest {
     private fun indexRow() = CatalogIndexEntry(
         repo = CatalogRepo(
             id = 7, full_name = "o/app", owner = "o", stars = 10, forks = 1,
-            updated_at = "2026-10-09T00:00:00Z",
+            updated_at = "2026-10-09T00:00:00Z", topics = listOf("media", "music"),
         ),
         release = CatalogIndexRelease(
             id = 70, tag = "v1", published_at = "2026-10-08T00:00:00Z",
@@ -169,9 +169,10 @@ class CatalogImportTest {
 
     @Test fun `importIndex never clobbers fresh descriptions`() = runBlocking {
         val repos = Repos()
-        repos.upsert(repoRow("FRESH").copy(description = "keep"))
+        repos.upsert(repoRow("FRESH").copy(description = "keep", topicsJson = """["old"]"""))
         catalog(repos, Releases(), Assets()).importIndex(listOf(indexRow()), 0L)
         assertEquals("FRESH", repos.rows[7L]?.syncState)
         assertEquals("keep", repos.rows[7L]?.description)
+        assertEquals("""["media","music"]""", repos.rows[7L]?.topicsJson)
     }
 }

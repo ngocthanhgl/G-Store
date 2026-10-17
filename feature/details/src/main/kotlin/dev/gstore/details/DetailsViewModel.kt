@@ -1,6 +1,7 @@
 package dev.gstore.details
 
 import androidx.compose.runtime.Immutable
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
@@ -17,7 +18,10 @@ import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
 import dev.gstore.network.ApiResponse
+import dev.gstore.network.ContentsDto
+import dev.gstore.network.GitHubException
 import java.io.File
+import java.net.URI
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +44,34 @@ data class AssetRow(
 
 /** One screenshot image from the repo root gallery. */
 data class ScreenshotItem(val url: String, val name: String)
+
+private val rejectedScreenshotTerms =
+    listOf("banner", "logo", "icon", "cover", "header", "social", "feature", "badge", "sponsor", "avatar")
+
+// shortcut: root-only filename cues; add bounded tree/README context if misses prove common.
+internal fun selectScreenshotItems(contents: List<ContentsDto>): List<ScreenshotItem> =
+    contents.mapNotNull { item ->
+        if (item.type != "file") return@mapNotNull null
+        val name = item.name.lowercase()
+        if (name.substringAfterLast('.', "") !in setOf("png", "jpg", "jpeg", "webp")) {
+            return@mapNotNull null
+        }
+        if (rejectedScreenshotTerms.any(name::contains)) return@mapNotNull null
+        val score = when {
+            "screenshot" in name || "screen-shot" in name || "screen_shot" in name -> 10
+            "screen" in name || "shot" in name -> 8
+            "preview" in name || "demo" in name || "phone" in name || "tablet" in name -> 5
+            else -> return@mapNotNull null
+        }
+        val url = item.download_url ?: return@mapNotNull null
+        val uri = runCatching { URI(url) }.getOrNull()
+        if (uri?.scheme != "https" || uri.host != "raw.githubusercontent.com") return@mapNotNull null
+        score to ScreenshotItem(url, item.name)
+    }
+        .sortedWith(compareByDescending<Pair<Int, ScreenshotItem>> { it.first }.thenBy { it.second.name })
+        .distinctBy { it.second.url }
+        .take(8)
+        .map { it.second }
 
 /** Hero download button state for the recommended APK of the selection. */
 sealed interface HeroDlState {
@@ -192,10 +224,12 @@ class DetailsViewModel(
             when (val result = catalog.sync(name)) {
                 is Outcome.Ok -> {
                     val fresh = catalog.getByFullName(name)
+                    val syncedRepo = fresh ?: _state.value.repo
                     _state.value = _state.value.copy(
-                        repo = fresh ?: _state.value.repo,
+                        repo = syncedRepo,
                         syncError = null,
                     )
+                    syncedRepo?.let { refreshReleaseSnapshot(it.id) }
                 }
                 is Outcome.Err -> _state.value = _state.value.copy(
                     notice = result.failure,
@@ -207,22 +241,31 @@ class DetailsViewModel(
         }
     }
 
+    /** Asset rows are written after release rows, so scan once more after sync completes. */
+    private suspend fun refreshReleaseSnapshot(repoId: Long) {
+        val releases = catalog.observeReleases(repoId).firstOrNull().orEmpty()
+        val includePre = prefs.appearance.firstOrNull()?.includePrereleases ?: false
+        val current = _state.value
+        val selected = current.selectedReleaseId?.takeIf { id -> releases.any { it.id == id } }
+            ?: defaultRelease(releases, includePre)
+            ?: releases.firstOrNull()?.id
+        _state.value = current.copy(releases = releases, selectedReleaseId = selected)
+        scanApkReleases(releases, includePre)
+    }
+
     /** Repo-root image strip, Play Store style. Never fatal when it fails. */
     private suspend fun loadScreenshots(repo: Repository?) {
         if (repo == null || repo.defaultBranch.isBlank()) return
-        when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
-            is ApiResponse.Fresh -> {
-                val images = response.data
-                    .filter { it.type == "file" }
-                    .filter { c ->
-                        val n = c.name.lowercase()
-                        n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".webp")
-                    }
-                    .take(8)
-                    .map { ScreenshotItem(it.download_url ?: it.html_url ?: "", it.name) }
-                _state.value = _state.value.copy(screenshots = images)
+        try {
+            when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
+                is ApiResponse.Fresh ->
+                    _state.value = _state.value.copy(screenshots = selectScreenshotItems(response.data))
+                else -> Unit
             }
-            else -> Unit // screenshots stay empty — not a fatal error
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: GitHubException) {
+            Log.w("DetailsViewModel", "Could not load repository screenshots", e)
         }
     }
 
@@ -274,9 +317,11 @@ class DetailsViewModel(
                 updated = updated.copy(assetRows = emptyList(), loadingAssets = false)
             }
             _state.value = updated
-            if (next != null && next != selected) loadAssets(next)
+            if (next != null) loadAssets(next)
         }
     }
+
+    private var assetLoadJob: Job? = null
 
     fun selectRelease(releaseId: Long) {
         _state.value = _state.value.copy(selectedReleaseId = releaseId)
@@ -284,8 +329,14 @@ class DetailsViewModel(
     }
 
     private fun loadAssets(releaseId: Long) {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loadingAssets = true)
+        assetLoadJob?.cancel()
+        _state.value = _state.value.copy(
+            assetRows = emptyList(),
+            loadingAssets = true,
+            hero = HeroDlState.IdleDownload,
+            installedPackageName = null,
+        )
+        assetLoadJob = viewModelScope.launch {
             try {
                 loadAssetsInner(releaseId)
             } catch (cancel: CancellationException) {
@@ -305,6 +356,7 @@ class DetailsViewModel(
             val verdict = classifyAsset(asset.filename, asset.contentType, asset.size)
             AssetRow(asset, verdict, artifactOf(asset.id, asset.filename, null, verdict.kind))
         }
+        if (_state.value.selectedReleaseId != releaseId) return
         _state.value = _state.value.copy(assetRows = rows, loadingAssets = false)
         val best = rows.firstOrNull {
             it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
@@ -411,7 +463,7 @@ class DetailsViewModel(
             }
             _state.value = _state.value.copy(syncing = true, notice = null, syncError = null)
             when (val result = catalog.sync(repo.fullName)) {
-                is Outcome.Ok -> Unit
+                is Outcome.Ok -> refreshReleaseSnapshot(repo.id)
                 is Outcome.Err -> _state.value = _state.value.copy(
                     notice = result.failure,
                     syncError = result.failure,

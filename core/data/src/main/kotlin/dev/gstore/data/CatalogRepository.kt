@@ -217,9 +217,8 @@ class CatalogRepository(
      * asset lists arrive later through a per-repo GitHub sync when the
      * user opens the details screen, so sections that need release dates
      * (New, Updated) work immediately while Downloads waits for real data.
-     * A FRESH fully-synced row keeps its full description/topics (the
-     * index truncates descriptions); stars, forks, avatar and flags are
-     * always refreshed.
+     * A FRESH fully-synced row keeps its full description; topics still
+     * refresh from the scanner so category membership tracks daily changes.
      */
     suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int =
         database?.withTransaction { mergeIndex(entries) } ?: mergeIndex(entries)
@@ -240,7 +239,7 @@ class CatalogRepository(
                     description = if (keepFull) existing.description else r.description,
                     stars = r.stars,
                     forks = r.forks,
-                    topicsJson = if (keepFull) existing.topicsJson else topicsJson(r.topics),
+                    topicsJson = topicsJson(r.topics),
                     archived = r.archived,
                     defaultBranch = r.default_branch,
                     updatedAt = r.updated_at,

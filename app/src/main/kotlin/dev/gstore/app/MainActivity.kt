@@ -491,6 +491,7 @@ private fun Content(
             val context = LocalContext.current
             val lifecycle = LocalLifecycleOwner.current.lifecycle
             var gateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var awaitingInstallPermission by remember { mutableStateOf(false) }
             // Re-check the per-source install grant every time we return
             // (e.g. from system settings) — flow D.
             var canInstall by remember {
@@ -522,16 +523,32 @@ private fun Content(
                     }
                 }
             }
+            LaunchedEffect(canInstall, awaitingInstallPermission, gateFor) {
+                val pending = gateFor
+                if (canInstall && awaitingInstallPermission && pending != null) {
+                    fireInstall(pending)
+                    gateFor = null
+                    awaitingInstallPermission = false
+                }
+            }
             val gate = gateFor
             if (gate != null) {
                 InstallerPermissionScreen(
                     fileName = gate.filename,
                     canInstall = canInstall,
                     onOpenSettings = {
+                        awaitingInstallPermission = true
                         context.startActivity(container.installer.settingsIntent())
                     },
-                    onInstall = { fireInstall(gate); gateFor = null },
-                    onCancel = { gateFor = null },
+                    onInstall = {
+                        fireInstall(gate)
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
                 )
             } else {
                 DownloadsScreen(
@@ -654,7 +671,21 @@ private fun Content(
             )
             val state by vm.state.collectAsState()
             val detailsContext = LocalContext.current
+            val detailsLifecycle = LocalLifecycleOwner.current.lifecycle
             var detailsGateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var detailsCanInstall by remember {
+                mutableStateOf(container.installer.canRequestInstalls())
+            }
+            var detailsAwaitingInstallPermission by remember { mutableStateOf(false) }
+            androidx.compose.runtime.DisposableEffect(detailsLifecycle) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        detailsCanInstall = container.installer.canRequestInstalls()
+                    }
+                }
+                detailsLifecycle.addObserver(observer)
+                onDispose { detailsLifecycle.removeObserver(observer) }
+            }
             fun fireDetailsInstall(record: DownloadRecord) {
                 val path = record.filePath
                 if (path == null || !File(path).exists()) {
@@ -667,6 +698,14 @@ private fun Content(
                     scope.launch {
                         snackbar.showSnackbar("No system installer found: ${e.message}")
                     }
+                }
+            }
+            LaunchedEffect(detailsCanInstall, detailsAwaitingInstallPermission, detailsGateFor) {
+                val pending = detailsGateFor
+                if (detailsCanInstall && detailsAwaitingInstallPermission && pending != null) {
+                    fireDetailsInstall(pending)
+                    detailsGateFor = null
+                    detailsAwaitingInstallPermission = false
                 }
             }
             DetailsScreen(
@@ -684,7 +723,7 @@ private fun Content(
                     val path = record.filePath
                     if (path == null || !File(path).exists()) {
                         scope.launch { snackbar.showSnackbar("File is no longer on disk") }
-                    } else if (container.installer.canRequestInstalls()) {
+                    } else if (detailsCanInstall) {
                         fireDetailsInstall(record)
                     } else {
                         detailsGateFor = record
@@ -734,12 +773,20 @@ private fun Content(
             if (detailsGate != null) {
                 InstallerPermissionScreen(
                     fileName = detailsGate.filename,
-                    canInstall = container.installer.canRequestInstalls(),
+                    canInstall = detailsCanInstall,
                     onOpenSettings = {
+                        detailsAwaitingInstallPermission = true
                         detailsContext.startActivity(container.installer.settingsIntent())
                     },
-                    onInstall = { fireDetailsInstall(detailsGate); detailsGateFor = null },
-                    onCancel = { detailsGateFor = null },
+                    onInstall = {
+                        fireDetailsInstall(detailsGate)
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
                 )
             }
         }
@@ -761,4 +808,3 @@ private fun Content(
         }
     }
 }
-

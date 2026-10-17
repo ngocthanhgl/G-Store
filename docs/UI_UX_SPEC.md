@@ -68,3 +68,20 @@ No one-off styles; customization clamps (radius 4–20dp) so it cannot break
 layout; automated checks at M7 = unit tests + lint + code-level detector
 pass (`.agents/skills/impeccable/detector/M7-20261010.md`). Screenshot,
 TalkBack, and resize tests remain device-gated (TEST_PLAN.md).
+
+## 6. M8 detail-screen refinements
+
+- Count pills center their value on both axes. Details content uses the shared
+  spacing tokens consistently; the APK-discovery indicator is separated from
+  preceding content.
+- Release notes are collapsed by default and expand inline from the selected
+  version chip. Screenshots appear after About; the full-screen viewer supports
+  horizontal paging while preserving pinch zoom and pan.
+- Repository screenshots use a conservative root-file heuristic: prefer
+  filenames containing screenshot/screen/preview/demo cues; exclude common
+  logo, banner, icon, avatar, and promotional-image names; accept HTTPS raw
+  GitHub image URLs only. This improves precision but is not a measured 80%
+  accuracy guarantee; subdirectories and ambiguous image names may be missed.
+- Installation permission explanation is inset from safe drawing areas. When
+  the user grants install permission in Android settings and returns, the app
+  re-checks the grant and opens the system installer for the pending APK.

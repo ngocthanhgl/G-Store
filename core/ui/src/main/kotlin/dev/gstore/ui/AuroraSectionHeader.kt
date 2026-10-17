@@ -51,13 +51,14 @@ fun AuroraSectionHeader(
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     topGap: Boolean = true,
+    bottomGap: Boolean = true,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(top = if (topGap) GStoreSpace.BeforeHeader else 0.dp)
-            .padding(bottom = GStoreSpace.AfterHeader)
+            .padding(bottom = if (bottomGap) GStoreSpace.AfterHeader else 0.dp)
             .defaultMinSize(minHeight = GStoreSpace.TouchTarget),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -103,18 +104,22 @@ fun AuroraSectionHeader(
 /** Tonal count pill — `· 42`. The ledger answer to "how many". */
 @Composable
 fun CountPill(count: Int, modifier: Modifier = Modifier) {
-    Text(
-        text = count.toString(),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSecondaryContainer,
-        maxLines = 1,
+    Box(
         modifier = modifier
             .padding(start = GStoreSpace.Small)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .defaultMinSize(minWidth = 28.dp, minHeight = 28.dp)
-            .padding(horizontal = GStoreSpace.Small, vertical = 2.dp),
-    )
+            .padding(horizontal = GStoreSpace.Small),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            maxLines = 1,
+        )
+    }
 }
 
 /**
