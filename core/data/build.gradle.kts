@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:database"))
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)

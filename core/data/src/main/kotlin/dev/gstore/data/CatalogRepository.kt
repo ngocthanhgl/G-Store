@@ -1,5 +1,6 @@
 package dev.gstore.data
 
+import androidx.room.withTransaction
 import dev.gstore.common.Outcome
 import dev.gstore.database.AssetDao
 import dev.gstore.database.CheckpointDao
@@ -39,6 +40,7 @@ class CatalogRepository(
     private val releases: ReleaseDao,
     private val assets: AssetDao,
     private val favorites: FavoriteDao,
+    private val database: GStoreDatabase? = null,
 ) {
     fun observeRepositories(): Flow<List<Repository>> =
         repos.observeAll().map { list -> list.map { it.toDomain() } }
@@ -219,7 +221,10 @@ class CatalogRepository(
      * index truncates descriptions); stars, forks, avatar and flags are
      * always refreshed.
      */
-    suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int {
+    suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int =
+        database?.withTransaction { mergeIndex(entries) } ?: mergeIndex(entries)
+
+    private suspend fun mergeIndex(entries: List<CatalogIndexEntry>): Int {
         var merged = 0
         for (e in entries) {
             if (e.schema != 1) continue
@@ -290,7 +295,7 @@ class CatalogRepository(
         fun create(api: GitHubService, db: GStoreDatabase): CatalogRepository {
             val engine = SyncEngine(api, db.repositories(), db.releases(), db.assets(), db.checkpoints())
             return CatalogRepository(
-                api, engine, db.repositories(), db.releases(), db.assets(), db.favorites(),
+                api, engine, db.repositories(), db.releases(), db.assets(), db.favorites(), db,
             )
         }
     }

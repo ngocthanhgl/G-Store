@@ -20,6 +20,7 @@ import dev.gstore.model.SectionConfig
 import dev.gstore.model.TrendingWeights
 import dev.gstore.network.ApiResponse
 import dev.gstore.network.CatalogClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -214,10 +215,13 @@ class HomeViewModel(
                         if (!quiet) banner.value = "Catalog is up to date"
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 if (!quiet) banner.value = "Catalog pull failed: ${e.message}"
+            } finally {
+                syncingCatalog.value = false
             }
-            syncingCatalog.value = false
         }
     }
 
