@@ -270,79 +270,30 @@ private fun InstalledRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-                Text(
-                    text = row.label,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = record.packageName ?: record.repoFullName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                val versionLine = if (row.installedVersionName != null) {
-                    val latest = row.latestTag?.let { " → $it" } ?: ""
-                    "${row.installedVersionName}${row.installedVersionCode?.let { " ($it)" } ?: ""}$latest"
-                } else {
-                    "Not installed on this device"
-                }
-                Text(
-                    text = versionLine,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                val sizeBytes = record.bytesTotal.takeIf { it > 0 }
-                    ?: record.expectedSize.takeIf { it > 0 }
-                val metaParts = buildList {
-                    sizeBytes?.let { add(formatBytes(it)) }
-                    if (row.lastUpdateTime > 0) {
-                        add(
-                            java.text.DateFormat.getDateInstance()
-                                .format(java.util.Date(row.lastUpdateTime)),
-                        )
-                    }
-                    if (record.releaseTag.isNotBlank()) add(record.releaseTag)
-                }
-                if (metaParts.isNotEmpty()) {
-                    Text(
-                        text = metaParts.joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = record.repoFullName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                val status = when (row.updateState) {
-                    UpdateState.UPDATE_AVAILABLE ->
-                        "Update available${row.latestTag?.let { " · $it" } ?: ""}"
-                    UpdateState.READY_TO_INSTALL -> "Downloaded update ready to install"
-                    UpdateState.UP_TO_DATE ->
-                        "Installed${row.installedVersionName?.let { " · $it" } ?: ""}"
-                    UpdateState.NOT_INSTALLED -> "Not installed on this device"
-                }
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (row.updateState == UpdateState.UP_TO_DATE) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
+            // Line 1: app label.
+            Text(
+                text = row.label,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            // Line 2: status + version, single ellipsis line.
+            val statusLine = when (row.updateState) {
+                UpdateState.UPDATE_AVAILABLE ->
+                    "Update available${row.latestTag?.let { " · $it" } ?: ""}"
+                UpdateState.READY_TO_INSTALL -> "Downloaded update ready to install"
+                UpdateState.UP_TO_DATE ->
+                    "Installed · ${row.installedVersionName ?: row.installedVersionCode?.toString() ?: ""}"
+                UpdateState.NOT_INSTALLED -> "Not installed on this device"
             }
+            Text(
+                text = statusLine,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.End,

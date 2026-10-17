@@ -28,11 +28,13 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
+    implementation(project(":core:network"))
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines)
+    implementation(libs.coil.compose)
     testImplementation(libs.junit)
 }

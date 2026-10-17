@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -50,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import dev.gstore.data.AssetKind
 import dev.gstore.database.DownloadRecord
 import dev.gstore.designsystem.panelShape
@@ -62,6 +64,7 @@ import dev.gstore.ui.ShimmerRows
 import dev.gstore.ui.parseMarkdown
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun DetailsScreen(
@@ -160,20 +163,21 @@ fun DetailsScreen(
         item { Spacer(Modifier.height(12.dp)) }
         item { HeaderRow(repo) }
         item { Spacer(Modifier.height(12.dp)) }
-        item {
-            HeroBare(
-                hero = state.hero,
-                release = selectedRelease(state),
-                asset = heroAsset,
-                onDownload = onHeroDownload,
-                onCancel = onHeroCancel,
-                onInstall = onHeroInstall,
-                onUninstall = onHeroUninstall,
-                canOpenApp = canOpenApp,
-                onOpenApp = onOpenApp,
-                findingApk = state.syncing || state.loadingAssets || state.scanningApks,
-            )
-        }
+            item {
+                HeroBare(
+                    hero = state.hero,
+                    release = selectedRelease(state),
+                    asset = heroAsset,
+                    installedPackageName = state.installedPackageName,
+                    onDownload = onHeroDownload,
+                    onCancel = onHeroCancel,
+                    onInstall = onHeroInstall,
+                    onUninstall = onHeroUninstall,
+                    canOpenApp = canOpenApp,
+                    onOpenApp = onOpenApp,
+                    findingApk = state.syncing || state.loadingAssets || state.scanningApks,
+                )
+            }
         item { Spacer(Modifier.height(12.dp)) }
         val description = repo.description
         if (description != null) {
@@ -204,6 +208,8 @@ fun DetailsScreen(
             item { ChangelogFull(release, reduceMotion) }
             item { Spacer(Modifier.height(12.dp)) }
         }
+        item { Spacer(Modifier.height(12.dp)) }
+        item { ScreenshotsRow(state.screenshots, reduceMotion) }
     }
 }
 }
@@ -444,17 +450,23 @@ private fun SyncErrorCard(message: String, onRetry: () -> Unit, cardRadiusDp: In
 }
 
 /**
- * Changelog, always fully shown per approved spec: no collapse toggle.
+ * Changelog: tag/date header always visible; full markdown shown on tap.
  * Parsed off the main thread with a shimmer until ready.
  */
 @Composable
 private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
     val uriHandler = LocalUriHandler.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+        ) {
                 Text(
                     buildString {
                         append(release.tag)
@@ -468,9 +480,8 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
                     modifier = Modifier.weight(1f),
                 )
             }
-            // Always shown: the collapse toggle was removed from the spec.
-            run {
-                val releaseName = release.name
+        if (expanded) {
+            val releaseName = release.name
                 // The tag already heads this card: repeat the name only when
                 // it actually says something different.
                 if (releaseName != null && releaseName != release.tag) {
@@ -513,6 +524,47 @@ private fun ChangelogFull(release: Release, reduceMotion: Boolean) {
         }
     }
 /**
+ * Repo-root screenshot gallery: image files only, up to 8, in a horizontal
+ * rail. Shimmer while the contents API is still resolving.
+ */
+@Composable
+private fun ScreenshotsRow(items: List<ScreenshotItem>, reduceMotion: Boolean) {
+    if (items.isEmpty()) return
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionTitle("Screenshots")
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(items, key = { it.name }) { screenshot ->
+                val imageUrl = screenshot.url
+                var loaded by remember(screenshot.url) { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier.size(104.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!loaded && imageUrl.isNotBlank()) {
+                        ShimmerRows(count = 1, reduceMotion = reduceMotion)
+                    }
+                    if (imageUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(104.dp)
+                                .clip(panelShape()),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            onSuccess = { _ -> loaded = true },
+                            onError = { _ -> loaded = false },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Bare hero control, no card chrome: one action per state, always visible.
  * The button text carries version (prerelease marked, never silent) and
  * size, so no separate label row is needed. A finished scan with nothing
@@ -531,11 +583,29 @@ private fun HeroBare(
     onOpenApp: (String) -> Unit,
     /** True while assets are still arriving — show progress, never blank. */
     findingApk: Boolean = false,
+    /** Package name of an already-installed copy, if any. */
+    installedPackageName: String? = null,
 ) {
     val tag = release?.tag
     val version = tag?.let { if (release?.prerelease == true) "$it · pre" else it }
     when (hero) {
         is HeroDlState.IdleDownload -> {
+            if (installedPackageName != null) {
+                // Already installed — hero is Open/Uninstall, never Download.
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val launchable = canOpenApp(installedPackageName)
+                    OutlinedButton(
+                        onClick = { if (launchable) onOpenApp(installedPackageName) },
+                        enabled = launchable,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) { Text("Open", maxLines = 1) }
+                    OutlinedButton(
+                        onClick = { onUninstall(installedPackageName) },
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) { Text("Uninstall", maxLines = 1) }
+                }
+                return
+            }
             val target = asset
             if (target == null) {
                 if (findingApk) {

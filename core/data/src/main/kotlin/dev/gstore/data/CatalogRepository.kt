@@ -15,9 +15,11 @@ import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.RepoSignals
 import dev.gstore.model.Repository
+import dev.gstore.network.ApiResponse
 import dev.gstore.network.CatalogClient
 import dev.gstore.network.CatalogEntry
 import dev.gstore.network.CatalogIndexEntry
+import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubException
 import dev.gstore.network.GitHubService
 import dev.gstore.network.toDomain as dtoToDomain
@@ -94,6 +96,13 @@ class CatalogRepository(
     /** Every asset of a release — the chooser labels non-APKs, never hides them. */
     suspend fun allAssets(releaseId: Long): List<ReleaseAsset> =
         assets.listByRelease(releaseId).map { it.toDomain() }
+
+    /** Repo root directory listing — used for screenshots (gallery at bottom of details). */
+    suspend fun fetchContents(
+        owner: String,
+        repo: String,
+        ref: String,
+    ): ApiResponse<List<ContentsDto>> = api.fetchContents(owner, repo, ref, null)
 
     suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
 

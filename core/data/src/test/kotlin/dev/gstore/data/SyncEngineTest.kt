@@ -10,6 +10,7 @@ import dev.gstore.database.RepositoryDao
 import dev.gstore.database.RepositoryEntity
 import dev.gstore.database.SyncCheckpoint
 import dev.gstore.network.ApiResponse
+import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubException
 import dev.gstore.network.GitHubService
 import dev.gstore.network.ReadmeFetch
@@ -110,6 +111,12 @@ private class FakeApi(
         repo: String,
         etag: String?,
     ): ApiResponse<ReadmeFetch> = ApiResponse.Fresh(ReadmeFetch("# test", null), null)
+    override suspend fun fetchContents(
+        owner: String,
+        repo: String,
+        ref: String,
+        etag: String?,
+    ): ApiResponse<List<ContentsDto>> = ApiResponse.Fresh(emptyList(), null)
 }
 
 class SyncEngineTest {

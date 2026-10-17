@@ -16,6 +16,7 @@ import dev.gstore.model.ApkArtifact
 import dev.gstore.model.Release
 import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
+import dev.gstore.network.ApiResponse
 import java.io.File
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,9 @@ data class AssetRow(
     val eligibility: Eligibility,
     val artifact: ApkArtifact,
 )
+
+/** One screenshot image from the repo root gallery. */
+data class ScreenshotItem(val url: String, val name: String)
 
 /** Hero download button state for the recommended APK of the selection. */
 sealed interface HeroDlState {
@@ -63,6 +67,10 @@ data class DetailsUiState(
     /** Last on-demand sync failure — shown inline, not just a snackbar. */
     val syncError: String? = null,
     val notice: String? = null,
+    /** Package name of an already-installed copy of this app, if any. */
+    val installedPackageName: String? = null,
+    /** Screenshots from the repo root gallery (image assets only). */
+    val screenshots: List<ScreenshotItem> = emptyList(),
 )
 
 /**
@@ -179,6 +187,26 @@ class DetailsViewModel(
         }
         if (repo != null) resolvedId.value = repo.id
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
+
+        // Screenshots from the repo root gallery (Play Store-style image strip).
+        if (repo != null && repo.defaultBranch.isNotBlank()) {
+            viewModelScope.launch {
+                when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
+                    is ApiResponse.Fresh -> {
+                        val images = response.data
+                            .filter { it.type == "file" }
+                            .filter { c ->
+                                val n = c.name.lowercase()
+                                n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".webp")
+                            }
+                            .take(8)
+                            .map { ScreenshotItem(it.download_url ?: it.html_url ?: "", it.name) }
+                        _state.value = _state.value.copy(screenshots = images)
+                    }
+                    else -> Unit // screenshots stay empty — not a fatal error
+                }
+            }
+        }
     }
 
     /**
@@ -256,7 +284,32 @@ class DetailsViewModel(
             val best = rows.firstOrNull {
                 it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
             }?.asset
-            if (best != null) watchHero(best) else {
+            if (best != null) {
+                // Initial check: is this APK already installed (via a previous
+                // G Store download)? If so, show Open/Uninstall immediately
+                // instead of "Download".
+                val existing = tracker.observe(best.id).first()
+                if (existing != null && existing.status == "COMPLETED") {
+                    val pkg = existing.packageName
+                    if (pkg != null) {
+                        val info = withContext(Dispatchers.IO) {
+                            installed.installedPackages(setOf(pkg))[pkg]
+                        }
+                        if (info != null) {
+                            _state.value = _state.value.copy(
+                                hero = HeroDlState.Installed(pkg, existing.versionName),
+                                installedPackageName = pkg,
+                            )
+                        } else {
+                            watchHero(best)
+                        }
+                    } else {
+                        watchHero(best)
+                    }
+                } else {
+                    watchHero(best)
+                }
+            } else {
                 heroJob?.cancel()
                 _state.value = _state.value.copy(hero = HeroDlState.IdleDownload)
             }
@@ -294,6 +347,11 @@ class DetailsViewModel(
                     else -> HeroDlState.FailedRetry
                 }
                 _state.value = _state.value.copy(hero = hero)
+                if (hero is HeroDlState.Installed) {
+                    _state.value = _state.value.copy(installedPackageName = hero.packageName)
+                } else if (hero !is HeroDlState.Installed) {
+                    _state.value = _state.value.copy(installedPackageName = null)
+                }
             }
         }
     }

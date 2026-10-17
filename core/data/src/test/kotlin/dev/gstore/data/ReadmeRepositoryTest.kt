@@ -4,6 +4,7 @@ import dev.gstore.common.Outcome
 import dev.gstore.database.ReadmeDao
 import dev.gstore.database.ReadmeEntity
 import dev.gstore.network.ApiResponse
+import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubException
 import dev.gstore.network.GitHubService
 import dev.gstore.network.ReadmeFetch
@@ -70,6 +71,12 @@ private class FakeReadmeApi(
         failure?.let { throw it }
         return fetch
     }
+    override suspend fun fetchContents(
+        owner: String,
+        repo: String,
+        ref: String,
+        etag: String?,
+    ): ApiResponse<List<ContentsDto>> = ApiResponse.Fresh(emptyList(), null)
 }
 
 class ReadmeRepositoryTest {

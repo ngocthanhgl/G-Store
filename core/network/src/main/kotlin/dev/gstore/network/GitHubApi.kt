@@ -82,6 +82,16 @@ data class GitHubUser(
     @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
+/** Single entry from `GET /repos/{owner}/{repo}/contents` — used for screenshots. */
+@Serializable
+data class ContentsDto(
+    val name: String,
+    val type: String,
+    val size: Int,
+    val download_url: String?,
+    val html_url: String?,
+)
+
 /** A GET result: fresh body, or NOT_MODIFIED when the ETag still matches. */
 sealed interface ApiResponse<out T> {
     data class Fresh<T>(val data: T, val etag: String?) : ApiResponse<T>
@@ -119,6 +129,13 @@ interface GitHubService {
     suspend fun searchRepos(query: String, page: Int = 1): ApiResponse<SearchResponse>
 
     suspend fun fetchReadme(owner: String, repo: String, etag: String? = null): ApiResponse<ReadmeFetch>
+
+    suspend fun fetchContents(
+        owner: String,
+        repo: String,
+        ref: String,
+        etag: String? = null,
+    ): ApiResponse<List<ContentsDto>>
 }
 
 /**
@@ -247,6 +264,14 @@ class GitHubApi : GitHubService {
             }
         }
     }
+
+    override suspend fun fetchContents(
+        owner: String,
+        repo: String,
+        ref: String,
+        etag: String?,
+    ): ApiResponse<List<ContentsDto>> =
+        get("$BASE_URL/repos/$owner/$repo/contents?ref=$ref", etag)
 
     /** 1 MiB cap — a bigger README is treated as hostile, never parsed. */
     private fun readBounded(resp: okhttp3.Response, url: String): ReadmeFetch {

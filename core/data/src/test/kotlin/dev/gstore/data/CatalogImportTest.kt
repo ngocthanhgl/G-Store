@@ -17,6 +17,7 @@ import dev.gstore.network.CatalogIndexEntry
 import dev.gstore.network.CatalogIndexRelease
 import dev.gstore.network.CatalogRelease
 import dev.gstore.network.CatalogRepo
+import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubService
 import dev.gstore.network.ReadmeFetch
 import dev.gstore.network.ReleaseDto
@@ -74,6 +75,12 @@ class CatalogImportTest {
         ): ApiResponse<List<ReleaseDto>> = TODO()
         override suspend fun searchRepos(q: String, p: Int): ApiResponse<SearchResponse> = TODO()
         override suspend fun fetchReadme(o: String, r: String, e: String?): ApiResponse<ReadmeFetch> = TODO()
+        override suspend fun fetchContents(
+            o: String,
+            r: String,
+            ref: String,
+            e: String?,
+        ): ApiResponse<List<ContentsDto>> = TODO()
     }
 
     private class UnusedCheckpoints : CheckpointDao {

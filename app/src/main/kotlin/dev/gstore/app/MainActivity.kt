@@ -535,15 +535,17 @@ private fun Content(
                         if (packageName.isBlank()) {
                             scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
                         } else {
-                            runCatching {
+                            try {
                                 context.startActivity(
                                     Intent(
                                         Intent.ACTION_DELETE,
                                         Uri.fromParts("package", packageName, null),
-                                    ),
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
                                 )
-                            }.onFailure {
-                                scope.launch { snackbar.showSnackbar("Could not open uninstall") }
+                            } catch (e: Exception) {
+                                scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                             }
                         }
                     },
@@ -650,7 +652,9 @@ private fun Content(
                                 Intent(
                                     Intent.ACTION_DELETE,
                                     Uri.fromParts("package", packageName, null),
-                                ),
+                                ).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
                             )
                         } catch (e: Exception) {
                             scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
