@@ -1,25 +1,25 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-17T14:31:00.864677+00:00",
+ "scanned_at": "2026-10-18T09:10:36.958421+00:00",
  "tool": "tools/scan.py",
- "query_set": 6,
+ "query_set": 7,
  "queries": [
-  "topic:f-droid archived:false fork:false",
-  "android adblock archived:false fork:false",
-  "android firewall archived:false fork:false",
-  "android backup archived:false fork:false"
+  "godot android archived:false fork:false",
+  "unity android archived:false fork:false",
+  "android game archived:false fork:false",
+  "android emulator archived:false fork:false"
  ],
- "candidates": 1835,
- "checked": 1835,
- "verified_today": 586,
- "carried_over": 1682,
+ "candidates": 3828,
+ "checked": 3828,
+ "verified_today": 612,
+ "carried_over": 1687,
  "dropped_stale": 0,
- "matches": 1687,
- "index_matches": 1687,
- "index_bytes": 1424901,
+ "matches": 2271,
+ "index_matches": 2271,
+ "index_bytes": 1889592,
  "truncated": false,
  "deadline_hit": false,
  "complete": true,
  "error": null,
- "duration_s": 3657.6
+ "duration_s": 8082.8
 }
