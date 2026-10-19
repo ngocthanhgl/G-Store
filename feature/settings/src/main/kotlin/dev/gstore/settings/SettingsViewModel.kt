@@ -3,6 +3,7 @@ package dev.gstore.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.datastore.AppearanceSettings
+import dev.gstore.datastore.AppIconStyle
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.datastore.HomeLayout
@@ -36,6 +37,12 @@ fun layoutLabel(layout: HomeLayout): String = when (layout) {
     HomeLayout.GRID -> "Grid"
 }
 
+fun appIconLabel(style: AppIconStyle): String = when (style) {
+    AppIconStyle.CLASSIC -> "Classic"
+    AppIconStyle.RED_LIGHT -> "Red Light"
+    AppIconStyle.RED_DARK -> "Red Dark"
+}
+
 class SettingsViewModel(
     private val prefs: PreferencesRepository,
     private val tokens: TokenStore,
@@ -66,6 +73,7 @@ class SettingsViewModel(
     fun setCardRadius(radiusDp: Int) = launch { prefs.setCardRadiusDp(radiusDp) }
     fun setReduceMotion(enabled: Boolean) = launch { prefs.setReduceMotion(enabled) }
     fun setIncludePrereleases(enabled: Boolean) = launch { prefs.setIncludePrereleases(enabled) }
+    fun setAppIcon(style: AppIconStyle) = launch { prefs.setAppIcon(style) }
 
     /**
      * Log in with a user-supplied Personal Access Token (no scopes needed).

@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -30,7 +29,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -68,7 +66,6 @@ import dev.gstore.ui.squircleDp
  * (Room-backed); cancellation and retry act on the record, never on a lost
  * callback. A COMPLETED row offers installation handoff via [onInstall].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     state: DownloadsUiState,
@@ -82,9 +79,6 @@ fun DownloadsScreen(
     onUninstall: (String) -> Unit,
     onDownloadUpdate: (DownloadRecord) -> Unit,
     onRemoveManual: (String) -> Unit,
-    onRefreshInstalled: () -> Unit,
-    onOpenLogin: () -> Unit,
-    onDismissLoginPrompt: () -> Unit,
     onSyncStars: () -> Unit,
     snackbar: SnackbarHostState,
     onDismissNotice: () -> Unit,
@@ -124,36 +118,6 @@ fun DownloadsScreen(
             onDismissNotice()
         }
     }
-    // The shell performs one quiet startup check for update notifications;
-    // pull-to-refresh and the header/empty-state controls remain explicit
-    // user-triggered checks.
-    if (state.showLoginPrompt) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = onDismissLoginPrompt,
-            title = { Text("Slow down") },
-            text = {
-                Text(
-                    "One update check per minute — the anonymous GitHub quota " +
-                        "is 60 requests/hour. Log in to lift it to 5,000.",
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDismissLoginPrompt()
-                        onOpenLogin()
-                    },
-                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                ) { Text("Log in to GitHub") }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = onDismissLoginPrompt,
-                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                ) { Text("Later") }
-            },
-        )
-    }
     forgetCandidate?.let { record ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { forgetCandidate = null },
@@ -181,11 +145,7 @@ fun DownloadsScreen(
             },
         )
     }
-    PullToRefreshBox(
-        isRefreshing = state.installedRefreshing,
-        onRefresh = onRefreshInstalled,
-        modifier = modifier.fillMaxSize().safeTop(),
-    ) {
+    Box(modifier = modifier.fillMaxSize().safeTop()) {
         val updates = state.installed.filter {
             it.updateState == UpdateState.UPDATE_AVAILABLE ||
                 it.updateState == UpdateState.READY_TO_INSTALL
@@ -204,7 +164,7 @@ fun DownloadsScreen(
                     reduceMotion = reduceMotion,
                     modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
                 )
-                return@PullToRefreshBox
+                return@Box
             }
             EmptyContent(
                 message = "Nothing here yet. Pick an APK on an app's details screen.",
@@ -219,7 +179,7 @@ fun DownloadsScreen(
                     }
                 },
             )
-            return@PullToRefreshBox
+            return@Box
         }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         LazyColumn(
@@ -232,6 +192,7 @@ fun DownloadsScreen(
                 AuroraSectionHeader(
                     title = "Favourites",
                     count = state.favorites.size,
+                    topGap = false,
                     onClick = { favoritesExpanded = !favoritesExpanded },
                     trailing = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -509,7 +470,7 @@ private fun FavoriteRow(
                 verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
             ) {
                 Text(
-                    text = repo.fullName,
+                    text = repo.fullName.substringAfter('/'),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

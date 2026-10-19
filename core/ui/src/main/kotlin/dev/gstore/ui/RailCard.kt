@@ -4,7 +4,7 @@
 //
 // Adapted from Aurora Store's AppListItem
 // (app/src/main/java/com/aurora/store/compose/composable/app/AppListItem.kt):
-// 80dp tile, full-width 1:1 squircle artwork, two-line label. Changes for
+// 80dp tile, full-width 1:1 squircle artwork, one-line label. Changes for
 // G Store: resource dimens inlined (80dp tile, 12dp radius, 4dp rhythm),
 // AppIcon (avatar-over-monogram) instead of raw AsyncImage since catalog
 // entries may carry no URL, no @Preview.
@@ -51,8 +51,7 @@ fun RailCard(
             modifier = Modifier,
             text = repo.fullName.substringAfter('/'),
             style = MaterialTheme.typography.labelMedium,
-            maxLines = 2,
-            minLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )

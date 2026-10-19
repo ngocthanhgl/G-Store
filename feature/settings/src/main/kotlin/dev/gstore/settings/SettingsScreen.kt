@@ -66,6 +66,7 @@ import dev.gstore.model.AppRadius
 import dev.gstore.ui.Fluent
 import dev.gstore.ui.GStoreSpace
 import dev.gstore.datastore.AppearanceSettings
+import dev.gstore.datastore.AppIconStyle
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.ThemeMode
@@ -108,6 +109,60 @@ fun SettingsScreen(
     contentPadding = PaddingValues(bottom = GStoreSpace.Block),
     ) {
         item {
+            SettingGroup("Account", topGap = false) {
+                if (identity.login.isBlank()) {
+                    Text(
+                        "Anonymous: up to 6 manual refreshes per minute. Logged in: no app-imposed quota (GitHub limits still apply); refresh has a 10-second cooldown.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Button(
+                        onClick = {
+                            submitted = false
+                            showLogin = true
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
+                    ) { Text("Log in with token", maxLines = 1) }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+                    ) {
+                        AppIcon(
+                            avatarUrl = identity.avatarUrl,
+                            owner = identity.login,
+                            size = 40.dp,
+                            circular = true,
+                        )
+                        Text(
+                            text = identity.login,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            onClick = vm::logout,
+                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                        ) { Text("Logout") }
+                    }
+                }
+                loginError?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
+                }
+                if (loginBusy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
+        }
+        item {
             SettingGroup("Theme") {
                 ChoiceRow(
                     options = ThemeMode.entries,
@@ -126,6 +181,13 @@ fun SettingsScreen(
                 AccentSwatches(
                     selectedArgb = appearance.accentArgb,
                     onSelect = vm::setAccentArgb,
+                )
+                SettingLabel("App icon")
+                ChoiceRow(
+                    options = AppIconStyle.entries,
+                    selected = appearance.appIcon,
+                    labelOf = ::appIconLabel,
+                    onSelect = vm::setAppIcon,
                 )
                 SettingLabel("Layout")
                 ChoiceRow(
@@ -215,65 +277,6 @@ fun SettingsScreen(
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-        }
-        item {
-            SettingGroup("Account") {
-                if (identity.login.isBlank()) {
-                    Text(
-                        "Anonymous: 60 requests/hour. Log in for 5,000.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Button(
-                        onClick = {
-                            submitted = false
-                            showLogin = true
-                        },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
-                    ) {
-                        Text("Log in with token", maxLines = 1)
-                    }
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
-                    ) {
-                        AppIcon(
-                            avatarUrl = identity.avatarUrl,
-                            owner = identity.login,
-                            size = 40.dp,
-                            circular = true,
-                        )
-                        Text(
-                            text = identity.login,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = vm::logout,
-                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                        ) { Text("Logout") }
-                    }
-                }
-                val error = loginError
-                if (error != null) {
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
-                }
-                if (loginBusy) {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
             }
         }
     }
@@ -417,12 +420,16 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
 }
 
 @Composable
-private fun SettingGroup(title: String, content: @Composable () -> Unit) {
+private fun SettingGroup(
+    title: String,
+    topGap: Boolean = true,
+    content: @Composable () -> Unit,
+) {
     // The header carries its own 24dp-above / 8dp-below rhythm.
     Column {
         // Shared header so group titles cannot drift from every other screen:
         // titleLarge, no primary tint, 24dp above / 8dp below.
-        AuroraSectionHeader(title = title)
+        AuroraSectionHeader(title = title, topGap = topGap)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = dev.gstore.designsystem.panelShape(),

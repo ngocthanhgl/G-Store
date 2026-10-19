@@ -7,8 +7,10 @@ import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.HomeSections
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.computeSections
+import dev.gstore.data.manualRequestWaitMessage
 import dev.gstore.data.sortedCatalog
 import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.datastore.PreferencesRepository
@@ -61,6 +63,7 @@ class HomeViewModel(
     tokens: TokenStore,
     cachedSignals: StateFlow<List<RepoSignals>>,
     private val starSync: StarSyncEngine,
+    private val manualRequestGate: ManualRequestGate,
 ) : ViewModel() {
     private val tokensRef = tokens
     private val allRepos = MutableStateFlow<List<Repository>>(emptyList())
@@ -209,6 +212,10 @@ class HomeViewModel(
      */
     fun syncCatalog(quiet: Boolean = false) {
         if (!catalogRefreshMutex.tryLock()) return
+        if (!quiet && !allowManualRequest()) {
+            catalogRefreshMutex.unlock()
+            return
+        }
         syncingCatalog.value = true
         viewModelScope.launch {
             try {
@@ -249,6 +256,10 @@ class HomeViewModel(
 
     private fun refreshAll(repos: List<Repository>, withCatalog: Boolean = false) {
         if (!fullRefreshMutex.tryLock()) return
+        if (!allowManualRequest()) {
+            fullRefreshMutex.unlock()
+            return
+        }
         syncing.value = true
         viewModelScope.launch {
             try {
@@ -291,6 +302,7 @@ class HomeViewModel(
     /** Explicit discovery mechanism: user adds owner/name (PRODUCT_SPEC §4). */
     fun addRepository(rawInput: String) {
         val input = rawInput.trim().removePrefix("https://github.com/").removeSuffix("/")
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             prefs.addManualRepo(input)
             when (val result = catalog.sync(input)) {
@@ -302,6 +314,7 @@ class HomeViewModel(
 
     /** Trending seeds: one user-triggered search, results added only on tap. */
     fun discover() {
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             discovering.value = true
             when (val result = catalog.search("topic:android")) {
@@ -310,5 +323,12 @@ class HomeViewModel(
             }
             discovering.value = false
         }
+    }
+
+    private fun allowManualRequest(): Boolean {
+        val wait = manualRequestGate.tryAcquire(tokensRef.token.value?.isNotBlank() == true)
+            ?: return true
+        banner.value = manualRequestWaitMessage(wait)
+        return false
     }
 }

@@ -25,6 +25,7 @@ private val Context.store by preferencesDataStore(name = "gstore_prefs")
 enum class ThemeMode { LIGHT, DARK, SYSTEM, AMOLED }
 enum class HomeLayout { GRID, LIST }
 enum class CardDensity { COMFORTABLE, COMPACT }
+enum class AppIconStyle { CLASSIC, RED_LIGHT, RED_DARK }
 
 /** Validated appearance settings — restored before first frame (flow E). */
 data class AppearanceSettings(
@@ -34,6 +35,7 @@ data class AppearanceSettings(
     val density: CardDensity = CardDensity.COMPACT,
     val layout: HomeLayout = HomeLayout.LIST,
     val cardRadiusDp: Int = AppRadius.DEFAULT,
+    val appIcon: AppIconStyle = AppIconStyle.CLASSIC,
     val reduceMotion: Boolean = false,
     /** Beta builds participate in pick/download/update. Off = stable only. */
     val includePrereleases: Boolean = false,
@@ -57,6 +59,7 @@ class PreferencesRepository(private val context: Context) {
     // the new default. The stale key is intentionally left unread.
     val CARD_RADIUS = intPreferencesKey("card_radius_dp_v2")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
+        val APP_ICON = stringPreferencesKey("app_icon")
     val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
     val PERMISSION_PROMPTED = booleanPreferencesKey("permission_prompted")
     val SECTION_ORDER = stringPreferencesKey("section_order")
@@ -118,6 +121,8 @@ class PreferencesRepository(private val context: Context) {
                 .getOrDefault(HomeLayout.LIST),
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).
             cardRadiusDp = AppRadius.clamp(p[Keys.CARD_RADIUS] ?: AppRadius.DEFAULT),
+            appIcon = runCatching { AppIconStyle.valueOf(p[Keys.APP_ICON] ?: "CLASSIC") }
+                .getOrDefault(AppIconStyle.CLASSIC),
             reduceMotion = p[Keys.REDUCE_MOTION] ?: false,
             includePrereleases = p[Keys.INCLUDE_PRERELEASES] ?: false,
         )
@@ -157,6 +162,10 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setReduceMotion(enabled: Boolean) {
         context.store.edit { it[Keys.REDUCE_MOTION] = enabled }
+    }
+
+    suspend fun setAppIcon(style: AppIconStyle) {
+        context.store.edit { it[Keys.APP_ICON] = style.name }
     }
 
     suspend fun setIncludePrereleases(enabled: Boolean) {

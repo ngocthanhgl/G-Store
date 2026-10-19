@@ -3,6 +3,7 @@ package dev.gstore.settings
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.AppearanceSettings
+import dev.gstore.datastore.AppIconStyle
 import dev.gstore.datastore.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -20,6 +21,14 @@ class SettingsLogicTest {
         assertEquals("Light", themeModeLabel(ThemeMode.LIGHT))
         assertEquals("Dark", themeModeLabel(ThemeMode.DARK))
         assertEquals("System", themeModeLabel(ThemeMode.SYSTEM))
+    }
+
+    @Test
+    fun appIconChoicesCoverAllVariants() {
+        assertEquals(AppIconStyle.CLASSIC, AppearanceSettings().appIcon)
+        assertEquals("Classic", appIconLabel(AppIconStyle.CLASSIC))
+        assertEquals("Red Light", appIconLabel(AppIconStyle.RED_LIGHT))
+        assertEquals("Red Dark", appIconLabel(AppIconStyle.RED_DARK))
     }
 
     @Test

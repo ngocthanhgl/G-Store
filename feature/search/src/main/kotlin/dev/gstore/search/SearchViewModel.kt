@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.ManualRequestGate
+import dev.gstore.data.manualRequestWaitMessage
+import dev.gstore.datastore.TokenStore
 import dev.gstore.data.searchFilter
 import dev.gstore.model.Repository
 import kotlinx.coroutines.FlowPreview
@@ -26,7 +29,11 @@ data class SearchUiState(
 )
 
 @OptIn(FlowPreview::class)
-class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
+class SearchViewModel(
+    private val catalog: CatalogRepository,
+    private val tokens: TokenStore,
+    private val manualRequestGate: ManualRequestGate,
+) : ViewModel() {
     private val query = MutableStateFlow("")
     private val searching = MutableStateFlow(false)
     private val banner = MutableStateFlow<String?>(null)
@@ -59,6 +66,7 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
     }
 
     fun addRepository(fullName: String) {
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             when (val result = catalog.sync(fullName.trim())) {
                 is Outcome.Ok -> banner.value = "Added $fullName"
@@ -71,6 +79,7 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
     fun searchGitHub() {
         val q = query.value.trim()
         if (q.isBlank()) return
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             searching.value = true
             when (val result = catalog.search(q)) {
@@ -86,4 +95,11 @@ class SearchViewModel(private val catalog: CatalogRepository) : ViewModel() {
 
     private val netResults = MutableStateFlow<List<Repository>>(emptyList())
     val networkResults: StateFlow<List<Repository>> = netResults
+
+    private fun allowManualRequest(): Boolean {
+        val wait = manualRequestGate.tryAcquire(tokens.token.value?.isNotBlank() == true)
+            ?: return true
+        banner.value = manualRequestWaitMessage(wait)
+        return false
+    }
 }

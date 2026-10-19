@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.InstalledAppsGateway
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.UpdateState
 import dev.gstore.data.classifyAsset
+import dev.gstore.data.manualRequestWaitMessage
 import dev.gstore.data.resolveUpdateState
 import dev.gstore.database.DownloadRecord
 import dev.gstore.datastore.PreferencesRepository
@@ -65,7 +67,6 @@ data class DownloadsUiState(
     val starSyncProgress: StarSyncEngine.Progress? = null,
     val starSyncNotice: String? = null,
     val installedRefreshing: Boolean = false,
-    val showLoginPrompt: Boolean = false,
     val notice: String? = null,
 )
 
@@ -77,10 +78,10 @@ class DownloadsViewModel(
     private val prefs: PreferencesRepository,
     private val starSync: StarSyncEngine,
     private val notifications: DownloadNotifications,
+    private val manualRequestGate: ManualRequestGate,
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
-    private val showLoginPrompt = MutableStateFlow(false)
     private val notice = MutableStateFlow<String?>(null)
     private var lastRefreshMillis = 0L
 
@@ -88,15 +89,13 @@ class DownloadsViewModel(
     // first so the state combine stays at four.
     private data class RefreshUi(
         val refreshing: Boolean,
-        val prompt: Boolean,
         val message: String?,
     )
 
     private val refreshUi = combine(
         installedRefreshing,
-        showLoginPrompt,
         notice,
-    ) { refreshing, prompt, message -> RefreshUi(refreshing, prompt, message) }
+    ) { refreshing, message -> RefreshUi(refreshing, message) }
 
     private val favorites = MutableStateFlow<List<Repository>>(emptyList())
     private val manual = MutableStateFlow<List<Repository>>(emptyList())
@@ -109,11 +108,18 @@ class DownloadsViewModel(
      * when a token exists; progress is checkpointed in Room, so a killed
      * process resumes instead of restarting.
      */
-    fun syncStarred() {
+    fun syncStarred(manual: Boolean = true) {
         if (starSyncRunning.value) return
         if (tokens.token.value.isNullOrBlank()) {
             starSyncNotice.value = "Log in with a GitHub token to import your stars."
             return
+        }
+        if (manual) {
+            val wait = manualRequestGate.tryAcquire(authenticated = true)
+            if (wait != null) {
+                notice.value = manualRequestWaitMessage(wait)
+                return
+            }
         }
         viewModelScope.launch {
             starSyncRunning.value = true
@@ -158,7 +164,7 @@ class DownloadsViewModel(
         // Pull GitHub stars in the background on start. Checkpoints make this
         // cheap on the second launch, and a logged-out device skips it entirely.
         viewModelScope.launch {
-            if (!tokens.token.value.isNullOrBlank()) syncStarred()
+            if (!tokens.token.value.isNullOrBlank()) syncStarred(manual = false)
         }
         refreshInstalled(auto = true)
     }
@@ -204,7 +210,6 @@ class DownloadsViewModel(
             starSyncProgress = star.progress,
             starSyncNotice = star.message,
             installedRefreshing = ui.refreshing,
-            showLoginPrompt = ui.prompt,
             notice = ui.message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState())
@@ -213,23 +218,16 @@ class DownloadsViewModel(
         notice.value = null
     }
 
-    fun dismissLoginPrompt() {
-        showLoginPrompt.value = false
-    }
-
     /**
      * Re-read PackageManager for every tracked package and re-check the
      * catalog for newer tags on the tracked repos. User-triggered and
      * bounded by the installed count (usually a handful) — never a scan.
-     * Automatic calls are bounded to one per minute to avoid duplicate
-     * startup/resume requests. Manual checks are throttled only for anonymous
-     * users; logged-in users have the higher GitHub quota.
+     * Automatic calls are bounded to one per minute; user-triggered refreshes
+     * use the shared 10-second cooldown and anonymous rolling-minute limit.
      */
     fun refreshInstalled(auto: Boolean = false, force: Boolean = false) {
         val now = System.currentTimeMillis()
-        val anonymous = tokens.token.value.isNullOrBlank()
-        if (!force && (auto || anonymous) && now - lastRefreshMillis < 60_000) {
-            if (!auto && anonymous) showLoginPrompt.value = true
+        if (!force && auto && now - lastRefreshMillis < 60_000) {
             return
         }
         lastRefreshMillis = now
@@ -273,6 +271,17 @@ class DownloadsViewModel(
             }
             installedRefreshing.value = false
         }
+    }
+
+    fun refreshFavoritesAndUpdates() {
+        val authenticated = !tokens.token.value.isNullOrBlank()
+        val wait = manualRequestGate.tryAcquire(authenticated)
+        if (wait != null) {
+            notice.value = manualRequestWaitMessage(wait)
+            return
+        }
+        refreshInstalled(force = true)
+        syncStarred(manual = false)
     }
 
     /** Latest cached release tag for a repo; syncs on miss (bounded, one repo). */

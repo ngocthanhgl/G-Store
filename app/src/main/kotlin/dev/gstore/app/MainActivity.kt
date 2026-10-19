@@ -161,6 +161,9 @@ class MainActivity : ComponentActivity() {
             val appearance by container.preferences.appearance.collectAsState(
                 initial = AppearanceSettings(),
             )
+            LaunchedEffect(appearance.appIcon) {
+                AppIconSwitcher.set(this@MainActivity, appearance.appIcon)
+            }
             val darkTheme = when (appearance.theme) {
                 dev.gstore.datastore.ThemeMode.LIGHT -> false
                 dev.gstore.datastore.ThemeMode.DARK -> true
@@ -533,10 +536,10 @@ private fun Content(
     // catalog state. Screens stay destination-scoped, so entry effects
     // (installed refresh, permission re-check) still re-fire on return.
     val homeVm: HomeViewModel = viewModel(
-        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync) },
+        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync, container.manualRequestGate) },
     )
     val searchVm: SearchViewModel = viewModel(
-        factory = vmFactory { SearchViewModel(container.catalog) },
+        factory = vmFactory { SearchViewModel(container.catalog, container.tokens, container.manualRequestGate) },
     )
     val downloadsVm: DownloadsViewModel = viewModel(
         factory = vmFactory {
@@ -548,6 +551,7 @@ private fun Content(
                 container.preferences,
                 container.starSync,
                 container.downloadNotifications,
+                container.manualRequestGate,
             )
         },
     )
@@ -716,13 +720,7 @@ private fun Content(
                     },
                     onDownloadUpdate = vm::downloadUpdate,
                     onRemoveManual = vm::removeManualRepo,
-                    onRefreshInstalled = vm::refreshInstalled,
-                    onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
-                    onDismissLoginPrompt = vm::dismissLoginPrompt,
-                    onSyncStars = {
-                        vm.refreshInstalled()
-                        vm.syncStarred()
-                    },
+                    onSyncStars = vm::refreshFavoritesAndUpdates,
                     snackbar = snackbar,
                     onDismissNotice = vm::dismissNotice,
                 )

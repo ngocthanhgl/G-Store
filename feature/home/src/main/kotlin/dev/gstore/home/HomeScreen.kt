@@ -300,11 +300,12 @@ private fun HomeHeader(
             DropdownMenu(
                 expanded = showProfile,
                 onDismissRequest = { showProfile = false },
-                modifier = Modifier.clip(panelShape()),
+                shape = panelShape(),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             ) {
                 if (identity.login.isNotBlank()) {
                     DropdownMenuItem(
-                        text = { Text("${identity.login} · 5,000 API requests/hour") },
+                        text = { Text("${identity.login} · refresh every 10s") },
                         enabled = false,
                         onClick = {},
                     )
@@ -584,4 +585,3 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-

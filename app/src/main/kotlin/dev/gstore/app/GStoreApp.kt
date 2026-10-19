@@ -16,6 +16,7 @@ import dev.gstore.database.GStoreDatabase
 import dev.gstore.database.MIGRATION_2_3
 import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.ReadmeRepository
 import dev.gstore.data.SignalsCache
 import dev.gstore.data.StarSyncEngine
@@ -106,6 +107,7 @@ private class GStoreWorkerFactory(
 
 class AppContainer(val app: Application) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val manualRequestGate = ManualRequestGate()
     val database: GStoreDatabase by lazy {
         // Explicit migrations only — silent data loss is never acceptable (M4).
         Room.databaseBuilder(app, GStoreDatabase::class.java, "gstore.db")
