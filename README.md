@@ -8,7 +8,7 @@ G Store is a native Android app marketplace for APKs published in GitHub Release
 
 Browse the daily catalog by **Trending**, **New**, **Top stars**, or **Recently updated**. Explore topic-based categories, keep a favorites list, search the catalog, or search GitHub and add a repository yourself.
 
-The catalog is refreshed daily by an automated scanner, but GitHub does not provide a complete index of every repository with an APK. Coverage is best-effort; adding a repository is the way to find one the scan missed.
+The catalog scanner runs eight times a day and rotates across app types, technologies, and popularity ranges. GitHub does not provide a complete index of every repository with an APK, so coverage is best-effort; add a repository if the scan missed it.
 
 ## Choose, download, install
 

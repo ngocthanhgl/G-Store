@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daily GitHub catalog scanner for G Store.
+"""Scheduled GitHub catalog scanner for G Store.
 
 Searches GitHub for repositories that publish APK release artifacts and
 stores the result as JSON under catalog/. The Android app fetches
@@ -8,24 +8,22 @@ tab always has a list even before any on-device sync.
 
 Coverage limits (honest by design, see docs/GITHUB_DISCOVERY.md):
 - GitHub has NO endpoint enumerating every repo with APK releases. This
-scanner rotates 14 query sets (one per day) across languages, game
- engines, app domains, and star tiers, and MERGES each run into the
- previous catalog instead of replacing it — coverage accumulates over the
- 14-day cycle toward the whole APK-bearing surface without ever claiming
- to be exhaustive.
+scanner rotates 14 query sets across languages, game engines, app
+domains, and star tiers, and MERGES each run into the previous catalog
+instead of replacing it — coverage accumulates over the rotating query
+surface without ever claiming to be exhaustive.
 - Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
- search calls + one releases call per candidate must fit comfortably, so
- MAX_CHECK caps candidates per run (default 15000, ~4,500 req/hr over a
- 200-minute run). A 200-minute soft deadline (SCAN_DEADLINE_S) stops starting
- new repos in time for the 240-min job timeout; partial results are
- always written and committed, flagged in meta.json.
+eight runs per day share that budget, so MAX_CHECK caps candidates per run
+(default 8000). A 150-minute soft deadline (SCAN_DEADLINE_S) stops starting
+new repos before the 180-min job timeout; partial results are always
+written and committed, flagged in meta.json.
 - Entries carry last_verified (ISO date). Entries unseen for STALE_DAYS
   (default 30) are dropped; a repo re-checked with no APK release is
   dropped immediately. Archived/disabled repos and drafts are excluded.
   Digest is usually null (GitHub rarely provides one).
 
 Stdlib only (urllib) so ubuntu-latest runners need no setup.
-Env: GITHUB_TOKEN (required), MAX_CHECK (default 15000), OUT_DIR (default catalog).
+Env: GITHUB_TOKEN (required), MAX_CHECK (default 8000), OUT_DIR (default catalog).
 """
 import http.client
 import json
@@ -40,12 +38,11 @@ import urllib.request
 from datetime import date, datetime, timezone
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "15000"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
-# Soft deadline: the workflow kills the job at 360 min, which would discard
-# everything if files were only written at the end. Stop starting new repos
-# after DEADLINE_S and commit whatever we have (meta flags it as partial).
-DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(200 * 60)))
+# Finish before the next three-hour slot where possible; stop starting new
+# repos after DEADLINE_S and commit whatever we have (meta flags it partial).
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(150 * 60)))
 # Search pages carry full repo objects (~7 KB each): a 100-item page is a
 # ~1.4 MB body that truncates mid-stream (IncompleteRead) often enough to
 # survive all 4 transport retries and kill the whole search phase (seen
@@ -66,8 +63,10 @@ DESC_CAP = 240
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
-# Fourteen query sets — one runs per day (day-of-year % 14). Every query carries
-# archived:false so dead repos never consume check budget. Major languages
+# Fourteen query sets — three adjacent sets run every three hours, advancing
+# three sets each slot so the full query surface rotates in about 15 hours.
+# Every query carries archived:false so dead repos never consume check budget.
+# Major languages
 # are split into star tiers (10..100 / 100..1000 / >1000) because search
 # pagination caps at 1,000 results per query — one query can never cover a
 # whole language. Mobile stacks covered: Kotlin, Java, Dart/Flutter,
@@ -75,90 +74,117 @@ STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 # C++ NDK, Rust, Go, Scala, Godot, Unity, LÖVE, APK topics, form factors
 # (TV/Wear), and the low-star tail.
 QUERY_SETS = [
-    [  # Day 0 — Android headliners
+    [  # Set 0 — Android headliners
         "topic:android archived:false fork:false",
         "android language:Kotlin archived:false fork:false stars:>1000",
         "android language:Java archived:false fork:false stars:>1000",
     ],
-    [  # Day 1 — Kotlin/Java long tail (tier splits beat the 1k cap)
+    [  # Set 1 — Kotlin/Java long tail (tier splits beat the 1k cap)
         "android language:Kotlin archived:false fork:false stars:10..100",
         "android language:Kotlin archived:false fork:false stars:100..1000",
         "android language:Java archived:false fork:false stars:10..100",
         "android language:Java archived:false fork:false stars:100..1000",
     ],
-    [  # Day 2 — cross-platform stacks
+    [  # Set 2 — cross-platform stacks
         "topic:flutter archived:false fork:false",
         "topic:react-native archived:false fork:false",
         "android language:Dart archived:false fork:false stars:>50",
         "android language:C# archived:false fork:false stars:>50",
     ],
-    [  # Day 3 — media domain
+    [  # Set 3 — media domain
         "android music player archived:false fork:false",
         "android video player archived:false fork:false",
         "youtube android archived:false fork:false",
         "android camera archived:false fork:false",
+        "android podcast archived:false fork:false",
+        "android manga comic archived:false fork:false",
     ],
-    [  # Day 4 — system domain
+    [  # Set 4 — system domain
         "android file manager archived:false fork:false",
         "android launcher archived:false fork:false",
         "android keyboard archived:false fork:false",
         "android vpn archived:false fork:false",
+        "android accessibility archived:false fork:false",
+        "android home automation archived:false fork:false",
     ],
-    [  # Day 5 — productivity domain
+    [  # Set 5 — productivity domain
         "android notes todo archived:false fork:false",
         "android rss reader archived:false fork:false",
         "android weather archived:false fork:false",
         "android password manager archived:false fork:false",
+        "android calendar archived:false fork:false",
+        "android email archived:false fork:false",
+        "android education archived:false fork:false",
     ],
-    [  # Day 6 — free-software ecosystem
+    [  # Set 6 — free-software ecosystem
         "topic:f-droid archived:false fork:false",
         "android adblock archived:false fork:false",
         "android firewall archived:false fork:false",
         "android backup archived:false fork:false",
+        "android privacy archived:false fork:false",
+        "android encryption archived:false fork:false",
+        "android 2fa archived:false fork:false",
     ],
-    [  # Day 7 — game engines and emulators
+    [  # Set 7 — game engines and emulators
         "godot android archived:false fork:false",
         "unity android archived:false fork:false",
         "android game archived:false fork:false",
         "android emulator archived:false fork:false",
+        "android libgdx archived:false fork:false",
+        "android bevy archived:false fork:false",
+        "android renpy archived:false fork:false",
     ],
-    [  # Day 8 — Python-mobile and native stacks
+    [  # Set 8 — Python-mobile and native stacks
         "kivy android archived:false fork:false",
         "chaquopy android archived:false fork:false",
         "android language:Python archived:false fork:false",
         "android language:C++ archived:false fork:false",
+        "android language:JavaScript archived:false fork:false",
     ],
-    [  # Day 9 — comms, maps, and everyday domains
+    [  # Set 9 — comms, maps, and everyday domains
         "android messenger archived:false fork:false",
         "android maps navigation archived:false fork:false",
         "android finance archived:false fork:false",
         "android fitness archived:false fork:false",
+        "android travel archived:false fork:false",
+        "android transit archived:false fork:false",
+        "android recipes archived:false fork:false",
     ],
-    [  # Day 10 — compiled-native stacks
+    [  # Set 10 — compiled-native stacks
         "android language:Rust archived:false fork:false",
         "android language:Go archived:false fork:false",
         "android language:Scala archived:false fork:false",
         "android language:C archived:false fork:false",
+        "android git client archived:false fork:false",
+        "android terminal archived:false fork:false",
+        "android code editor archived:false fork:false",
     ],
-    [  # Day 11 — APK topics and form factors
+    [  # Set 11 — APK topics and form factors
         "topic:apk archived:false fork:false",
         "topic:android-app archived:false fork:false",
         "android tv archived:false fork:false",
         "android wear os archived:false fork:false",
+        "android wallpaper archived:false fork:false",
+        "android icon pack archived:false fork:false",
     ],
-    [  # Day 12 — low-star long tail (pagination still caps at 1k/query)
+    [  # Set 12 — low-star long tail (pagination still caps at 1k/query)
         "android language:Kotlin archived:false fork:false stars:<10",
         "android language:Java archived:false fork:false stars:<10",
         "android language:Dart archived:false fork:false stars:<10",
         "android language:C++ archived:false fork:false stars:<10",
+        "android language:Rust archived:false fork:false stars:<10",
     ],
-    [  # Day 13 — more everyday domains
+    [  # Set 13 — more everyday domains
         "android podcast archived:false fork:false",
         "android ebook reader archived:false fork:false",
         "android expense tracker archived:false fork:false",
         "android habit tracker archived:false fork:false",
+        "android translation archived:false fork:false",
+        "android shopping archived:false fork:false",
     ],
 ]
+QUERY_SETS_PER_RUN = 3
+SCHEDULE_INTERVAL_SECONDS = 3 * 60 * 60
 
 HEADERS = {
     "Accept": "application/vnd.github+json",
@@ -217,9 +243,45 @@ def api_get(path):
     raise RuntimeError(f"GET {path} failed after retries")
 
 
+def query_set_indices(now=None):
+    """Pick three rotating query sets for this scheduled three-hour slot."""
+    now = now or datetime.now(timezone.utc)
+    slot = int(now.timestamp() // SCHEDULE_INTERVAL_SECONDS)
+    start = (slot * QUERY_SETS_PER_RUN) % len(QUERY_SETS)
+    return [(start + offset) % len(QUERY_SETS)
+            for offset in range(QUERY_SETS_PER_RUN)]
+
+
+def interleave_candidates(groups, limit):
+    """Round-robin query groups so broad searches cannot crowd out others."""
+    positions = [0] * len(groups)
+    seen = set()
+    result = []
+    while len(result) < limit:
+        added = False
+        for index, group in enumerate(groups):
+            while positions[index] < len(group):
+                repo = group[positions[index]]
+                positions[index] += 1
+                repo_id = repo.get("id")
+                if repo_id in seen:
+                    continue
+                seen.add(repo_id)
+                result.append(repo)
+                added = True
+                break
+            if len(result) >= limit:
+                break
+        if not added:
+            break
+    return result
+
+
 def search_candidates(queries):
     seen = {}
+    groups = []
     for q in queries:
+        query_seen = {}
         try:
             for page in range(1, SEARCH_PAGES + 1):
                 params = urllib.parse.urlencode(
@@ -234,6 +296,7 @@ def search_candidates(queries):
                     if repo.get("archived") or repo.get("disabled"):
                         continue
                     seen.setdefault(repo["id"], repo)
+                    query_seen.setdefault(repo["id"], repo)
                 print(f"query {q!r} page {page}: {len(items)} items, {len(seen)} unique",
                       flush=True)
                 if len(items) < SEARCH_PER_PAGE:
@@ -245,10 +308,11 @@ def search_candidates(queries):
             # whatever candidates the healthy queries returned.
             print(f"query {q!r} aborted ({type(e).__name__}: {e}), "
                   f"continuing with {len(seen)} candidates", flush=True)
-            continue
-    ranked = sorted(seen.values(), key=lambda r: r.get("stargazers_count", 0),
-                    reverse=True)
-    return ranked[:MAX_CHECK]
+        ranked = sorted(query_seen.values(),
+                        key=lambda r: r.get("stargazers_count", 0),
+                        reverse=True)
+        groups.append(ranked)
+    return interleave_candidates(groups, MAX_CHECK)
 
 
 def pick_apk_release(full_name):
@@ -330,10 +394,11 @@ def main():
               file=sys.stderr)
         return 2
     started = time.time()
-    today = date.today().isoformat()
-    set_index = date.today().toordinal() % len(QUERY_SETS)
-    queries = QUERY_SETS[set_index]
-    print(f"query set {set_index}: {queries}", flush=True)
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    set_indices = query_set_indices(now)
+    queries = [query for index in set_indices for query in QUERY_SETS[index]]
+    print(f"query sets {set_indices}: {queries}", flush=True)
     error = None
     deadline_hit = False
     previous = load_previous()
@@ -348,7 +413,6 @@ def main():
     candidates = []
     checked = 0
     verified_today = 0
-    checked_names = set()
     try:
         candidates = search_candidates(queries)
         for repo in candidates:
@@ -358,7 +422,6 @@ def main():
                       f"finalizing partial results", flush=True)
                 break
             checked += 1
-            checked_names.add(repo["full_name"])
             try:
                 rel, assets = pick_apk_release(repo["full_name"])
             except Exception as e:  # one bad repo must not kill the run
@@ -392,7 +455,7 @@ def main():
     entries = entries[:ENTRY_CAP]
     try:
         write_results(entries, candidates, checked, started, deadline_hit,
-                      error, set_index, queries, verified_today, carried,
+                      error, set_indices, queries, verified_today, carried,
                       dropped_stale)
     except Exception:
         error = traceback.format_exc(limit=3)
@@ -437,7 +500,7 @@ def to_index_entry(entry):
 
 
 def write_results(entries, candidates, checked, started,
-                  deadline_hit, error, set_index, queries,
+                  deadline_hit, error, set_indices, queries,
                   verified_today, carried, dropped_stale):
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "apps.json"), "w", encoding="utf-8") as f:
@@ -449,7 +512,8 @@ def write_results(entries, candidates, checked, started,
         "schema": 1,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "tool": "tools/scan.py",
-        "query_set": set_index,
+        "query_set": set_indices[0],
+        "query_sets": set_indices,
         "queries": queries,
         "candidates": len(candidates),
         "checked": checked,
