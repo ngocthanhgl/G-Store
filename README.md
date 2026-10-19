@@ -1,8 +1,26 @@
 # G Store
 
-Discover Android apps shared through GitHub Releases. Browse, search, save favorites, and download APKs directly from their source repositories.
+G Store is a native Android app marketplace for APKs published in GitHub Releases. Discover projects, inspect their releases, and download from the original source.
 
 [Download the latest release](https://github.com/ngocthanhgl/G-Store/releases/latest)
+
+## Discover apps
+
+Browse the daily catalog by **Trending**, **New**, **Top stars**, or **Recently updated**. Explore topic-based categories, keep a favorites list, search the catalog, or search GitHub and add a repository yourself.
+
+The catalog is refreshed daily by an automated scanner, but GitHub does not provide a complete index of every repository with an APK. Coverage is best-effort; adding a repository is the way to find one the scan missed.
+
+## Choose, download, install
+
+App pages include repository details, release history and notes, the project README, and available APK artifacts. Compare file size and ABI information when available, then download with background progress and cancellation. Installation is handed off to Android's system installer.
+
+Stable releases are preferred; prereleases are identified separately. APKs and repository metadata come from their maintainers and are not security-reviewed by G Store. Review the source before installing.
+
+## Make it yours
+
+Choose light, dark, system, or AMOLED themes; set an accent color, app icon, grid or list layout, card density, and home-section order.
+
+## Screenshots
 
 <table>
   <tr>
@@ -15,4 +33,4 @@ Discover Android apps shared through GitHub Releases. Browse, search, save favor
   </tr>
 </table>
 
-APK availability and compatibility depend on each project's published releases. Apps and repository artwork belong to their respective authors.
+APK availability and device compatibility depend on each project's releases. Repository names, artwork, and APKs remain the property and responsibility of their respective maintainers.
