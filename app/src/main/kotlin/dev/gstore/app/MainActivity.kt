@@ -58,6 +58,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -455,13 +458,21 @@ private fun Content(
             )
         },
     )
-    NavHost(navController = nav, startDestination = Home, modifier = modifier) {
+    NavHost(
+        navController = nav,
+        startDestination = Home,
+        modifier = modifier,
+        enterTransition = { fadeIn(tween(180)) },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = { fadeIn(tween(180)) },
+        popExitTransition = { fadeOut(tween(120)) },
+    ) {
         composable<Home> {
             HomeScreen(
                 vm = homeVm,
                 onOpenRepo = onOpenRepo,
-                onOpenCategory = { nav.navigate(CategoryFull(it.name)) },
-                onOpenLogin = { nav.navigate(Settings) },
+                onOpenCategory = { nav.navigate(CategoryFull(it.name)) { launchSingleTop = true } },
+                onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
                 onLogout = {
                     scope.launch {
                         container.tokens.clear()
@@ -607,11 +618,10 @@ private fun Content(
                             }
                         }
                     },
-                    onDownloadFavorite = vm::downloadFavorite,
                     onDownloadUpdate = vm::downloadUpdate,
                     onRemoveManual = vm::removeManualRepo,
                     onRefreshInstalled = vm::refreshInstalled,
-                    onOpenLogin = { nav.navigate(Settings) },
+                    onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
                     onDismissLoginPrompt = vm::dismissLoginPrompt,
                     onSyncStars = vm::syncStarred,
                     snackbar = snackbar,
@@ -747,6 +757,7 @@ private fun Content(
                         }
                     }
                 },
+                onResumeInstalledState = vm::refreshInstalledState,
                 canOpenApp = { packageName ->
                     detailsContext.packageManager.getLaunchIntentForPackage(packageName) != null
                 },
@@ -763,7 +774,9 @@ private fun Content(
                     val repo = state.repo
                     if (repo != null) {
                         val parts = repo.fullName.split('/')
-                        if (parts.size == 2) nav.navigate(Readme(parts[0], parts[1]))
+                        if (parts.size == 2) {
+                            nav.navigate(Readme(parts[0], parts[1])) { launchSingleTop = true }
+                        }
                     }
                 },
                 cardRadiusDp = appearance.cardRadiusDp,

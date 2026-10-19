@@ -13,11 +13,13 @@ in EncryptedSharedPreferences/Keystore, never prefs XML or logs.
 ## 2. Content handling
 
 - Markdown → sanitized Compose model: no scripts, no `javascript:` URLs, strict
-  inline-HTML subset (unsupported tags stripped, text kept); images load via
-  cached async loader with size caps; over-2 MB docs truncated with notice;
+  inline-HTML subset (unsupported tags stripped, text kept); images load
+  automatically only from HTTPS GitHub hosts, with size caps; other images
+  require an explicit tap so README content cannot silently probe private
+  networks; over-2 MB docs truncated with notice;
   relative links resolved against repo context; external links open via explicit
   user tap in the system browser/custom tab.
--filenames: sanitized (no path traversal, no absolute paths, length-capped);
+- filenames: sanitized (no path traversal, no absolute paths, length-capped);
   temp `.part` + atomic rename; never trust filename or `Content-Type` as APK proof.
 - Network/parse workloads bounded (timeouts, body caps, page caps).
 

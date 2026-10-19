@@ -60,6 +60,7 @@ class SettingsViewModel(
 
     fun setTheme(mode: ThemeMode) = launch { prefs.setTheme(mode) }
     fun setDynamicColor(enabled: Boolean) = launch { prefs.setDynamicColor(enabled) }
+    fun setAccentArgb(argb: Int?) = launch { prefs.setAccentArgb(argb) }
     fun setLayout(layout: HomeLayout) = launch { prefs.setLayout(layout) }
     fun setDensity(density: CardDensity) = launch { prefs.setDensity(density) }
     fun setCardRadius(radiusDp: Int) = launch { prefs.setCardRadiusDp(radiusDp) }

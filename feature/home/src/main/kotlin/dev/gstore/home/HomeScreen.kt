@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -279,53 +281,43 @@ private fun HomeHeader(
         IconButton(onClick = onAdd) {
             Icon(Fluent.Add, contentDescription = "Add repository")
         }
-        // Profile opens login when logged out, identity + logout when in.
-        if (identity.login.isBlank()) {
-            IconButton(onClick = onOpenLogin) {
-                Icon(Fluent.Person, contentDescription = "Log in to GitHub")
-            }
-        } else {
+        Box {
             IconButton(onClick = { showProfile = true }) {
-                AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
+                if (identity.login.isBlank()) {
+                    Icon(Fluent.Person, contentDescription = "Open account and settings")
+                } else {
+                    AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
+                }
             }
-        }
-    }
-    if (showProfile && identity.login.isNotBlank()) {
-        AlertDialog(
-            onDismissRequest = { showProfile = false },
-            title = { Text(identity.login, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIcon(
-                        avatarUrl = identity.avatarUrl,
-                        owner = identity.login,
-                        size = 48.dp,
-                    )
-                    Text(
-                        "Logged in to GitHub. API quota is 5,000 requests/hour.",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(start = 16.dp),
+            DropdownMenu(
+                expanded = showProfile,
+                onDismissRequest = { showProfile = false },
+            ) {
+                if (identity.login.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text("${identity.login} · 5,000 API requests/hour") },
+                        enabled = false,
+                        onClick = {},
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showProfile = false },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Close") }
-            },
-            dismissButton = {
-                TextButton(
+                DropdownMenuItem(
+                    text = { Text("Settings") },
                     onClick = {
-                        onLogout()
                         showProfile = false
+                        onOpenLogin()
                     },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Logout") }
-            },
-        )
+                )
+                if (identity.login.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text("Log out") },
+                        onClick = {
+                            showProfile = false
+                            onLogout()
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -583,7 +575,6 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-
 
 
 

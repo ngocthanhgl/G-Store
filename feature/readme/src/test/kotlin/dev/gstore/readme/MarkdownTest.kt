@@ -3,6 +3,7 @@ package dev.gstore.readme
 import dev.gstore.ui.Block
 import dev.gstore.ui.MdListItem
 import dev.gstore.ui.Span
+import dev.gstore.ui.canAutoLoadMarkdownImage
 import dev.gstore.ui.isSafeHref
 import dev.gstore.ui.parseMarkdown
 import dev.gstore.ui.resolveRelative
@@ -120,6 +121,15 @@ class MarkdownTest {
         val blocks = parseMarkdown("![logo](img/logo.png)\n")
         val para = blocks.single() as Block.Paragraph
         assertEquals(Span.Picture("logo", "img/logo.png"), para.spans.single())
+    }
+
+    @Test fun `markdown image loading is limited to GitHub HTTPS hosts`() {
+        assertTrue(canAutoLoadMarkdownImage("https://raw.githubusercontent.com/o/r/main/a.png"))
+        assertTrue(canAutoLoadMarkdownImage("https://user-images.githubusercontent.com/1/a.png"))
+        assertFalse(canAutoLoadMarkdownImage("http://raw.githubusercontent.com/o/r/a.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://127.0.0.1/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://github.com@127.0.0.1/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://github.com.example.org/a.png"))
     }
 
     @Test fun `empty document parses to nothing`() {

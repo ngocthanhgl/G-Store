@@ -153,7 +153,7 @@ fun GStoreTheme(
             onSecondaryContainer = Color.White,
             onTertiaryContainer = Color.White,
         )
-        settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        settings.dynamicColor && settings.accentArgb == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         dark -> darkColorScheme(primary = seed)

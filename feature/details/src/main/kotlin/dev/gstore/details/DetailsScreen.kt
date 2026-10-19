@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -50,9 +49,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,6 +61,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -91,6 +95,7 @@ fun DetailsScreen(
     onHeroCancel: (Long) -> Unit,
     onHeroInstall: (DownloadRecord) -> Unit,
     onHeroUninstall: (String) -> Unit,
+    onResumeInstalledState: () -> Unit,
     canOpenApp: (String) -> Boolean,
     onOpenApp: (String) -> Unit,
     onOpenReadme: () -> Unit,
@@ -98,6 +103,14 @@ fun DetailsScreen(
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, onResumeInstalledState) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) onResumeInstalledState()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val notice = state.notice
     LaunchedEffect(notice) {
         if (notice != null) snackbar.showSnackbar(notice)
@@ -160,6 +173,8 @@ fun DetailsScreen(
     // Full-screen gallery: index into the same screenshot list the strip shows,
     // so the viewer always opens on the tile that was tapped.
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
+    val imageDimensionsOk = remember(repo.id) { mutableStateMapOf<String, Boolean>() }
+    val visibleImages = state.images.filter { imageDimensionsOk[it.url] != false }
     LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -193,7 +208,10 @@ fun DetailsScreen(
                 modifier = Modifier.safeTop(),
             )
         }
-        item { HeaderRow(repo) }
+        item {
+            val latestRelease = state.releases.maxByOrNull { it.publishedAt.orEmpty() }
+            HeaderRow(repo, latestRelease?.publishedAt ?: repo.pushedAt)
+        }
         item {
             HeroBare(
                 hero = state.hero,
@@ -206,7 +224,8 @@ fun DetailsScreen(
                 onUninstall = onHeroUninstall,
                 canOpenApp = canOpenApp,
                 onOpenApp = onOpenApp,
-                findingApk = state.syncing || state.loadingAssets || state.scanningApks,
+                findingApk = state.syncing || state.scanningApks,
+                loadingReleaseAssets = state.loadingAssets,
             )
         }
         val description = repo.description
@@ -227,7 +246,7 @@ fun DetailsScreen(
                 }
             }
         }
-        if (state.screenshots.isNotEmpty()) {
+        if (state.images.isNotEmpty()) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(
@@ -236,12 +255,14 @@ fun DetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(GStoreSpace.AfterHeader),
                 ) {
                     AuroraSectionHeader(
-                        title = "Screenshots",
-                        count = state.screenshots.size,
+                        title = "Images",
+                        count = visibleImages.size,
                         topGap = false,
                         bottomGap = false,
                     )
-                    ScreenshotsRow(state.screenshots, reduceMotion) { index -> viewerIndex = index }
+                    ImagesRow(visibleImages, reduceMotion, onImageSizeChecked = { url, accepted ->
+                        imageDimensionsOk[url] = accepted
+                    }) { index -> viewerIndex = index }
                 }
             }
         }
@@ -304,7 +325,7 @@ fun DetailsScreen(
     }
     if (viewerIndex >= 0) {
         ScreenshotViewer(
-            images = state.screenshots,
+            images = visibleImages,
             startIndex = viewerIndex,
             onDismiss = { viewerIndex = -1 },
         )
@@ -325,13 +346,7 @@ private fun TopBar(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Optical 16dp alignment: an IconButton centres its 24dp glyph in a 48dp
-    // box, so the two edge controls shift 12dp outward to put their glyph
-    // edge exactly on the list's 16dp inset. Offsets don't move siblings, so
-    // every control keeps its full 48dp target and the inner two stay aligned
-    // with each other. The syncing spinner carries the SAME offset as the
-    // refresh button it replaces — otherwise the whole row jumped 12dp every
-    // time a sync started or stopped.
+    // All controls keep identical 48dp targets and share the same row spacing.
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -339,13 +354,12 @@ private fun TopBar(
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.offset(x = (-12).dp),
         ) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
         IconButton(onClick = onToggleFavorite) {
             Icon(
-                Fluent.Heart,
+                if (isFavorite) Fluent.HeartFilled else Fluent.Heart,
                 contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
@@ -353,22 +367,19 @@ private fun TopBar(
         }
         if (syncing) {
             Box(
-                modifier = Modifier
-                    .size(GStoreSpace.TouchTarget)
-                    .offset(x = 12.dp),
+                modifier = Modifier.size(GStoreSpace.TouchTarget),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(Modifier.size(GStoreSpace.Icon))
             }
         } else IconButton(
             onClick = onRefresh,
-            modifier = Modifier.offset(x = 12.dp),
         ) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
     }
 }
 
 @Composable
-private fun HeaderRow(repo: Repository) {
+private fun HeaderRow(repo: Repository, lastUpdate: String?) {
     // One-screen header: icon left, texts stacked left. The stats row died
     // here — stars/forks/freshness compress into a single meta line whose
     // tail (least important) truncates first, by design.
@@ -403,7 +414,7 @@ private fun HeaderRow(repo: Repository) {
                 buildString {
                     if (repo.archived) append("Archived · ")
                     append("★ ${formatCount(repo.stars)} · ${formatCount(repo.forks)} forks")
-                    repo.updatedAt?.take(10)?.let { append(" · $it") }
+                    lastUpdate?.take(10)?.let { append(" · Last update $it") }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -629,7 +640,6 @@ private fun ChangelogFull(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = GStoreSpace.Card)
             .clip(panelShape())
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(GStoreSpace.Card),
@@ -674,14 +684,14 @@ private fun ChangelogFull(
     }
 }
 /**
- * Repo-root screenshot gallery: image files only, up to 8, in a horizontal
- * rail directly under the hero control. No heading of its own — this is the
- * first thing on the page and a label above it would be noise.
+ * Repo and README images, filtered after bounded decode to avoid badges and
+ * tiny decorative assets.
  */
 @Composable
-private fun ScreenshotsRow(
-    items: List<ScreenshotItem>,
+private fun ImagesRow(
+    items: List<RepositoryImage>,
     reduceMotion: Boolean,
+    onImageSizeChecked: (String, Boolean) -> Unit,
     onOpen: (Int) -> Unit,
 ) {
     if (items.isEmpty()) return
@@ -690,9 +700,10 @@ private fun ScreenshotsRow(
         horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         contentPadding = PaddingValues(vertical = GStoreSpace.Small),
     ) {
-        items(items, key = { it.name }) { screenshot ->
+        items(items, key = { it.url }) { screenshot ->
             val imageUrl = screenshot.url
             var loaded by remember(screenshot.url) { mutableStateOf(false) }
+            var failed by remember(screenshot.url) { mutableStateOf(false) }
             Box(
                 modifier = Modifier
                     .size(ScreenshotSize)
@@ -705,8 +716,15 @@ private fun ScreenshotsRow(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (!loaded && imageUrl.isNotBlank()) {
+                if (!loaded && !failed && imageUrl.isNotBlank()) {
                     ShimmerBlock(Modifier.fillMaxSize(), reduceMotion = reduceMotion)
+                }
+                if (failed) {
+                    Text(
+                        "Image unavailable",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (imageUrl.isNotBlank()) {
                     AsyncImage(
@@ -722,8 +740,20 @@ private fun ScreenshotsRow(
                             .size(ScreenshotSize)
                             .clip(imageShapeFor()),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        onSuccess = { _ -> loaded = true },
-                        onError = { _ -> loaded = false },
+                        onSuccess = { result ->
+                            loaded = true
+                            failed = false
+                            val size = result.painter.intrinsicSize
+                            onImageSizeChecked(
+                                screenshot.url,
+                                meetsMinimumImageSize(size.width, size.height),
+                            )
+                        },
+                        onError = { _ ->
+                            loaded = true
+                            failed = true
+                            onImageSizeChecked(screenshot.url, false)
+                        },
                     )
                 }
             }
@@ -753,6 +783,7 @@ private fun HeroBare(
     onOpenApp: (String) -> Unit,
     /** True while assets are still arriving — show progress, never blank. */
     findingApk: Boolean = false,
+    loadingReleaseAssets: Boolean = false,
     /** Package name of an already-installed copy, if any. */
     installedPackageName: String? = null,
 ) {
@@ -787,12 +818,25 @@ private fun HeroBare(
             if (target == null) {
                 if (findingApk) {
                     Column(
-                        modifier = heroModifier.fillMaxWidth(),
+                        modifier = heroModifier.fillMaxWidth().padding(top = GStoreSpace.Small),
                         verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
                     ) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         Text(
                             "Finding APK...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                } else if (loadingReleaseAssets) {
+                    Column(
+                        modifier = heroModifier.fillMaxWidth().padding(top = GStoreSpace.Small),
+                        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+                    ) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Loading selected version...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

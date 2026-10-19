@@ -33,7 +33,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,7 +77,6 @@ fun DownloadsScreen(
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
     onDownloadUpdate: (DownloadRecord) -> Unit,
-    onDownloadFavorite: (Repository) -> Unit,
     onRemoveManual: (String) -> Unit,
     onRefreshInstalled: () -> Unit,
     onOpenLogin: () -> Unit,
@@ -86,6 +88,7 @@ fun DownloadsScreen(
 ) {
     val notice = state.notice
     val starNotice = state.starSyncNotice
+    var forgetCandidate by remember { mutableStateOf<DownloadRecord?>(null) }
     LaunchedEffect(notice) {
         if (notice != null) {
             snackbar.showSnackbar(notice)
@@ -123,6 +126,33 @@ fun DownloadsScreen(
             },
         )
     }
+    forgetCandidate?.let { record ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { forgetCandidate = null },
+            title = { Text("Remove downloaded app?") },
+            text = {
+                Text(
+                    "Remove ${record.filename} and its download record from G Store? " +
+                        "This does not uninstall anything.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        forgetCandidate = null
+                        onForget(record.assetId)
+                    },
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                ) { Text("Remove") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { forgetCandidate = null },
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                ) { Text("Cancel") }
+            },
+        )
+    }
     PullToRefreshBox(
         isRefreshing = state.installedRefreshing,
         onRefresh = onRefreshInstalled,
@@ -134,6 +164,7 @@ fun DownloadsScreen(
         }
         val current = state.installed.filter { it.updateState == UpdateState.UP_TO_DATE }
         val missing = state.installed.filter { it.updateState == UpdateState.NOT_INSTALLED }
+        var favoritesExpanded by rememberSaveable { mutableStateOf(true) }
         if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty() &&
             state.favorites.isEmpty() && state.manual.isEmpty()
         ) {
@@ -180,17 +211,15 @@ fun DownloadsScreen(
                     },
                 )
             }
-            // Favourites heading doubles as the star-sync control: tapping it re-checks
-            // GitHub, and the running progress replaces the count so the user
-            // sees the sweep move instead of a stalled screen.
             if (state.favorites.isNotEmpty() || state.starSyncRunning) {
                 item {
                     AuroraSectionHeader(
                         title = "Favourites",
                         count = state.favorites.size,
-                        onClick = onSyncStars,
-                        trailing = if (state.starSyncRunning) {
-                            {
+                        onClick = { favoritesExpanded = !favoritesExpanded },
+                        trailing = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (state.starSyncRunning) {
                                 Text(
                                     "Checking ${state.starSyncProgress?.checked ?: 0}...",
                                     style = MaterialTheme.typography.bodySmall,
@@ -198,13 +227,15 @@ fun DownloadsScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                }
+                                IconButton(onClick = onSyncStars) {
+                                    Icon(Fluent.ArrowSync, contentDescription = "Sync GitHub favourites")
+                                }
                             }
-                        } else {
-                            null
                         },
                     )
                 }
-                if (starNotice != null) {
+                if (favoritesExpanded && starNotice != null) {
                     item {
                         Text(
                             starNotice,
@@ -214,12 +245,11 @@ fun DownloadsScreen(
                         )
                     }
                 }
-                items(state.favorites, key = { "f-${it.id}" }) { repo ->
+                if (favoritesExpanded) items(state.favorites, key = { "f-${it.id}" }) { repo ->
                     FavoriteRow(
                         repo = repo,
                         installedPackageName = state.installedByRepo[repo.fullName],
                         onBrowse = { onBrowseRepo(repo.fullName) },
-                        onDownload = { onDownloadFavorite(repo) },
                         onLaunch = onLaunch,
                         onUninstall = onUninstall,
                     )
@@ -273,6 +303,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -333,6 +364,7 @@ private fun InstalledRow(
     onUninstall: (String) -> Unit,
     onInstall: (DownloadRecord) -> Unit,
     onDownloadUpdate: (DownloadRecord) -> Unit,
+    onForget: (() -> Unit)? = null,
 ) {
     val record = row.record
     val installed = row.installedVersionCode != null
@@ -424,6 +456,12 @@ private fun InstalledRow(
                     Text("Uninstall")
                 }
             }
+            onForget?.let {
+                TextButton(
+                    onClick = it,
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) { Text("Remove") }
+            }
         }
     }
 }
@@ -434,7 +472,6 @@ private fun FavoriteRow(
     repo: Repository,
     installedPackageName: String?,
     onBrowse: () -> Unit,
-    onDownload: () -> Unit,
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
 ) {
@@ -483,12 +520,6 @@ private fun FavoriteRow(
                     modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                 ) { Text("Uninstall") }
             }
-        } else {
-            // One-tap primary: 48dp, like every other primary action here.
-            Button(
-                onClick = onDownload,
-                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-            ) { Text("Download") }
         }
     }
 }
@@ -737,4 +768,3 @@ private fun formatBytes(bytes: Long): String {
     if (mb < 1024) return "%.1f MB".format(mb)
     return "%.2f GB".format(mb / 1024.0)
 }
-

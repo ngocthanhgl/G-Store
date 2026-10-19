@@ -128,7 +128,7 @@ class AppContainer(val app: Application) {
             .build()
     }
     val downloader: DownloadRepository by lazy {
-        DownloadRepository(database.downloads(), SystemWorkEnqueuer(app))
+        DownloadRepository(database.downloads(), SystemWorkEnqueuer(app), File(app.filesDir, "apks"))
     }
     val installer: InstallerGateway by lazy {
         SystemInstallerGateway(app, "${app.packageName}.apk-provider")

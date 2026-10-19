@@ -51,7 +51,7 @@ import dev.gstore.ui.GStoreSpace
  */
 @Composable
 fun ScreenshotViewer(
-    images: List<ScreenshotItem>,
+    images: List<RepositoryImage>,
     startIndex: Int,
     onDismiss: () -> Unit,
 ) {

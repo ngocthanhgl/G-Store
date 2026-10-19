@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -38,10 +39,8 @@ fun squircleDp(size: Dp): Dp {
  * monogram tile underneath as loading/error/empty fallback. The image simply
  * covers the monogram when it loads — no state juggling, no blank tiles.
  *
- * Colours are theme tokens (a neutral well plus [onSurfaceVariant] glyph) so
- * the tile adapts to dark and AMOLED, where a hardcoded white well would have
- * been a glowing square. Decorative: the name is always adjacent text, so no
- * content description.
+ * The white well keeps transparent app artwork visually consistent in every
+ * theme. Decorative: the name is always adjacent text, so no content description.
  */
 @Composable
 fun AppIcon(
@@ -54,7 +53,7 @@ fun AppIcon(
     Surface(
         modifier = modifier.size(size),
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = Color.White,
     ) {
         Box(contentAlignment = Alignment.Center) {
             // The monogram shows only while there is no image to cover it:

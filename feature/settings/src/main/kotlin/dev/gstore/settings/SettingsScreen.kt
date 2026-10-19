@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,8 +49,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.AppIcon
@@ -136,7 +144,10 @@ fun SettingsScreen(
                         Text("Log in with token", maxLines = 1)
                     }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+                    ) {
                         AppIcon(
                             avatarUrl = identity.avatarUrl,
                             owner = identity.login,
@@ -181,9 +192,14 @@ fun SettingsScreen(
                 )
                 SwitchRow(
                     label = "Dynamic color",
-                    supporting = "Follow wallpaper colors on Android 12+",
+                    supporting = "Follow wallpaper colors on Android 12+ unless a custom accent is selected",
                     checked = appearance.dynamicColor,
                     onChecked = vm::setDynamicColor,
+                )
+                SettingLabel("Accent color")
+                AccentSwatches(
+                    selectedArgb = appearance.accentArgb,
+                    onSelect = vm::setAccentArgb,
                 )
             }
         }
@@ -294,6 +310,68 @@ fun SettingsScreen(
                 vm.loginWithToken(it)
             },
         )
+    }
+}
+
+private val accentColors = listOf(
+    "Violet" to 0xFF6750A4.toInt(),
+    "Blue" to 0xFF0056D2.toInt(),
+    "Teal" to 0xFF006A60.toInt(),
+    "Green" to 0xFF386A20.toInt(),
+    "Orange" to 0xFF8C4A00.toInt(),
+    "Red" to 0xFFBA1A1A.toInt(),
+    "Pink" to 0xFF9C405D.toInt(),
+    "Indigo" to 0xFF4355B9.toInt(),
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AccentSwatches(selectedArgb: Int?, onSelect: (Int?) -> Unit) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+    ) {
+        AccentSwatch(
+            label = "Automatic",
+            argb = MaterialTheme.colorScheme.primary.toArgb(),
+            selected = selectedArgb == null,
+            onClick = { onSelect(null) },
+        )
+        accentColors.forEach { (label, argb) ->
+            AccentSwatch(
+                label = label,
+                argb = argb,
+                selected = selectedArgb == argb,
+                onClick = { onSelect(argb) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccentSwatch(label: String, argb: Int, selected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .size(GStoreSpace.TouchTarget)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = "$label accent"
+                this.selected = selected
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(Color(argb))
+                .border(2.dp, borderColor, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) Icon(Fluent.Checkmark, contentDescription = null, tint = Color.White)
+        }
     }
 }
 

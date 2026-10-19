@@ -5,6 +5,8 @@ import dev.gstore.database.DownloadRecord
 import dev.gstore.data.UpdateState
 import dev.gstore.data.resolveUpdateState
 import dev.gstore.model.VerificationResult
+import java.io.File
+import org.junit.After
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -109,9 +111,18 @@ class DownloadValidatorTest {
 }
 
 class DownloadRepositoryTest {
+    private val temporaryFiles = mutableListOf<File>()
+
+    private fun temporaryDirectory(): File =
+        java.nio.file.Files.createTempDirectory("gstore-test").toFile().also(temporaryFiles::add)
+
+    @After fun cleanUp() {
+        temporaryFiles.forEach { it.deleteRecursively() }
+    }
+
     @Test fun startRefusesDuplicatesAndBadUrls(): Unit = runBlocking {
         val dao = FakeDownloads()
-        val repo = DownloadRepository(dao, dao.enqueuer())
+        val repo = DownloadRepository(dao, dao.enqueuer(), temporaryDirectory())
         assertFalse(
             repo.start(1, "o/r", "v1", "a.apk", "http://insecure/x.apk", 10, null),
         )
@@ -127,7 +138,7 @@ class DownloadRepositoryTest {
 
     @Test fun cancelAndRetry(): Unit = runBlocking {
         val dao = FakeDownloads()
-        val repo = DownloadRepository(dao, dao.enqueuer())
+        val repo = DownloadRepository(dao, dao.enqueuer(), temporaryDirectory())
         repo.start(1, "o/r", "v1", "a.apk", "https://example.com/a.apk", 10, null)
         repo.cancel(1)
         assertEquals("CANCELED", dao.get(1)?.status)
@@ -142,7 +153,7 @@ class DownloadRepositoryTest {
     @Test fun reconcileRequeuesInterrupted(): Unit = runBlocking {
         val dao = FakeDownloads()
         dao.upsert(record(status = "ACTIVE"))
-        val repo = DownloadRepository(dao, dao.enqueuer())
+        val repo = DownloadRepository(dao, dao.enqueuer(), temporaryDirectory())
         repo.reconcile()
         assertEquals("QUEUED", dao.get(1)?.status)
         assertEquals(1, dao.enqueued)
@@ -153,6 +164,34 @@ class DownloadRepositoryTest {
         repeat(5) { dao.upsert(record(assetId = it.toLong(), status = "COMPLETED")) }
         dao.pruneFinished(keep = 2)
         assertEquals(2, dao.listByStatus("COMPLETED").size)
+    }
+
+    @Test fun forgetRemovesOnlyTheTrackedApkWithinThePrivateDirectory(): Unit = runBlocking {
+        val apkDir = temporaryDirectory()
+        val apk = File(apkDir, "app.apk").apply { writeText("apk") }
+        val dao = FakeDownloads()
+        dao.upsert(record(status = "COMPLETED").copy(filePath = apk.absolutePath))
+        val repo = DownloadRepository(dao, dao.enqueuer(), apkDir)
+
+        repo.forget(1)
+
+        assertFalse(apk.exists())
+        assertEquals(null, dao.get(1))
+        apkDir.deleteRecursively()
+    }
+
+    @Test fun forgetRejectsPathsOutsideThePrivateDirectory(): Unit = runBlocking {
+        val apkDir = temporaryDirectory()
+        val outside = File.createTempFile("gstore-outside", ".apk").also(temporaryFiles::add)
+        val dao = FakeDownloads()
+        dao.upsert(record(status = "COMPLETED").copy(filePath = outside.absolutePath))
+        val repo = DownloadRepository(dao, dao.enqueuer(), apkDir)
+
+        val error = runCatching { repo.forget(1) }.exceptionOrNull()
+
+        assertTrue(error is java.io.IOException)
+        assertTrue(outside.exists())
+        assertTrue(dao.get(1) != null)
     }
 }
 

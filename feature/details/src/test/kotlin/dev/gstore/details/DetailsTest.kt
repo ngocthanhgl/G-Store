@@ -32,15 +32,35 @@ class DetailsTest {
         assertEquals("1.5 GB", formatBytes((1.5 * 1024 * 1024 * 1024).toLong()))
     }
 
-    @Test fun `screenshot picker prioritizes screenshots and excludes decorative images`() {
+    @Test fun `repository image picker includes root content and README images only`() {
         val files = listOf(
-            ContentsDto("banner.png", "file", 100, "https://raw.githubusercontent.com/o/r/banner.png", null),
+            ContentsDto("cover.png", "file", 100, "https://raw.githubusercontent.com/o/r/cover.png", null),
             ContentsDto("logo.png", "file", 100, "https://raw.githubusercontent.com/o/r/logo.png", null),
-            ContentsDto("Screenshot_1.png", "file", 100, "https://raw.githubusercontent.com/o/r/shot.png", null),
-            ContentsDto("preview.jpg", "file", 100, "https://raw.githubusercontent.com/o/r/preview.jpg", null),
+            ContentsDto("photo.jpg", "file", 100, "https://raw.githubusercontent.com/o/r/photo.jpg", null),
             ContentsDto("random.png", "file", 100, "https://raw.githubusercontent.com/o/r/random.png", null),
-            ContentsDto("screenshot.png", "file", 100, "http://example.com/screenshot.png", null),
+            ContentsDto("Screenshot_2.png", "file", 100, "https://raw.githubusercontent.com/o/r/shot.png", null),
+            ContentsDto("icon.png", "file", 100, "https://raw.githubusercontent.com/o/r/icon.png", null),
         )
-        assertEquals(listOf("Screenshot_1.png", "preview.jpg"), selectScreenshotItems(files).map { it.name })
+        val images = selectRepositoryImages(
+            files,
+            "![Guide](docs/guide.webp)\n\n![Badge](https://raw.githubusercontent.com/o/r/badge.svg)",
+            "o",
+            "r",
+            "trunk",
+        )
+        assertEquals(
+            listOf("guide.webp", "Screenshot_2.png", "photo.jpg", "random.png"),
+            images.map { it.name },
+        )
+        assertEquals(
+            "https://raw.githubusercontent.com/o/r/trunk/docs/guide.webp",
+            images.first().url,
+        )
+    }
+
+    @Test fun `repository image size accepts either dimension at least 500px`() {
+        assertEquals(true, meetsMinimumImageSize(500f, 100f))
+        assertEquals(true, meetsMinimumImageSize(100f, 500f))
+        assertEquals(false, meetsMinimumImageSize(499f, 499f))
     }
 }

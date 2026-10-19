@@ -277,51 +277,19 @@ class DownloadsViewModel(
     }
 
     fun forget(assetId: Long) {
-        viewModelScope.launch { repository.forget(assetId) }
+        viewModelScope.launch {
+            try {
+                repository.forget(assetId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice.value = "Could not remove downloaded APK: ${e.message}"
+            }
+        }
     }
 
     fun removeManualRepo(fullName: String) {
         viewModelScope.launch { prefs.removeManualRepo(fullName) }
-    }
-
-    /**
-     * One-tap APK for a hearted repo: latest stable release carrying an
-     * eligible APK wins, prereleases are the fallback. Surfaces a notice
-     * when nothing downloadable exists — never a silent no-op.
-     */
-    fun downloadFavorite(repo: Repository) {
-        viewModelScope.launch {
-            // Release walk off the main thread; only the notice lands on it.
-            val started = withContext(Dispatchers.Default) {
-                runCatching {
-                    val releases = catalog.observeReleases(repo.id).first()
-                    val includePre = prefs.appearance.first().includePrereleases
-                    val ordered = if (includePre) {
-                        releases.filter { !it.prerelease } + releases.filter { it.prerelease }
-                    } else {
-                        releases.filter { !it.prerelease }
-                    }
-                    for (rel in ordered) {
-                        val apk = catalog.allAssets(rel.id).firstOrNull {
-                            classifyAsset(it.filename, it.contentType, it.size).eligible
-                        }
-                        if (apk != null) {
-                            return@runCatching repository.start(
-                                assetId = apk.id,
-                                repoFullName = repo.fullName,
-                                releaseTag = rel.tag,
-                                rawFilename = apk.filename,
-                                url = apk.downloadUrl,
-                                expectedSize = apk.size,
-                                expectedDigest = apk.digest,
-                            )
-                        }
-                    }
-                false
-                }.getOrDefault(false)
-            }
-            if (!started) notice.value = "No downloadable APK found for ${repo.fullName}"
-        }
     }
 
     /**

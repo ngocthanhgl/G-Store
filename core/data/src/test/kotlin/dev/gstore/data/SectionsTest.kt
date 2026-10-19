@@ -96,6 +96,18 @@ class SectionsTest {
         )
     }
 
+    @Test fun `local favorites never change trending or top stars`() {
+        val signals = listOf(
+            RepoSignals(repo(1, stars = 900), releases30d = 2),
+            RepoSignals(repo(2, stars = 9_000), releases30d = 1),
+        )
+        val withoutFavorites = computeSections(signals, now = now)
+        val withFavorites = computeSections(signals, favoriteIds = setOf(1), now = now)
+        assertEquals(withoutFavorites.trending, withFavorites.trending)
+        assertEquals(withoutFavorites.topCharts, withFavorites.topCharts)
+        assertEquals(listOf(1L), withFavorites.favorites.map { it.repo.id })
+    }
+
     @Test fun `custom weights change the ranking`() {
         val forkHeavy = RepoSignals(repo(1, stars = 100, forks = 10_000), releases30d = 1)
         val starHeavy = RepoSignals(repo(2, stars = 10_000, forks = 100), releases30d = 1)

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 /** Catalog counts as stale after 24h — matches the scanner schedule. */
 private const val STALE_AFTER_MILLIS = 24L * 60 * 60 * 1000
@@ -69,6 +70,8 @@ class HomeViewModel(
     private val discovering = MutableStateFlow(false)
     private val catalogFilter = MutableStateFlow(CatalogFilter.TRENDING)
     private val syncingCatalog = MutableStateFlow(false)
+    private val catalogRefreshMutex = Mutex()
+    private val fullRefreshMutex = Mutex()
     private var catalogAutoTried = false
 
     /** Favorites shelf: favorited repos, stars first, fully offline. */
@@ -200,28 +203,36 @@ class HomeViewModel(
      * the empty-state button. ETag-kept: a 304 touches imported-at only.
      */
     fun syncCatalog(quiet: Boolean = false) {
+        if (!catalogRefreshMutex.tryLock()) return
+        syncingCatalog.value = true
         viewModelScope.launch {
-            syncingCatalog.value = true
-            val now = System.currentTimeMillis()
             try {
-                when (val resp = catalogClient.fetch(prefs.catalogEtag.first())) {
-                    is ApiResponse.Fresh -> {
-                        val merged = catalog.importIndex(resp.data, now)
-                        prefs.setCatalogState(resp.etag, now)
-                        if (!quiet) banner.value = "Loaded $merged apps from the daily catalog"
-                    }
-                    ApiResponse.NotModified -> {
-                        prefs.setCatalogState(prefs.catalogEtag.first(), now)
-                        if (!quiet) banner.value = "Catalog is up to date"
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (!quiet) banner.value = "Catalog pull failed: ${e.message}"
+                pullCatalog(quiet)
             } finally {
                 syncingCatalog.value = false
+                catalogRefreshMutex.unlock()
             }
+        }
+    }
+
+    private suspend fun pullCatalog(quiet: Boolean) {
+        val now = System.currentTimeMillis()
+        try {
+            when (val resp = catalogClient.fetch(prefs.catalogEtag.first())) {
+                is ApiResponse.Fresh -> {
+                    val merged = catalog.importIndex(resp.data, now)
+                    prefs.setCatalogState(resp.etag, now)
+                    if (!quiet) banner.value = "Loaded $merged apps from the daily catalog"
+                }
+                ApiResponse.NotModified -> {
+                    prefs.setCatalogState(prefs.catalogEtag.first(), now)
+                    if (!quiet) banner.value = "Catalog is up to date"
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (!quiet) banner.value = "Catalog pull failed: ${e.message}"
         }
     }
 
@@ -232,29 +243,42 @@ class HomeViewModel(
     fun refreshSection(repos: List<Repository>) = refreshAll(repos)
 
     private fun refreshAll(repos: List<Repository>, withCatalog: Boolean = false) {
+        if (!fullRefreshMutex.tryLock()) return
+        syncing.value = true
         viewModelScope.launch {
-            syncing.value = true
-            if (withCatalog) {
-                val last = prefs.catalogImportedAt.first()
-                // Explicit user pulls bypass the 24h gate when logged in
-                // (5,000 req/h quota); auto-pull and anonymous stay gated.
-                val loggedIn = tokensRef.token.value?.isNotBlank() == true
-                if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS || loggedIn) {
-                    syncCatalog(quiet = true)
+            try {
+                if (withCatalog) {
+                    val last = prefs.catalogImportedAt.first()
+                    // Explicit user pulls bypass the 24h gate when logged in
+                    // (5,000 req/h quota); auto-pull and anonymous stay gated.
+                    val loggedIn = tokensRef.token.value?.isNotBlank() == true
+                    if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS || loggedIn) {
+                        if (catalogRefreshMutex.tryLock()) {
+                            syncingCatalog.value = true
+                            try {
+                                pullCatalog(quiet = true)
+                            } finally {
+                                syncingCatalog.value = false
+                                catalogRefreshMutex.unlock()
+                            }
+                        }
+                    }
                 }
-            }
-            var ok = 0
-            var failed = 0
-            for (repo in repos) {
-                when (catalog.sync(repo.fullName)) {
-                    is Outcome.Ok -> ok++
-                    is Outcome.Err -> failed++
+                var ok = 0
+                var failed = 0
+                for (repo in repos) {
+                    when (catalog.sync(repo.fullName)) {
+                        is Outcome.Ok -> ok++
+                        is Outcome.Err -> failed++
+                    }
                 }
-            }
-            syncing.value = false
-            banner.value = when {
-                failed > 0 -> "$ok synced, $failed failed — retry from the section"
-                else -> null
+                banner.value = when {
+                    failed > 0 -> "$ok synced, $failed failed — retry from the section"
+                    else -> null
+                }
+            } finally {
+                syncing.value = false
+                fullRefreshMutex.unlock()
             }
         }
     }

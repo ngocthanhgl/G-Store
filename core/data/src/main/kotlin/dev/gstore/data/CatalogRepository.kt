@@ -22,6 +22,7 @@ import dev.gstore.network.CatalogEntry
 import dev.gstore.network.CatalogIndexEntry
 import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubException
+import dev.gstore.network.ReadmeFetch
 import dev.gstore.network.GitHubService
 import dev.gstore.network.toDomain as dtoToDomain
 import java.time.Instant
@@ -123,6 +124,9 @@ class CatalogRepository(
         repo: String,
         ref: String,
     ): ApiResponse<List<ContentsDto>> = api.fetchContents(owner, repo, ref, null)
+
+    suspend fun fetchReadme(owner: String, repo: String): ApiResponse<ReadmeFetch> =
+        api.fetchReadme(owner, repo, null)
 
     suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
 

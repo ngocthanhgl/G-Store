@@ -9,6 +9,8 @@ import androidx.work.workDataOf
 import dev.gstore.data.sanitizeFilename
 import dev.gstore.database.DownloadDao
 import dev.gstore.database.DownloadRecord
+import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,7 @@ class SystemWorkEnqueuer(private val context: Context) : WorkEnqueuer {
 class DownloadRepository(
     private val downloads: DownloadDao,
     private val enqueuer: WorkEnqueuer,
+    private val apkDir: File,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -126,6 +129,17 @@ class DownloadRepository(
 
     suspend fun forget(assetId: Long) {
         enqueuer.cancelUnique(ApkDownloadWorker.uniqueName(assetId))
+        val record = downloads.get(assetId)
+        val path = record?.filePath
+        if (path != null) {
+            val file = File(path).canonicalFile
+            if (file.parentFile != apkDir.canonicalFile || file.name != record.filename) {
+                throw IOException("download path is outside the app APK directory")
+            }
+            if (file.exists() && !file.delete()) {
+                throw IOException("could not remove downloaded APK")
+            }
+        }
         downloads.delete(assetId)
     }
 

@@ -19,7 +19,10 @@ import dev.gstore.model.ReleaseAsset
 import dev.gstore.model.Repository
 import dev.gstore.network.ApiResponse
 import dev.gstore.network.ContentsDto
-import dev.gstore.network.GitHubException
+import dev.gstore.ui.Block
+import dev.gstore.ui.Span
+import dev.gstore.ui.parseMarkdown
+import dev.gstore.ui.resolveRelative
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.CancellationException
@@ -42,36 +45,90 @@ data class AssetRow(
     val artifact: ApkArtifact,
 )
 
-/** One screenshot image from the repo root gallery. */
-data class ScreenshotItem(val url: String, val name: String)
+/** One repository image, sourced from the root listing or README. */
+data class RepositoryImage(val url: String, val name: String)
 
-private val rejectedScreenshotTerms =
-    listOf("banner", "logo", "icon", "cover", "header", "social", "feature", "badge", "sponsor", "avatar")
+private val excludedImageTerms =
+    listOf(
+        "badge", "shield", "icon", "favicon", "logo", "avatar", "tracking", "pixel", "spacer",
+        "banner", "cover", "header", "social", "feature", "sponsor", "background",
+    )
 
-// shortcut: root-only filename cues; add bounded tree/README context if misses prove common.
-internal fun selectScreenshotItems(contents: List<ContentsDto>): List<ScreenshotItem> =
-    contents.mapNotNull { item ->
+internal fun meetsMinimumImageSize(width: Float, height: Float): Boolean =
+    width >= MIN_IMAGE_DIMENSION || height >= MIN_IMAGE_DIMENSION
+
+private const val MIN_IMAGE_DIMENSION = 500f
+
+// shortcut: README-referenced files plus repo-root images; add bounded Git tree traversal if docs not linked by README.
+internal fun selectRepositoryImages(
+    contents: List<ContentsDto>,
+    markdown: String,
+    owner: String,
+    repo: String,
+    branch: String,
+): List<RepositoryImage> {
+    val rootImages = contents.mapNotNull { item ->
         if (item.type != "file") return@mapNotNull null
         val name = item.name.lowercase()
         if (name.substringAfterLast('.', "") !in setOf("png", "jpg", "jpeg", "webp")) {
             return@mapNotNull null
         }
-        if (rejectedScreenshotTerms.any(name::contains)) return@mapNotNull null
-        val score = when {
-            "screenshot" in name || "screen-shot" in name || "screen_shot" in name -> 10
-            "screen" in name || "shot" in name -> 8
-            "preview" in name || "demo" in name || "phone" in name || "tablet" in name -> 5
-            else -> return@mapNotNull null
-        }
+        if (excludedImageTerms.any(name::contains)) return@mapNotNull null
         val url = item.download_url ?: return@mapNotNull null
-        val uri = runCatching { URI(url) }.getOrNull()
-        if (uri?.scheme != "https" || uri.host != "raw.githubusercontent.com") return@mapNotNull null
-        score to ScreenshotItem(url, item.name)
+        repositoryImage(url, item.name)?.let { image ->
+            (if (screenshotNameTerms.any(name::contains)) 12 else 0) to image
+        }
     }
-        .sortedWith(compareByDescending<Pair<Int, ScreenshotItem>> { it.first }.thenBy { it.second.name })
+    val readmeImages = imageSources(parseMarkdown(markdown))
+        .mapNotNull { source ->
+            val url = resolveRelative(source, owner, repo, forImage = true, branch = branch)
+            repositoryImage(url, source.substringAfterLast('/').substringBefore('?').ifBlank { "README image" })
+                ?.let { 20 to it }
+        }
+    return (readmeImages + rootImages)
         .distinctBy { it.second.url }
-        .take(8)
+        .sortedWith(compareByDescending<Pair<Int, RepositoryImage>> { it.first }.thenBy { it.second.name })
+        .take(24)
         .map { it.second }
+}
+
+private val screenshotNameTerms = listOf("screenshot", "screen", "shot", "preview", "demo", "phone", "tablet")
+
+private fun repositoryImage(url: String, name: String): RepositoryImage? {
+    val uri = runCatching { URI(url) }.getOrNull() ?: return null
+    if (uri.scheme != "https" || uri.host != "raw.githubusercontent.com") return null
+    if (excludedImageTerms.any(name.lowercase()::contains)) return null
+    return RepositoryImage(url, name)
+}
+
+private fun imageSources(blocks: List<Block>): List<String> = buildList {
+    fun addSpans(spans: List<Span>) {
+        spans.forEach { span ->
+            when (span) {
+                is Span.Picture -> add(span.src)
+                is Span.Emphasis -> addSpans(span.children)
+                is Span.Strong -> addSpans(span.children)
+                is Span.Strike -> addSpans(span.children)
+                is Span.Hyperlink -> addSpans(span.children)
+                else -> Unit
+            }
+        }
+    }
+    fun addBlocks(items: List<Block>) {
+        items.forEach { block ->
+            when (block) {
+                is Block.Paragraph -> addSpans(block.spans)
+                is Block.Quote -> addBlocks(block.children)
+                is Block.ListBlock -> block.items.forEach { item ->
+                    addSpans(item.spans)
+                    addBlocks(item.children)
+                }
+                else -> Unit
+            }
+        }
+    }
+    addBlocks(blocks)
+}
 
 /** Hero download button state for the recommended APK of the selection. */
 sealed interface HeroDlState {
@@ -102,8 +159,8 @@ data class DetailsUiState(
     val notice: String? = null,
     /** Package name of an already-installed copy of this app, if any. */
     val installedPackageName: String? = null,
-    /** Screenshots from the repo root gallery (image assets only). */
-    val screenshots: List<ScreenshotItem> = emptyList(),
+    /** Repository images from root contents and the rendered README. */
+    val images: List<RepositoryImage> = emptyList(),
 )
 
 /**
@@ -205,7 +262,7 @@ class DetailsViewModel(
         // every release page and used to hold the screen on a bare spinner for
         // its whole duration, so a cached repo looked like it was loading.
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
-        loadScreenshots(repo)
+        viewModelScope.launch { loadRepositoryImages(repo) }
 
         // Slim scanner rows have metadata but no assets: full-sync in the
         // background so the screen never reports "no APK" for data it never
@@ -253,19 +310,22 @@ class DetailsViewModel(
         scanApkReleases(releases, includePre)
     }
 
-    /** Repo-root image strip, Play Store style. Never fatal when it fails. */
-    private suspend fun loadScreenshots(repo: Repository?) {
+    /** README and root images are best-effort presentation data, never catalog eligibility. */
+    private suspend fun loadRepositoryImages(repo: Repository?) {
         if (repo == null || repo.defaultBranch.isBlank()) return
         try {
-            when (val response = catalog.fetchContents(repo.owner, repo.fullName.substringAfter('/'), repo.defaultBranch)) {
-                is ApiResponse.Fresh ->
-                    _state.value = _state.value.copy(screenshots = selectScreenshotItems(response.data))
-                else -> Unit
-            }
+            val name = repo.fullName.substringAfter('/')
+            val contents = (catalog.fetchContents(repo.owner, name, repo.defaultBranch) as? ApiResponse.Fresh)
+                ?.data.orEmpty()
+            val markdown = (catalog.fetchReadme(repo.owner, name) as? ApiResponse.Fresh)
+                ?.data?.markdown.orEmpty()
+            _state.value = _state.value.copy(
+                images = selectRepositoryImages(contents, markdown, repo.owner, name, repo.defaultBranch),
+            )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: GitHubException) {
-            Log.w("DetailsViewModel", "Could not load repository screenshots", e)
+        } catch (e: Exception) {
+            Log.w("DetailsViewModel", "Could not load repository images", e)
         }
     }
 
@@ -326,6 +386,40 @@ class DetailsViewModel(
     fun selectRelease(releaseId: Long) {
         _state.value = _state.value.copy(selectedReleaseId = releaseId)
         loadAssets(releaseId)
+    }
+
+    fun refreshInstalledState() {
+        val asset = _state.value.assetRows.firstOrNull {
+            it.eligibility.eligible && it.eligibility.kind == AssetKind.APK
+        }?.asset ?: return
+        viewModelScope.launch {
+            try {
+                val record = tracker.observe(asset.id).firstOrNull() ?: return@launch
+                val packageName = record.packageName ?: return@launch
+                if (record.status != "COMPLETED" ||
+                    record.filePath?.let { File(it).exists() } != true
+                ) return@launch
+                val info = withContext(Dispatchers.IO) {
+                    installed.installedPackages(setOf(packageName))[packageName]
+                }
+                val downloadedVersion = record.versionCode
+                val hero = if (info == null ||
+                    (downloadedVersion != null && info.versionCode < downloadedVersion)
+                ) {
+                    HeroDlState.ReadyInstall(record)
+                } else {
+                    HeroDlState.Installed(packageName, info.versionName)
+                }
+                _state.value = _state.value.copy(
+                    hero = hero,
+                    installedPackageName = (hero as? HeroDlState.Installed)?.packageName,
+                )
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (e: Exception) {
+                Log.w("DetailsViewModel", "Could not refresh installed app state", e)
+            }
+        }
     }
 
     private fun loadAssets(releaseId: Long) {

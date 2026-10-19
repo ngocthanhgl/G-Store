@@ -57,7 +57,7 @@ fun RepoCard(
                 modifier = Modifier.size(GStoreSpace.TouchTarget),
             ) {
                 Icon(
-                    Fluent.Heart,
+                    if (isFavorite) Fluent.HeartFilled else Fluent.Heart,
                     contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -77,7 +77,6 @@ fun RepoCard(
 fun LedgerLine(repo: Repository, apkBadge: ApkBadge, modifier: Modifier = Modifier) {
     val status = when {
         repo.archived -> "Archived"
-        apkBadge == ApkBadge.HAS_APK -> "APK available"
         else -> ""
     }
     Row(

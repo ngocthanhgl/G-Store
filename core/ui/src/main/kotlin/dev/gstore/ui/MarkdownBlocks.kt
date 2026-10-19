@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -47,6 +46,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import java.net.URI
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
@@ -172,37 +172,50 @@ private fun ListItemView(
 @Composable
 private fun TableView(table: Block.Table) {
     val scroll = rememberScrollState()
+    val columnCount = maxOf(table.headers.size, table.rows.maxOfOrNull { it.size } ?: 0)
+    val widths = (0 until columnCount).map { column ->
+        val contentLength = sequenceOf(table.headers.getOrNull(column))
+            .plus(table.rows.asSequence().map { it.getOrNull(column) })
+            .filterNotNull()
+            .maxOfOrNull { it.length.coerceAtMost(32) }
+            ?: 12
+        (contentLength * 8 + 24).dp.coerceIn(112.dp, 280.dp)
+    }
     Box(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
         Column {
-            TableRowView(table.headers, header = true)
+            TableRowView(table.headers, widths, header = true)
             HorizontalDivider()
-            table.rows.forEach { TableRowView(it, header = false) }
+            table.rows.forEach { TableRowView(it, widths, header = false) }
         }
     }
 }
 
 @Composable
-private fun TableRowView(cells: List<String>, header: Boolean) {
+private fun TableRowView(cells: List<String>, widths: List<androidx.compose.ui.unit.Dp>, header: Boolean) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         modifier = Modifier.padding(vertical = GStoreSpace.Block),
     ) {
-        cells.forEach { cell ->
+        cells.forEachIndexed { index, cell ->
             Text(
                 cell,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (header) FontWeight.Bold else null,
                 maxLines = 4,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                // Rows are measured independently, so a min width is the only
-                // way columns line up between header and body.
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .widthIn(min = 96.dp)
-                    .padding(end = GStoreSpace.Small),
+                modifier = Modifier.width(widths.getOrElse(index) { 160.dp }),
             )
         }
     }
+}
+
+fun canAutoLoadMarkdownImage(url: String): Boolean {
+    val uri = runCatching { URI(url) }.getOrNull() ?: return false
+    val host = uri.host?.lowercase() ?: return false
+    return uri.scheme.equals("https", ignoreCase = true) &&
+        uri.userInfo == null &&
+        (uri.port == -1 || uri.port == 443) &&
+        (host == "github.com" || host.endsWith(".githubusercontent.com"))
 }
 
 @Composable
@@ -312,10 +325,9 @@ private fun SpanText(
         )
         spans.filterIsInstance<Span.Picture>().forEach { picture ->
             val url = resolveRelative(picture.src, owner, repo, forImage = true, branch = branch)
-            // Auto-fetch images only over HTTPS. Anything else renders as an
-            // explicit tap-to-open link so the app never silently fetches
-            // cleartext or non-web content on the user's behalf.
-if (url.startsWith("https://")) {
+            // Only GitHub-hosted images load automatically; other hosts require
+            // an explicit tap so README markup cannot probe private networks.
+            if (canAutoLoadMarkdownImage(url)) {
                 // Cap decoded size: README screenshots are often 4K and
                 // would otherwise sit in memory at full resolution.
                 // The aspect box reserves layout space so decoding never
