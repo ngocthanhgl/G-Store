@@ -30,6 +30,7 @@ import org.commonmark.node.StrongEmphasis
 import org.commonmark.node.Text
 import org.commonmark.node.ThematicBreak
 import org.commonmark.parser.Parser
+import java.net.URI
 
 /** Inline content inside paragraphs, headings and table cells. */
 sealed interface Span {
@@ -44,7 +45,7 @@ sealed interface Span {
      * plain text, never opened (SECURITY_MODEL §3).
      */
     data class Hyperlink(val href: String, val children: List<Span>, val safe: Boolean) : Span
-    data class Picture(val alt: String, val src: String) : Span
+    data class Picture(val alt: String, val src: String, val href: String? = null) : Span
 }
 
 /** Block-level rendering model. Ordering mirrors the source document. */
@@ -157,29 +158,74 @@ private fun plainText(node: Node): String {
     return sb.toString()
 }
 
-private fun spansOf(node: Node): List<Span> {
+private fun spansOf(node: Node, compactUrls: Boolean = true): List<Span> {
     val out = mutableListOf<Span>()
     for (child in childrenOf(node)) {
         when (child) {
-            is Text -> out += Span.Text(child.literal)
+            is Text -> if (compactUrls) out.addAll(textSpans(child.literal))
+            else out += Span.Text(child.literal)
             is Code -> out += Span.Code(child.literal)
-            is Emphasis -> out += Span.Emphasis(spansOf(child))
-            is StrongEmphasis -> out += Span.Strong(spansOf(child))
-            is Strikethrough -> out += Span.Strike(spansOf(child))
+            is Emphasis -> out += Span.Emphasis(spansOf(child, compactUrls))
+            is StrongEmphasis -> out += Span.Strong(spansOf(child, compactUrls))
+            is Strikethrough -> out += Span.Strike(spansOf(child, compactUrls))
             is SoftLineBreak -> out += Span.Text(" ")
             is HardLineBreak -> out += Span.Text("\n")
             is HtmlInline -> out += htmlSpans(child.literal)
             is Link -> {
                 val href = child.destination
-                val inner = spansOf(child)
-                out += if (isSafeHref(href)) Span.Hyperlink(href, inner, safe = true)
-                else Span.Text(plainText(child))
+                val inner = spansOf(child, compactUrls = false)
+                val visible = if (plainText(child).trim() == href) {
+                    listOf(Span.Text(compactUrlLabel(href)))
+                } else {
+                    inner
+                }
+                out += linkedSpans(href, visible)
             }
             is Image -> out += Span.Picture(alt = plainText(child), src = child.destination)
             else -> out += Span.Text(plainText(child))
         }
     }
     return out
+}
+
+private val PLAIN_URL = Regex("https?://[^\\s<>]+", RegexOption.IGNORE_CASE)
+private val URL_TRAILING_PUNCTUATION = setOf('.', ',', ';', ':', '!', '?', ')', ']', '}')
+
+private fun textSpans(text: String): List<Span> {
+    val spans = mutableListOf<Span>()
+    var cursor = 0
+    for (match in PLAIN_URL.findAll(text)) {
+        var urlEnd = match.range.last + 1
+        while (urlEnd > match.range.first && text[urlEnd - 1] in URL_TRAILING_PUNCTUATION) {
+            urlEnd--
+        }
+        val url = text.substring(match.range.first, urlEnd)
+        if (url.isBlank() || !isSafeHref(url)) continue
+        if (match.range.first > cursor) spans += Span.Text(text.substring(cursor, match.range.first))
+        spans += Span.Hyperlink(url, listOf(Span.Text(compactUrlLabel(url))), safe = true)
+        spans += Span.Text(text.substring(urlEnd, match.range.last + 1))
+        cursor = match.range.last + 1
+    }
+    if (cursor < text.length) spans += Span.Text(text.substring(cursor))
+    return spans.ifEmpty { listOf(Span.Text(text)) }
+}
+
+private fun compactUrlLabel(href: String): String =
+    runCatching { URI(href).host?.removePrefix("www.")?.takeIf { it.isNotBlank() } }
+        .getOrNull() ?: href
+
+private fun linkedSpans(href: String, children: List<Span>): List<Span> {
+    if (!isSafeHref(href)) return children
+    if (children.isEmpty()) {
+        return listOf(Span.Hyperlink(href, listOf(Span.Text(compactUrlLabel(href))), safe = true))
+    }
+    return children.flatMap { child ->
+        when (child) {
+            is Span.Picture -> listOf(child.copy(href = href))
+            is Span.Hyperlink -> listOf(child)
+            else -> listOf(Span.Hyperlink(href, listOf(child), safe = true))
+        }
+    }
 }
 
 private fun blocksOf(node: Node): List<Block> {
@@ -281,19 +327,23 @@ private fun decodeEntities(s: String): String =
 private fun stripTags(html: String): String = decodeEntities(HTML_TAG.replace(html, "")).trim()
 
 /** Inline spans from an HTML fragment: links and images survive, the rest becomes text. */
-private fun htmlSpans(html: String): List<Span> {
+private fun htmlSpans(html: String, compactUrls: Boolean = true): List<Span> {
     val out = mutableListOf<Span>()
     var i = 0
     while (i < html.length) {
         val m = HTML_TAG.find(html, i)
         if (m == null) {
             val t = decodeEntities(html.substring(i)).trim()
-            if (t.isNotEmpty()) out += Span.Text(t)
+            if (t.isNotEmpty()) {
+                if (compactUrls) out.addAll(textSpans(t)) else out += Span.Text(t)
+            }
             break
         }
         if (m.range.first > i) {
             val t = decodeEntities(html.substring(i, m.range.first)).trim()
-            if (t.isNotEmpty()) out += Span.Text(t)
+            if (t.isNotEmpty()) {
+                if (compactUrls) out.addAll(textSpans(t)) else out += Span.Text(t)
+            }
         }
         val closing = m.groupValues[1] == "/"
         val name = m.groupValues[2].lowercase()
@@ -309,10 +359,13 @@ private fun htmlSpans(html: String): List<Span> {
                 val closeAt = html.indexOf("</a>", after, ignoreCase = true)
                 val inner = if (closeAt >= 0) html.substring(after, closeAt) else html.substring(after)
                 i = if (closeAt >= 0) closeAt + 4 else html.length
-                val text = stripTags(inner)
-                if (href != null && isSafeHref(href)) {
-                    out += Span.Hyperlink(href, listOf(Span.Text(text.ifBlank { href })), safe = true)
-                } else if (text.isNotEmpty()) out += Span.Text(text)
+                val children = htmlSpans(inner, compactUrls = false)
+                out += if (href != null) linkedSpans(
+                    href,
+                    children.ifEmpty {
+                        stripTags(inner).takeIf { it.isNotBlank() }?.let { listOf(Span.Text(it)) }.orEmpty()
+                    },
+                ) else children
             }
             !closing && name == "img" -> {
                 val src = htmlAttr(attrs, "src")

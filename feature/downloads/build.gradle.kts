@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":feature:installation"))
     implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.core)
     implementation(libs.okhttp)
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.compose.ui)

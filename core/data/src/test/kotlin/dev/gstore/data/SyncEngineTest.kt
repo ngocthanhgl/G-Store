@@ -31,6 +31,8 @@ import org.junit.Test
 private class FakeRepos : RepositoryDao {
     val rows = mutableMapOf<Long, RepositoryEntity>()
     override fun observeAll(): Flow<List<RepositoryEntity>> = MutableStateFlow(rows.values.toList())
+    override fun observeCatalog(): Flow<List<RepositoryEntity>> =
+        MutableStateFlow(rows.values.filter { it.syncState != "SEARCH_ONLY" })
     override suspend fun getById(id: Long): RepositoryEntity? = rows[id]
     override suspend fun getByFullName(fullName: String): RepositoryEntity? =
         rows.values.find { it.fullName == fullName }
@@ -143,6 +145,40 @@ class SyncEngineTest {
         // Finished: checkpoint reset to page 1.
         assertEquals(1, checkpoints.row?.nextPage)
         assertTrue(delays.isEmpty())
+    }
+
+    @Test fun `search detail sync remains outside the discovery catalog`() = runBlocking {
+        val repos = FakeRepos()
+        val engine = SyncEngine(
+            FakeApi(),
+            repos,
+            FakeReleases(),
+            FakeAssets(),
+            FakeCheckpoints(),
+        ) {}
+
+        val result = engine.syncRepository("example/coolapp", catalogVisible = false)
+
+        assertTrue(result is Outcome.Ok)
+        assertEquals("SEARCH_ONLY", repos.rows[123L]?.syncState)
+    }
+
+    @Test fun `detail sync does not hide a repository already in the catalog`() = runBlocking {
+        val repos = FakeRepos().apply {
+            upsert(GitHubFixtures.repo().toEntity("FRESH", 0L))
+        }
+        val engine = SyncEngine(
+            FakeApi(),
+            repos,
+            FakeReleases(),
+            FakeAssets(),
+            FakeCheckpoints(),
+        ) {}
+
+        val result = engine.syncRepository("example/coolapp", catalogVisible = false)
+
+        assertTrue(result is Outcome.Ok)
+        assertEquals("FRESH", repos.rows[123L]?.syncState)
     }
 
     @Test fun `not-modified page one finishes without writes`() = runBlocking {

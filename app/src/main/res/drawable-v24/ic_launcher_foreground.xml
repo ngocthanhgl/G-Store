@@ -1,30 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-  <group android:pivotX="256" android:pivotY="256" android:scaleX="1.0" android:scaleY="1.0">
-    <group android:pivotX="256" android:pivotY="256" android:rotation="-6">
-      <group android:translateY="-24">
-      <path android:pathData="M206 218C206 146 306 146 306 218" android:strokeWidth="28" android:strokeLineCap="round">
-        <aapt:attr name="android:strokeColor">
-          <gradient android:type="linear" android:startX="150" android:startY="140" android:endX="370" android:endY="410">
-            <item android:offset="0" android:color="#FF8B5CF6"/>
-            <item android:offset="1" android:color="#FF3B82F6"/>
-          </gradient>
-        </aapt:attr>
-      </path>
-      <path android:pathData="M150 252C150 224 170 204 198 204L314 204C342 204 362 224 362 252L372 350C374 384 350 408 316 408L196 408C162 408 138 384 140 350Z M256 296.00L317.85 296.00A63.0 63.0 0 1 1 300.55 263.45L282.16 281.84A37.0 37.0 0 1 0 291.00 320.00L256 320.00Z" android:fillType="evenOdd">
-        <aapt:attr name="android:fillColor">
-          <gradient android:type="linear" android:startX="150" android:startY="140" android:endX="370" android:endY="410">
-            <item android:offset="0" android:color="#FF8B5CF6"/>
-            <item android:offset="1" android:color="#FF3B82F6"/>
-          </gradient>
-        </aapt:attr>
-      </path>
-      </group>
-    </group>
-  </group>
+    <path android:pathData="M106 256a150 150 0 1 0 300 0a150 150 0 1 0 -300 0ZM124 256a132 132 0 1 0 264 0a132 132 0 1 0 -264 0Z" android:fillColor="#FFFFFFFF" android:fillType="evenOdd"/>
+    <path android:pathData="M138 256a118 118 0 1 0 236 0a118 118 0 1 0 -236 0ZM204 182H308A22 22 0 0 1 330 204V308A22 22 0 0 1 308 330H204A22 22 0 0 1 182 308V204A22 22 0 0 1 204 182Z" android:fillColor="#FFFFFFFF" android:fillType="evenOdd"/>
+    <path android:pathData="M212 194H300A18 18 0 0 1 318 212V300A18 18 0 0 1 300 318H212A18 18 0 0 1 194 300V212A18 18 0 0 1 212 194ZM224 212H288A12 12 0 0 1 300 224V288A12 12 0 0 1 288 300H224A12 12 0 0 1 212 288V224A12 12 0 0 1 224 212Z" android:fillColor="#FFFFFFFF" android:fillType="evenOdd"/>
 </vector>

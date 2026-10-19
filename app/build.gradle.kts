@@ -12,8 +12,8 @@ android {
         applicationId = "dev.gstore.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-versionCode = 11
-    versionName = "1.1.3"
+        versionCode = 20
+        versionName = "2.0.0"
     }
 
     // Release signing comes from environment (CI secrets or a local
@@ -98,5 +98,6 @@ dependencies {
     implementation(libs.androidx.core)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.svg)
     implementation(libs.kotlinx.coroutines)
 }

@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.InstalledAppsGateway
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.UpdateState
 import dev.gstore.data.classifyAsset
+import dev.gstore.data.manualRequestWaitMessage
 import dev.gstore.data.resolveUpdateState
 import dev.gstore.database.DownloadRecord
 import dev.gstore.datastore.PreferencesRepository
@@ -34,6 +36,13 @@ data class InstalledRow(
     val lastUpdateTime: Long,
 )
 
+internal fun completedAfterActive(
+    previousActiveIds: Set<Long>,
+    candidates: List<DownloadRecord>,
+): DownloadRecord? = candidates.firstOrNull {
+    it.assetId in previousActiveIds && it.status == "COMPLETED"
+}
+
 /** Grouped star-sync flags, so the 5-arg combine stays under the arity cap. */
 private data class StarSyncUi(
     val running: Boolean,
@@ -58,7 +67,6 @@ data class DownloadsUiState(
     val starSyncProgress: StarSyncEngine.Progress? = null,
     val starSyncNotice: String? = null,
     val installedRefreshing: Boolean = false,
-    val showLoginPrompt: Boolean = false,
     val notice: String? = null,
 )
 
@@ -69,10 +77,11 @@ class DownloadsViewModel(
     private val tokens: TokenStore,
     private val prefs: PreferencesRepository,
     private val starSync: StarSyncEngine,
+    private val notifications: DownloadNotifications,
+    private val manualRequestGate: ManualRequestGate,
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
-    private val showLoginPrompt = MutableStateFlow(false)
     private val notice = MutableStateFlow<String?>(null)
     private var lastRefreshMillis = 0L
 
@@ -80,15 +89,13 @@ class DownloadsViewModel(
     // first so the state combine stays at four.
     private data class RefreshUi(
         val refreshing: Boolean,
-        val prompt: Boolean,
         val message: String?,
     )
 
     private val refreshUi = combine(
         installedRefreshing,
-        showLoginPrompt,
         notice,
-    ) { refreshing, prompt, message -> RefreshUi(refreshing, prompt, message) }
+    ) { refreshing, message -> RefreshUi(refreshing, message) }
 
     private val favorites = MutableStateFlow<List<Repository>>(emptyList())
     private val manual = MutableStateFlow<List<Repository>>(emptyList())
@@ -101,11 +108,18 @@ class DownloadsViewModel(
      * when a token exists; progress is checkpointed in Room, so a killed
      * process resumes instead of restarting.
      */
-    fun syncStarred() {
+    fun syncStarred(manual: Boolean = true) {
         if (starSyncRunning.value) return
         if (tokens.token.value.isNullOrBlank()) {
             starSyncNotice.value = "Log in with a GitHub token to import your stars."
             return
+        }
+        if (manual) {
+            val wait = manualRequestGate.tryAcquire(authenticated = true)
+            if (wait != null) {
+                notice.value = manualRequestWaitMessage(wait)
+                return
+            }
         }
         viewModelScope.launch {
             starSyncRunning.value = true
@@ -150,8 +164,9 @@ class DownloadsViewModel(
         // Pull GitHub stars in the background on start. Checkpoints make this
         // cheap on the second launch, and a logged-out device skips it entirely.
         viewModelScope.launch {
-            if (!tokens.token.value.isNullOrBlank()) syncStarred()
+            if (!tokens.token.value.isNullOrBlank()) syncStarred(manual = false)
         }
+        refreshInstalled(auto = true)
     }
 
     private val shelves = combine(favorites, manual) { f, m -> f to m }
@@ -195,7 +210,6 @@ class DownloadsViewModel(
             starSyncProgress = star.progress,
             starSyncNotice = star.message,
             installedRefreshing = ui.refreshing,
-            showLoginPrompt = ui.prompt,
             notice = ui.message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState())
@@ -204,22 +218,16 @@ class DownloadsViewModel(
         notice.value = null
     }
 
-    fun dismissLoginPrompt() {
-        showLoginPrompt.value = false
-    }
-
     /**
      * Re-read PackageManager for every tracked package and re-check the
      * catalog for newer tags on the tracked repos. User-triggered and
      * bounded by the installed count (usually a handful) — never a scan.
-     * Logged-in users are never throttled (5,000/hr quota): the 60 s gate
-     * and its prompt apply to anonymous taps only. Automatic calls (app
-     * resume) pass [auto] and return silently instead of prompting.
+     * Automatic calls are bounded to one per minute; user-triggered refreshes
+     * use the shared 10-second cooldown and anonymous rolling-minute limit.
      */
-    fun refreshInstalled(auto: Boolean = false) {
+    fun refreshInstalled(auto: Boolean = false, force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (tokens.token.value.isNullOrBlank() && now - lastRefreshMillis < 60_000) {
-            if (!auto) showLoginPrompt.value = true
+        if (!force && auto && now - lastRefreshMillis < 60_000) {
             return
         }
         lastRefreshMillis = now
@@ -232,7 +240,7 @@ class DownloadsViewModel(
                 val infos = installedApps.installedPackages(
                     records.mapNotNull { it.packageName }.toSet(),
                 )
-                installed.value = records.map { record ->
+                val refreshed = records.map { record ->
                     val info = infos[record.packageName]
                     val latestTag = latestTagFor(record.repoFullName)
                     InstalledRow(
@@ -251,11 +259,29 @@ class DownloadsViewModel(
                         lastUpdateTime = info?.lastUpdateTime ?: 0L,
                     )
                 }
+                installed.value = refreshed
+                refreshed.filter { it.updateState == UpdateState.UPDATE_AVAILABLE }
+                    .forEach { row ->
+                        val packageName = row.record.packageName ?: return@forEach
+                        val releaseTag = row.latestTag ?: return@forEach
+                        notifications.updateAvailable(packageName, row.label, releaseTag)
+                    }
             } catch (e: Exception) {
                 notice.value = "Could not refresh installed apps: ${e.message}"
             }
             installedRefreshing.value = false
         }
+    }
+
+    fun refreshFavoritesAndUpdates() {
+        val authenticated = !tokens.token.value.isNullOrBlank()
+        val wait = manualRequestGate.tryAcquire(authenticated)
+        if (wait != null) {
+            notice.value = manualRequestWaitMessage(wait)
+            return
+        }
+        refreshInstalled(force = true)
+        syncStarred(manual = false)
     }
 
     /** Latest cached release tag for a repo; syncs on miss (bounded, one repo). */
@@ -277,51 +303,20 @@ class DownloadsViewModel(
     }
 
     fun forget(assetId: Long) {
-        viewModelScope.launch { repository.forget(assetId) }
+        viewModelScope.launch {
+            try {
+                repository.forget(assetId)
+                refreshInstalled(auto = true, force = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice.value = "Could not remove downloaded APK: ${e.message}"
+            }
+        }
     }
 
     fun removeManualRepo(fullName: String) {
         viewModelScope.launch { prefs.removeManualRepo(fullName) }
-    }
-
-    /**
-     * One-tap APK for a hearted repo: latest stable release carrying an
-     * eligible APK wins, prereleases are the fallback. Surfaces a notice
-     * when nothing downloadable exists — never a silent no-op.
-     */
-    fun downloadFavorite(repo: Repository) {
-        viewModelScope.launch {
-            // Release walk off the main thread; only the notice lands on it.
-            val started = withContext(Dispatchers.Default) {
-                runCatching {
-                    val releases = catalog.observeReleases(repo.id).first()
-                    val includePre = prefs.appearance.first().includePrereleases
-                    val ordered = if (includePre) {
-                        releases.filter { !it.prerelease } + releases.filter { it.prerelease }
-                    } else {
-                        releases.filter { !it.prerelease }
-                    }
-                    for (rel in ordered) {
-                        val apk = catalog.allAssets(rel.id).firstOrNull {
-                            classifyAsset(it.filename, it.contentType, it.size).eligible
-                        }
-                        if (apk != null) {
-                            return@runCatching repository.start(
-                                assetId = apk.id,
-                                repoFullName = repo.fullName,
-                                releaseTag = rel.tag,
-                                rawFilename = apk.filename,
-                                url = apk.downloadUrl,
-                                expectedSize = apk.size,
-                                expectedDigest = apk.digest,
-                            )
-                        }
-                    }
-                false
-                }.getOrDefault(false)
-            }
-            if (!started) notice.value = "No downloadable APK found for ${repo.fullName}"
-        }
     }
 
     /**

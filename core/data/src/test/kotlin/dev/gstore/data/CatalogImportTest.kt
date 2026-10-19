@@ -25,8 +25,10 @@ import dev.gstore.network.RepoDto
 import dev.gstore.network.SearchResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,6 +41,8 @@ class CatalogImportTest {
     private class Repos : RepositoryDao {
         val rows = mutableMapOf<Long, RepositoryEntity>()
         override fun observeAll(): Flow<List<RepositoryEntity>> = flowOf(rows.values.toList())
+        override fun observeCatalog(): Flow<List<RepositoryEntity>> =
+            flowOf(rows.values.filter { it.syncState != "SEARCH_ONLY" })
         override suspend fun getById(id: Long): RepositoryEntity? = rows[id]
         override suspend fun getByFullName(fullName: String): RepositoryEntity? =
             rows.values.firstOrNull { it.fullName == fullName }
@@ -137,6 +141,17 @@ class CatalogImportTest {
         assertTrue(assets.rows[5L]?.eligibleApk == true)
     }
 
+    @Test fun `search-only detail records stay out of catalog feeds`() = runBlocking {
+        val repos = Repos().apply { rows[7] = repoRow("FRESH") }
+        val catalog = catalog(repos, Releases(), Assets())
+
+        catalog.markSearchOnly(7)
+
+        assertEquals(emptyList<dev.gstore.model.Repository>(), catalog.observeCatalogRepositories().first())
+        assertEquals(1, catalog.observeRepositories().first().size)
+        assertFalse(catalog.needsFullSync("o/app"))
+    }
+
     @Test fun `fresh rows keep fresh state and sync time`() = runBlocking {
         val repos = Repos()
         repos.upsert(repoRow("FRESH"))
@@ -149,7 +164,7 @@ class CatalogImportTest {
     private fun indexRow() = CatalogIndexEntry(
         repo = CatalogRepo(
             id = 7, full_name = "o/app", owner = "o", stars = 10, forks = 1,
-            updated_at = "2026-10-09T00:00:00Z",
+            updated_at = "2026-10-09T00:00:00Z", topics = listOf("media", "music"),
         ),
         release = CatalogIndexRelease(
             id = 70, tag = "v1", published_at = "2026-10-08T00:00:00Z",
@@ -169,9 +184,10 @@ class CatalogImportTest {
 
     @Test fun `importIndex never clobbers fresh descriptions`() = runBlocking {
         val repos = Repos()
-        repos.upsert(repoRow("FRESH").copy(description = "keep"))
+        repos.upsert(repoRow("FRESH").copy(description = "keep", topicsJson = """["old"]"""))
         catalog(repos, Releases(), Assets()).importIndex(listOf(indexRow()), 0L)
         assertEquals("FRESH", repos.rows[7L]?.syncState)
         assertEquals("keep", repos.rows[7L]?.description)
+        assertEquals("""["media","music"]""", repos.rows[7L]?.topicsJson)
     }
 }

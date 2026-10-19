@@ -96,6 +96,56 @@ class SectionsTest {
         )
     }
 
+    @Test fun `search-only repositories appear only in favorites when explicitly saved`() {
+        val searchOnly = RepoSignals(
+            repo(9, stars = 2_000).copy(catalogVisible = false),
+            releases30d = 2,
+            eligibleReleaseCount = 3,
+            firstEligibleReleaseAt = "2026-10-01T00:00:00Z",
+            latestReleaseAt = "2026-10-02T00:00:00Z",
+        )
+        val sections = computeSections(
+            listOf(searchOnly),
+            favoriteIds = setOf(9),
+            now = now,
+        )
+
+        assertTrue(sections.new.isEmpty())
+        assertTrue(sections.trending.isEmpty())
+        assertTrue(sections.famous.isEmpty())
+        assertTrue(sections.updated.isEmpty())
+        assertEquals(listOf(9L), sections.favorites.map { it.repo.id })
+        assertTrue(sortedCatalog(listOf(searchOnly), CatalogFilter.STARS).isEmpty())
+    }
+
+    @Test fun `favorites stay in their own shelf instead of catalog rankings`() {
+        val signals = listOf(
+            RepoSignals(
+                repo(1, stars = 900),
+                releases30d = 2,
+                firstEligibleReleaseAt = "2026-10-01T00:00:00Z",
+                latestReleaseAt = "2026-10-02T00:00:00Z",
+            ),
+            RepoSignals(
+                repo(2, stars = 9_000),
+                releases30d = 1,
+                firstEligibleReleaseAt = "2026-10-03T00:00:00Z",
+                latestReleaseAt = "2026-10-04T00:00:00Z",
+            ),
+        )
+        val withFavorites = computeSections(signals, favoriteIds = setOf(1), now = now)
+        assertEquals(listOf(2L), withFavorites.trending.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.new.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.updated.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.topCharts.map { it.repo.id })
+        assertEquals(listOf(1L), withFavorites.favorites.map { it.repo.id })
+        assertEquals(
+            listOf(2L),
+            sortedCatalog(signals, CatalogFilter.TRENDING, favoriteIds = setOf(1))
+                .map { it.repo.id },
+        )
+    }
+
     @Test fun `custom weights change the ranking`() {
         val forkHeavy = RepoSignals(repo(1, stars = 100, forks = 10_000), releases30d = 1)
         val starHeavy = RepoSignals(repo(2, stars = 10_000, forks = 100), releases30d = 1)

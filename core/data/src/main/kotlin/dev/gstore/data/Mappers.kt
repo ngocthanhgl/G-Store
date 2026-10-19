@@ -86,6 +86,7 @@ fun RepositoryEntity.toDomain(): Repository = Repository(
     watchers = watchers,
     homepage = homepage,
     pushedAt = pushedAt,
+    catalogVisible = syncState != "SEARCH_ONLY",
 )
 
 fun ReleaseEntity.toDomain(): Release = Release(

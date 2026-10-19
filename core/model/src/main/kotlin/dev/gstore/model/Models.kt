@@ -26,6 +26,8 @@ data class Repository(
     val watchers: Int? = null,
     val homepage: String? = null,
     val pushedAt: String? = null,
+    /** Search-only detail cache entries are excluded from catalog discovery. */
+    val catalogVisible: Boolean = true,
 )
 
 /** A published GitHub release. Drafts are never persisted. */

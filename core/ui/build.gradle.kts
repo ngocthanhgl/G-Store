@@ -32,4 +32,5 @@ dependencies {
     implementation(libs.commonmark.gfm.tables)
     implementation(libs.commonmark.task.list)
     implementation(libs.commonmark.strikethrough)
+    testImplementation(libs.junit)
 }

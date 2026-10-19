@@ -11,10 +11,12 @@ import androidx.work.ListenableWorker
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.svg.SvgDecoder
 import dev.gstore.database.GStoreDatabase
 import dev.gstore.database.MIGRATION_2_3
 import dev.gstore.datastore.PreferencesRepository
 import dev.gstore.data.CatalogRepository
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.ReadmeRepository
 import dev.gstore.data.SignalsCache
 import dev.gstore.data.StarSyncEngine
@@ -26,6 +28,7 @@ import dev.gstore.database.MIGRATION_7_8
 import dev.gstore.database.MIGRATION_8_9
 import dev.gstore.datastore.TokenStore
 import dev.gstore.downloads.ApkDownloadWorker
+import dev.gstore.downloads.DownloadNotifications
 import dev.gstore.downloads.DownloadRepository
 import dev.gstore.downloads.SystemWorkEnqueuer
 import dev.gstore.installation.InstallerGateway
@@ -58,6 +61,7 @@ class GStoreApp : Application(), Configuration.Provider {
             ImageLoader.Builder(ctx)
                 .components {
                     add(OkHttpNetworkFetcherFactory(callFactory = { container.downloadHttp }))
+                    add(SvgDecoder.Factory())
                 }
                 .build()
         }
@@ -103,6 +107,7 @@ private class GStoreWorkerFactory(
 
 class AppContainer(val app: Application) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val manualRequestGate = ManualRequestGate()
     val database: GStoreDatabase by lazy {
         // Explicit migrations only — silent data loss is never acceptable (M4).
         Room.databaseBuilder(app, GStoreDatabase::class.java, "gstore.db")
@@ -128,8 +133,9 @@ class AppContainer(val app: Application) {
             .build()
     }
     val downloader: DownloadRepository by lazy {
-        DownloadRepository(database.downloads(), SystemWorkEnqueuer(app))
+        DownloadRepository(database.downloads(), SystemWorkEnqueuer(app), File(app.filesDir, "apks"))
     }
+    val downloadNotifications: DownloadNotifications by lazy { DownloadNotifications(app) }
     val installer: InstallerGateway by lazy {
         SystemInstallerGateway(app, "${app.packageName}.apk-provider")
     }

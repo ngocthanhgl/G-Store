@@ -1180,3 +1180,18 @@ not by screenshot. All of them need a real device.
 impeccable `detect --json` over the 12 touched UI files returned `[]`.
 Lint initially caught `LocalContext as ComponentActivity` - resolved by
 walking the `ContextWrapper` chain to the first `ViewModelStoreOwner`.
+
+## 37. v1.1.4 - Catalog import crash fix
+
+The launch index has grown to 1,682 entries. Importing each repository with an
+independent Room write invalidated the full-catalog `SignalsCache` repeatedly,
+which recomputed per-repository signals and could overwhelm startup during the
+pull. The import now runs in one Room transaction, emitting one invalidation
+after all repository and release rows are committed. Catalog-pull cancellation
+is rethrown and its loading state is reset in `finally`.
+
+Version bumped to `versionCode 12`, `versionName 1.1.4`. Verified:
+`:core:data:testDebugUnitTest` and `:feature:home:compileDebugKotlin` pass.
+The host's configured `JAVA_HOME` (`E:\jdk`) is invalid; checks were run with
+the installed JDK 25 selected explicitly. Device reproduction is unavailable
+on this workstation.

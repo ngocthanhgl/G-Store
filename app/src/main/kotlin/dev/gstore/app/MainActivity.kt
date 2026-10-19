@@ -2,8 +2,10 @@ package dev.gstore.app
 
 import dev.gstore.ui.R as UiRes
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -11,8 +13,10 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -38,10 +42,12 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -58,10 +64,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -113,7 +123,11 @@ import kotlinx.serialization.Serializable
 @Serializable data object Search
 @Serializable data object Downloads
 @Serializable data object Settings
-@Serializable data class Details(val repoId: Long, val fullName: String = "")
+@Serializable data class Details(
+    val repoId: Long,
+    val fullName: String = "",
+    val searchResult: Boolean = false,
+)
 @Serializable data class CategoryFull(val name: String)
 @Serializable data class Readme(val owner: String, val name: String)
 
@@ -128,7 +142,6 @@ private val DESTINATIONS = listOf(
     TopDestination(Home, "Home", UiRes.drawable.ic_fluent_home_24_regular),
     TopDestination(Search, "Search", UiRes.drawable.ic_fluent_search_24_regular),
     TopDestination(Downloads, "Downloads", UiRes.drawable.ic_fluent_arrow_download_24_regular),
-    TopDestination(Settings, "Settings", UiRes.drawable.ic_fluent_settings_24_regular),
 )
 
 class MainActivity : ComponentActivity() {
@@ -148,6 +161,9 @@ class MainActivity : ComponentActivity() {
             val appearance by container.preferences.appearance.collectAsState(
                 initial = AppearanceSettings(),
             )
+            LaunchedEffect(appearance.appIcon) {
+                AppIconSwitcher.set(this@MainActivity, appearance.appIcon)
+            }
             val darkTheme = when (appearance.theme) {
                 dev.gstore.datastore.ThemeMode.LIGHT -> false
                 dev.gstore.datastore.ThemeMode.DARK -> true
@@ -195,6 +211,78 @@ private fun GStoreShell(container: AppContainer) {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val permissionPrompted by container.preferences.permissionPrompted.collectAsState(initial = null)
+    var showPermissionIntro by rememberSaveable { mutableStateOf(false) }
+    var showInstallerIntro by rememberSaveable { mutableStateOf(false) }
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        if (!container.installer.canRequestInstalls()) showInstallerIntro = true
+    }
+    LaunchedEffect(permissionPrompted) {
+        if (permissionPrompted == false) {
+            container.preferences.markPermissionPrompted()
+            showPermissionIntro = true
+        }
+    }
+    if (showPermissionIntro) {
+        AlertDialog(
+            onDismissRequest = { showPermissionIntro = false },
+            title = { Text("Set up app permissions") },
+            text = {
+                Text(
+                    "Notifications can show update alerts and background download progress. " +
+                        "Android manages APK installation permission separately in system settings. " +
+                        "Installed-app status is checked only for packages downloaded through G Store.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionIntro = false
+                        if (Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else if (!container.installer.canRequestInstalls()) {
+                            showInstallerIntro = true
+                        }
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionIntro = false }) { Text("Not now") }
+            },
+        )
+    }
+    if (showInstallerIntro) {
+        AlertDialog(
+            onDismissRequest = { showInstallerIntro = false },
+            title = { Text("Allow APK installation?") },
+            text = {
+                Text(
+                    "Android requires a separate per-app setting before G Store can hand an APK " +
+                        "to the system installer. Opening settings does not install anything; " +
+                        "you can also skip this and grant access when you choose to install.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showInstallerIntro = false
+                        context.startActivity(container.installer.settingsIntent())
+                    },
+                ) { Text("Open system settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInstallerIntro = false }) { Text("Not now") }
+            },
+        )
+    }
     // Double-back to exit: one back press from a top-level tab used to quit
     // instantly with no hint. First press shows a snackbar, second within
     // 2s finishes. Non-Home destinations keep their own back behavior.
@@ -331,6 +419,12 @@ private fun navigateTopLevel(nav: androidx.navigation.NavHostController, route: 
     }
 }
 
+@Suppress("DEPRECATION")
+private fun uninstallIntent(packageName: String): Intent =
+    Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+        data = Uri.fromParts("package", packageName, null)
+    }
+
 @Composable
 private fun Rail(
     current: androidx.navigation.NavDestination?,
@@ -400,6 +494,10 @@ private fun Content(
     val shellOwner: ViewModelStoreOwner =
         requireNotNull(LocalContext.current.activityViewModelStoreOwner())
     val scope = rememberCoroutineScope()
+    var refreshDownloadsAfterPackageAction by rememberSaveable { mutableStateOf(false) }
+    val onOpenSearchRepo: (Repository) -> Unit = {
+        nav.navigate(Details(it.id, it.fullName, searchResult = true)) { launchSingleTop = true }
+    }
     // Appearance is collected once per composition and passed down; theme is
     // applied above in MainActivity, layout/density/radius/motion here (M7).
     val appearance by container.preferences.appearance.collectAsState(
@@ -438,10 +536,10 @@ private fun Content(
     // catalog state. Screens stay destination-scoped, so entry effects
     // (installed refresh, permission re-check) still re-fire on return.
     val homeVm: HomeViewModel = viewModel(
-        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync) },
+        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync, container.manualRequestGate) },
     )
     val searchVm: SearchViewModel = viewModel(
-        factory = vmFactory { SearchViewModel(container.catalog) },
+        factory = vmFactory { SearchViewModel(container.catalog, container.tokens, container.manualRequestGate) },
     )
     val downloadsVm: DownloadsViewModel = viewModel(
         factory = vmFactory {
@@ -452,16 +550,27 @@ private fun Content(
                 container.tokens,
                 container.preferences,
                 container.starSync,
+                container.downloadNotifications,
+                container.manualRequestGate,
             )
         },
     )
-    NavHost(navController = nav, startDestination = Home, modifier = modifier) {
+    NavHost(
+        navController = nav,
+        startDestination = Home,
+        modifier = modifier,
+        enterTransition = { fadeIn(tween(180)) },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = { fadeIn(tween(180)) },
+        popExitTransition = { fadeOut(tween(120)) },
+    ) {
         composable<Home> {
             HomeScreen(
                 vm = homeVm,
                 onOpenRepo = onOpenRepo,
-                onOpenCategory = { nav.navigate(CategoryFull(it.name)) },
-                onOpenLogin = { nav.navigate(Settings) },
+                onOpenDiscoveryRepo = onOpenSearchRepo,
+                onOpenCategory = { nav.navigate(CategoryFull(it.name)) { launchSingleTop = true } },
+                onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
                 onLogout = {
                     scope.launch {
                         container.tokens.clear()
@@ -478,7 +587,7 @@ private fun Content(
         composable<Search> {
             SearchScreen(
                 vm = searchVm,
-                onOpenRepo = onOpenRepo,
+                onOpenRepo = onOpenSearchRepo,
                 snackbar = snackbar,
                 grid = grid,
                 compact = compact,
@@ -491,6 +600,7 @@ private fun Content(
             val context = LocalContext.current
             val lifecycle = LocalLifecycleOwner.current.lifecycle
             var gateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var awaitingInstallPermission by remember { mutableStateOf(false) }
             // Re-check the per-source install grant every time we return
             // (e.g. from system settings) — flow D.
             var canInstall by remember {
@@ -500,9 +610,12 @@ private fun Content(
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
                         canInstall = container.installer.canRequestInstalls()
-                        // Coming back from the system installer/uninstaller:
-                        // silent catch-up, never a login prompt.
-                        vm.refreshInstalled(auto = true)
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            vm.refreshInstalled(auto = true, force = true)
+                        } else {
+                            vm.refreshInstalled(auto = true)
+                        }
                     }
                 }
                 lifecycle.addObserver(observer)
@@ -515,11 +628,21 @@ private fun Content(
                     return
                 }
                 try {
+                    refreshDownloadsAfterPackageAction = true
                     context.startActivity(container.installer.installIntent(File(path)))
                 } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
                     scope.launch {
                         snackbar.showSnackbar("No system installer found: ${e.message}")
                     }
+                }
+            }
+            LaunchedEffect(canInstall, awaitingInstallPermission, gateFor) {
+                val pending = gateFor
+                if (canInstall && awaitingInstallPermission && pending != null) {
+                    fireInstall(pending)
+                    gateFor = null
+                    awaitingInstallPermission = false
                 }
             }
             val gate = gateFor
@@ -528,10 +651,18 @@ private fun Content(
                     fileName = gate.filename,
                     canInstall = canInstall,
                     onOpenSettings = {
+                        awaitingInstallPermission = true
                         context.startActivity(container.installer.settingsIntent())
                     },
-                    onInstall = { fireInstall(gate); gateFor = null },
-                    onCancel = { gateFor = null },
+                    onInstall = {
+                        fireInstall(gate)
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
                 )
             } else {
                 DownloadsScreen(
@@ -577,26 +708,19 @@ private fun Content(
                             scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
                         } else {
                             try {
+                                refreshDownloadsAfterPackageAction = true
                                 context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_DELETE,
-                                        Uri.fromParts("package", packageName, null),
-                                    ).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    },
+                                    uninstallIntent(packageName),
                                 )
                             } catch (e: Exception) {
+                                refreshDownloadsAfterPackageAction = false
                                 scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                             }
                         }
                     },
-                    onDownloadFavorite = vm::downloadFavorite,
                     onDownloadUpdate = vm::downloadUpdate,
                     onRemoveManual = vm::removeManualRepo,
-                    onRefreshInstalled = vm::refreshInstalled,
-                    onOpenLogin = { nav.navigate(Settings) },
-                    onDismissLoginPrompt = vm::dismissLoginPrompt,
-                    onSyncStars = vm::syncStarred,
+                    onSyncStars = vm::refreshFavoritesAndUpdates,
                     snackbar = snackbar,
                     onDismissNotice = vm::dismissNotice,
                 )
@@ -647,14 +771,40 @@ private fun Content(
             // captured at shell scope so no Context cast is needed.
             val vm: DetailsViewModel = viewModel(
                 viewModelStoreOwner = shellOwner,
-                key = "details-${route.repoId}-${route.fullName}",
+                key = "details-${route.repoId}-${route.fullName}-${route.searchResult}",
                 factory = vmFactory {
-                    DetailsViewModel(route.repoId, route.fullName, container.catalog, downloadTracker, installedGateway, container.preferences)
+                    DetailsViewModel(
+                        route.repoId,
+                        route.fullName,
+                        container.catalog,
+                        downloadTracker,
+                        installedGateway,
+                        container.preferences,
+                        searchResult = route.searchResult,
+                    )
                 },
             )
             val state by vm.state.collectAsState()
             val detailsContext = LocalContext.current
+            val detailsLifecycle = LocalLifecycleOwner.current.lifecycle
             var detailsGateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var detailsCanInstall by remember {
+                mutableStateOf(container.installer.canRequestInstalls())
+            }
+            var detailsAwaitingInstallPermission by remember { mutableStateOf(false) }
+            androidx.compose.runtime.DisposableEffect(detailsLifecycle) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        detailsCanInstall = container.installer.canRequestInstalls()
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            downloadsVm.refreshInstalled(auto = true, force = true)
+                        }
+                    }
+                }
+                detailsLifecycle.addObserver(observer)
+                onDispose { detailsLifecycle.removeObserver(observer) }
+            }
             fun fireDetailsInstall(record: DownloadRecord) {
                 val path = record.filePath
                 if (path == null || !File(path).exists()) {
@@ -662,11 +812,21 @@ private fun Content(
                     return
                 }
                 try {
+                    refreshDownloadsAfterPackageAction = true
                     detailsContext.startActivity(container.installer.installIntent(File(path)))
                 } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
                     scope.launch {
                         snackbar.showSnackbar("No system installer found: ${e.message}")
                     }
+                }
+            }
+            LaunchedEffect(detailsCanInstall, detailsAwaitingInstallPermission, detailsGateFor) {
+                val pending = detailsGateFor
+                if (detailsCanInstall && detailsAwaitingInstallPermission && pending != null) {
+                    fireDetailsInstall(pending)
+                    detailsGateFor = null
+                    detailsAwaitingInstallPermission = false
                 }
             }
             DetailsScreen(
@@ -684,7 +844,7 @@ private fun Content(
                     val path = record.filePath
                     if (path == null || !File(path).exists()) {
                         scope.launch { snackbar.showSnackbar("File is no longer on disk") }
-                    } else if (container.installer.canRequestInstalls()) {
+                    } else if (detailsCanInstall) {
                         fireDetailsInstall(record)
                     } else {
                         detailsGateFor = record
@@ -695,19 +855,17 @@ private fun Content(
                         scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
                     } else {
                         try {
+                            refreshDownloadsAfterPackageAction = true
                             detailsContext.startActivity(
-                                Intent(
-                                    Intent.ACTION_DELETE,
-                                    Uri.fromParts("package", packageName, null),
-                                ).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
+                                uninstallIntent(packageName),
                             )
                         } catch (e: Exception) {
+                            refreshDownloadsAfterPackageAction = false
                             scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                         }
                     }
                 },
+                onResumeInstalledState = vm::refreshInstalledState,
                 canOpenApp = { packageName ->
                     detailsContext.packageManager.getLaunchIntentForPackage(packageName) != null
                 },
@@ -724,7 +882,9 @@ private fun Content(
                     val repo = state.repo
                     if (repo != null) {
                         val parts = repo.fullName.split('/')
-                        if (parts.size == 2) nav.navigate(Readme(parts[0], parts[1]))
+                        if (parts.size == 2) {
+                            nav.navigate(Readme(parts[0], parts[1])) { launchSingleTop = true }
+                        }
                     }
                 },
                 cardRadiusDp = appearance.cardRadiusDp,
@@ -734,12 +894,20 @@ private fun Content(
             if (detailsGate != null) {
                 InstallerPermissionScreen(
                     fileName = detailsGate.filename,
-                    canInstall = container.installer.canRequestInstalls(),
+                    canInstall = detailsCanInstall,
                     onOpenSettings = {
+                        detailsAwaitingInstallPermission = true
                         detailsContext.startActivity(container.installer.settingsIntent())
                     },
-                    onInstall = { fireDetailsInstall(detailsGate); detailsGateFor = null },
-                    onCancel = { detailsGateFor = null },
+                    onInstall = {
+                        fireDetailsInstall(detailsGate)
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
                 )
             }
         }
@@ -761,4 +929,3 @@ private fun Content(
         }
     }
 }
-

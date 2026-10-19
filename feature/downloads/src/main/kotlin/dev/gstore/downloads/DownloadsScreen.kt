@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -30,15 +29,21 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -61,7 +66,6 @@ import dev.gstore.ui.squircleDp
  * (Room-backed); cancellation and retry act on the record, never on a lost
  * callback. A COMPLETED row offers installation handoff via [onInstall].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     state: DownloadsUiState,
@@ -74,11 +78,7 @@ fun DownloadsScreen(
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
     onDownloadUpdate: (DownloadRecord) -> Unit,
-    onDownloadFavorite: (Repository) -> Unit,
     onRemoveManual: (String) -> Unit,
-    onRefreshInstalled: () -> Unit,
-    onOpenLogin: () -> Unit,
-    onDismissLoginPrompt: () -> Unit,
     onSyncStars: () -> Unit,
     snackbar: SnackbarHostState,
     onDismissNotice: () -> Unit,
@@ -86,54 +86,73 @@ fun DownloadsScreen(
 ) {
     val notice = state.notice
     val starNotice = state.starSyncNotice
+    var forgetCandidate by remember { mutableStateOf<DownloadRecord?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var resumed by remember {
+        mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    var previousActiveIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> resumed = true
+                Lifecycle.Event.ON_PAUSE -> resumed = false
+                else -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(state.active, state.history, state.installed, resumed) {
+        if (!resumed) return@LaunchedEffect
+        val completed = completedAfterActive(
+            previousActiveIds,
+            state.history + state.installed.map { it.record },
+        )
+        previousActiveIds = state.active.mapTo(mutableSetOf()) { it.assetId }
+        if (completed != null) onInstall(completed)
+    }
     LaunchedEffect(notice) {
         if (notice != null) {
             snackbar.showSnackbar(notice)
             onDismissNotice()
         }
     }
-    // Manual-only refresh: entering this screen never fires a check on its
-    // own. Pull-to-refresh, the header button, or the empty-state button
-    // below are the only triggers (throttled when anonymous, free when
-    // logged in).
-    if (state.showLoginPrompt) {
+    forgetCandidate?.let { record ->
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = onDismissLoginPrompt,
-            title = { Text("Slow down") },
+            onDismissRequest = { forgetCandidate = null },
+            title = { Text("Remove downloaded app?") },
             text = {
                 Text(
-                    "One update check per minute — the anonymous GitHub quota " +
-                        "is 60 requests/hour. Log in to lift it to 5,000.",
+                    "Remove ${record.filename} and its download record from G Store? " +
+                        "This does not uninstall anything.",
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onDismissLoginPrompt()
-                        onOpenLogin()
+                        forgetCandidate = null
+                        onForget(record.assetId)
                     },
                     modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                ) { Text("Log in to GitHub") }
+                ) { Text("Remove") }
             },
             dismissButton = {
                 TextButton(
-                    onClick = onDismissLoginPrompt,
+                    onClick = { forgetCandidate = null },
                     modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                ) { Text("Later") }
+                ) { Text("Cancel") }
             },
         )
     }
-    PullToRefreshBox(
-        isRefreshing = state.installedRefreshing,
-        onRefresh = onRefreshInstalled,
-        modifier = modifier.fillMaxSize().safeTop(),
-    ) {
+    Box(modifier = modifier.fillMaxSize().safeTop()) {
         val updates = state.installed.filter {
             it.updateState == UpdateState.UPDATE_AVAILABLE ||
                 it.updateState == UpdateState.READY_TO_INSTALL
         }
         val current = state.installed.filter { it.updateState == UpdateState.UP_TO_DATE }
         val missing = state.installed.filter { it.updateState == UpdateState.NOT_INSTALLED }
+        var favoritesExpanded by rememberSaveable { mutableStateOf(true) }
         if (state.installed.isEmpty() && state.active.isEmpty() && state.history.isEmpty() &&
             state.favorites.isEmpty() && state.manual.isEmpty()
         ) {
@@ -145,22 +164,22 @@ fun DownloadsScreen(
                     reduceMotion = reduceMotion,
                     modifier = Modifier.padding(horizontal = GStoreSpace.Gutter),
                 )
-                return@PullToRefreshBox
+                return@Box
             }
             EmptyContent(
                 message = "Nothing here yet. Pick an APK on an app's details screen.",
                 icon = Fluent.ArrowDownload,
                 action = {
                     OutlinedButton(
-                        onClick = onRefreshInstalled,
-                        enabled = !state.installedRefreshing,
+                        onClick = onSyncStars,
+                        enabled = !state.installedRefreshing && !state.starSyncRunning,
                         modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
                     ) {
-                        Text(if (state.installedRefreshing) "Checking..." else "Check now")
+                        Text(if (state.starSyncRunning) "Checking stars..." else "Sync favourites")
                     }
                 },
             )
-            return@PullToRefreshBox
+            return@Box
         }
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
         LazyColumn(
@@ -171,26 +190,13 @@ fun DownloadsScreen(
         ) {
             item {
                 AuroraSectionHeader(
-                    title = "Downloads",
+                    title = "Favourites",
+                    count = state.favorites.size,
                     topGap = false,
+                    onClick = { favoritesExpanded = !favoritesExpanded },
                     trailing = {
-                        IconButton(onClick = onRefreshInstalled) {
-                            Icon(Fluent.ArrowSync, contentDescription = "Check for updates")
-                        }
-                    },
-                )
-            }
-            // Favourites heading doubles as the star-sync control: tapping it re-checks
-            // GitHub, and the running progress replaces the count so the user
-            // sees the sweep move instead of a stalled screen.
-            if (state.favorites.isNotEmpty() || state.starSyncRunning) {
-                item {
-                    AuroraSectionHeader(
-                        title = "Favourites",
-                        count = state.favorites.size,
-                        onClick = onSyncStars,
-                        trailing = if (state.starSyncRunning) {
-                            {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (state.starSyncRunning) {
                                 Text(
                                     "Checking ${state.starSyncProgress?.checked ?: 0}...",
                                     style = MaterialTheme.typography.bodySmall,
@@ -199,31 +205,40 @@ fun DownloadsScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                        } else {
-                            null
-                        },
+                            IconButton(onClick = onSyncStars) {
+                                Icon(Fluent.ArrowSync, contentDescription = "Sync GitHub favourites and app updates")
+                            }
+                        }
+                    },
+                )
+            }
+            if (favoritesExpanded && state.favorites.isEmpty() && !state.starSyncRunning) {
+                item {
+                    Text(
+                        "No favourites yet. Sync your GitHub stars or save an app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (starNotice != null) {
-                    item {
-                        Text(
-                            starNotice,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = GStoreSpace.Small),
-                        )
-                    }
-                }
-                items(state.favorites, key = { "f-${it.id}" }) { repo ->
-                    FavoriteRow(
-                        repo = repo,
-                        installedPackageName = state.installedByRepo[repo.fullName],
-                        onBrowse = { onBrowseRepo(repo.fullName) },
-                        onDownload = { onDownloadFavorite(repo) },
-                        onLaunch = onLaunch,
-                        onUninstall = onUninstall,
+            }
+            if (favoritesExpanded && starNotice != null) {
+                item {
+                    Text(
+                        starNotice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = GStoreSpace.Small),
                     )
                 }
+            }
+            if (favoritesExpanded) items(state.favorites, key = { "f-${it.id}" }) { repo ->
+                FavoriteRow(
+                    repo = repo,
+                    installedPackageName = state.installedByRepo[repo.fullName],
+                    onBrowse = { onBrowseRepo(repo.fullName) },
+                    onLaunch = onLaunch,
+                    onUninstall = onUninstall,
+                )
             }
             if (state.manual.isNotEmpty()) {
                 item {
@@ -255,6 +270,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -273,6 +289,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -291,6 +308,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -316,7 +334,7 @@ fun DownloadsScreen(
                     HistoryRow(
                         record = record,
                         onRetry = { onRetry(record.assetId) },
-                        onForget = { onForget(record.assetId) },
+                        onForget = { forgetCandidate = record },
                         onInstall = { onInstall(record) },
                     )
                 }
@@ -333,76 +351,73 @@ private fun InstalledRow(
     onUninstall: (String) -> Unit,
     onInstall: (DownloadRecord) -> Unit,
     onDownloadUpdate: (DownloadRecord) -> Unit,
+    onForget: (() -> Unit)? = null,
 ) {
     val record = row.record
     val installed = row.installedVersionCode != null
     // Cardless row: the list already insets the gutter, so the row only pads
     // vertically. Anatomy is shared with FavoriteRow / ManualRow — tile,
     // GStoreSpace.Medium to the text column, GStoreSpace.Small inside it.
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(onClick = { onBrowseRepo(record.repoFullName) })
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
-        PackageIcon(
-            packageName = record.packageName ?: record.repoFullName,
-            label = row.label,
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-        ) {
-            // Line 1: app label.
-            Text(
-                text = row.label,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Line 2: status + version, single ellipsis line. The separator is
-            // only rendered when a version actually exists — never "Installed · ".
-            val statusLine = when (row.updateState) {
-                UpdateState.UPDATE_AVAILABLE ->
-                    "Update available${row.latestTag?.let { " · $it" } ?: ""}"
-                UpdateState.READY_TO_INSTALL -> "Downloaded update ready to install"
-                UpdateState.UP_TO_DATE -> {
-                    val version = row.installedVersionName ?: row.installedVersionCode?.toString()
-                    if (version != null) "Installed · $version" else "Installed"
-                }
-                UpdateState.NOT_INSTALLED -> "Not installed on this device"
-            }
-            Text(
-                text = statusLine,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        // Trailing controls sit in ONE row, not a column: the user asked for two
-        // side-by-side buttons, and a stacked pair made the row twice as tall
-        // as its neighbours. The primary action takes the first slot;
-        // "Uninstall" is the third control that gets dropped when a primary is
-        // present.
         Row(
-            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            modifier = Modifier.fillMaxWidth()
+                .clickable(onClick = { onBrowseRepo(record.repoFullName) }),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+        ) {
+            PackageIcon(
+                packageName = record.packageName ?: record.repoFullName,
+                label = row.label,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            ) {
+                Text(
+                    text = row.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val statusLine = when (row.updateState) {
+                    UpdateState.UPDATE_AVAILABLE ->
+                        "Update available${row.latestTag?.let { " · $it" } ?: ""}"
+                    UpdateState.READY_TO_INSTALL -> "Downloaded update ready to install"
+                    UpdateState.UP_TO_DATE -> {
+                        val version = row.installedVersionName ?: row.installedVersionCode?.toString()
+                        if (version != null) "Installed · $version" else "Installed"
+                    }
+                    UpdateState.NOT_INSTALLED -> "Not installed on this device"
+                }
+                Text(
+                    text = statusLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val primaryShown = when (row.updateState) {
                 UpdateState.UPDATE_AVAILABLE -> {
                     OutlinedButton(
                         onClick = { onDownloadUpdate(record) },
-                        modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                        modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                     ) { Text("Update") }
                     true
                 }
                 UpdateState.READY_TO_INSTALL, UpdateState.NOT_INSTALLED -> {
-                    // Filled, 48dp — identical to HistoryRow's Install.
                     Button(
                         onClick = { onInstall(record) },
-                        modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                        modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
                     ) { Text("Install") }
                     true
                 }
@@ -412,17 +427,19 @@ private fun InstalledRow(
                 TextButton(
                     onClick = { onLaunch(record.packageName ?: "") },
                     modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-                ) {
-                    Text("Open")
-                }
+                ) { Text("Open", maxLines = 1) }
             }
             if (installed) {
                 TextButton(
                     onClick = { onUninstall(record.packageName ?: "") },
                     modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-                ) {
-                    Text("Uninstall")
-                }
+                ) { Text("Uninstall", maxLines = 1) }
+            }
+            onForget?.let {
+                TextButton(
+                    onClick = it,
+                    modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+                ) { Text("Remove", maxLines = 1) }
             }
         }
     }
@@ -434,61 +451,50 @@ private fun FavoriteRow(
     repo: Repository,
     installedPackageName: String?,
     onBrowse: () -> Unit,
-    onDownload: () -> Unit,
     onLaunch: (String) -> Unit,
     onUninstall: (String) -> Unit,
 ) {
     // Cardless row (see InstalledRow): vertical padding only, shared anatomy.
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(onClick = onBrowse)
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
-        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onBrowse),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
         ) {
-            Text(
-                text = repo.fullName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                // An installed app must never be offered a second copy: the
-                // shelf used to show "Download" next to something already on
-                // the device.
-                text = if (installedPackageName != null) {
-                    "Installed"
-                } else {
-                    "${repo.stars} stars"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            ) {
+                Text(
+                    text = repo.fullName.substringAfter('/'),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (installedPackageName != null) "Installed" else "${repo.stars} stars",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (installedPackageName != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(
                     onClick = { onLaunch(installedPackageName) },
                     modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-                ) { Text("Open") }
+                ) { Text("Open", maxLines = 1) }
                 TextButton(
                     onClick = { onUninstall(installedPackageName) },
                     modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-                ) { Text("Uninstall") }
+                ) { Text("Uninstall", maxLines = 1) }
             }
-        } else {
-            // One-tap primary: 48dp, like every other primary action here.
-            Button(
-                onClick = onDownload,
-                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-            ) { Text("Download") }
         }
     }
 }
@@ -501,37 +507,41 @@ private fun ManualRow(
     onRemove: () -> Unit,
 ) {
     // Cardless row (see InstalledRow): vertical padding only, shared anatomy.
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(onClick = onBrowse)
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
-        AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onBrowse),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
         ) {
-            Text(
-                text = repo.fullName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = if (repo.archived) "Archived on GitHub" else "${repo.stars} stars",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            AppIcon(avatarUrl = repo.avatarUrl, owner = repo.owner, size = GStoreSpace.Tile)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+            ) {
+                Text(
+                    text = repo.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (repo.archived) "Archived on GitHub" else "${repo.stars} stars",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        // Tertiary text action: stays compact at GStoreSpace.RowAction.
-        TextButton(
-            onClick = onRemove,
-            modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
-        ) { Text("Remove") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(
+                onClick = onRemove,
+                modifier = Modifier.heightIn(min = GStoreSpace.RowAction),
+            ) { Text("Remove", maxLines = 1) }
+        }
     }
 }
 
@@ -737,4 +747,3 @@ private fun formatBytes(bytes: Long): String {
     if (mb < 1024) return "%.1f MB".format(mb)
     return "%.2f GB".format(mb / 1024.0)
 }
-

@@ -99,7 +99,7 @@ class StarSyncEngine(
                     withApk++
                     // Only the winners pay for a full sync (all release pages +
                     // assets), which is what puts real data behind the heart.
-                    runCatching { catalog.sync(fullName) }
+                    runCatching { catalog.sync(fullName, catalogVisible = false) }
                         .onSuccess { addFavorite(dto.fullName) }
                 }
                 onProgress(Progress(checked, withApk, total = checked))

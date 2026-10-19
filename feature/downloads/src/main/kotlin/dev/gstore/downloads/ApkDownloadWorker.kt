@@ -30,6 +30,8 @@ class ApkDownloadWorker(
     private val http: OkHttpClient,
     private val apkDir: File,
 ) : CoroutineWorker(context, params) {
+    private val notifications by lazy { DownloadNotifications(applicationContext) }
+
     companion object {
         const val KEY_ASSET = "asset_id"
         const val KEY_URL = "url"
@@ -112,11 +114,13 @@ class ApkDownloadWorker(
                     updatedAt = now(),
                 ),
             )
+            notifications.completed(assetId, filename)
             downloads.pruneFinished(keep = 100)
             Result.success()
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
             update(record.copy(status = "CANCELED", updatedAt = now()))
+            notifications.clear(assetId)
             Result.success()
         } catch (e: Exception) {
             if (runAttemptCount + 1 >= MAX_ATTEMPTS || !isRecoverable(e)) {
@@ -124,6 +128,7 @@ class ApkDownloadWorker(
                 fail(record, e.message ?: e.javaClass.simpleName)
             } else {
                 update(record.copy(status = "QUEUED", updatedAt = now()))
+                notifications.clear(assetId)
                 Result.retry()
             }
         }
@@ -220,6 +225,12 @@ class ApkDownloadWorker(
 
     private suspend fun reportProgress(done: Long, total: Long) {
         setProgress(workDataOf(PROGRESS_DONE to done, PROGRESS_TOTAL to total))
+        notifications.progress(
+            inputData.getLong(KEY_ASSET, -1),
+            inputData.getString(KEY_FILENAME).orEmpty(),
+            done,
+            total,
+        )
     }
 
     private suspend fun touchProgress(done: Long, total: Long) {
@@ -235,6 +246,7 @@ class ApkDownloadWorker(
         downloads.upsert(
             record.copy(status = "ACTIVE", bytesDone = done, bytesTotal = total, error = null, updatedAt = now()),
         )
+        notifications.progress(record.assetId, record.filename, done, total)
     }
 
     private suspend fun update(record: dev.gstore.database.DownloadRecord) {
@@ -243,6 +255,7 @@ class ApkDownloadWorker(
 
     private suspend fun fail(record: dev.gstore.database.DownloadRecord, cause: String): Result {
         update(record.copy(status = "FAILED", error = cause))
+        notifications.failed(record.assetId, record.filename)
         return Result.failure(workDataOf("error" to cause))
     }
 

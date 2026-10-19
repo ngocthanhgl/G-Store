@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -53,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AppCategory
@@ -69,6 +72,7 @@ import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
 import dev.gstore.ui.ShimmerRows
 import dev.gstore.designsystem.LocalCardRadius
+import dev.gstore.designsystem.panelShape
 
 private const val COLLAPSED_COUNT = 5
 
@@ -83,6 +87,7 @@ private const val COLLAPSED_COUNT = 5
 fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
+    onOpenDiscoveryRepo: (Repository) -> Unit,
     onOpenCategory: (AppCategory) -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
@@ -214,7 +219,7 @@ verticalArrangement = Arrangement.spacedBy(12.dp),
             favorites = state.favoriteIds,
             onSearch = vm::discover,
             onAdd = vm::addRepository,
-            onOpen = onOpenRepo,
+            onOpen = onOpenDiscoveryRepo,
             onToggleFavorite = vm::toggleFavorite,
             onDismiss = { showDiscover = false },
         )
@@ -279,53 +284,50 @@ private fun HomeHeader(
         IconButton(onClick = onAdd) {
             Icon(Fluent.Add, contentDescription = "Add repository")
         }
-        // Profile opens login when logged out, identity + logout when in.
-        if (identity.login.isBlank()) {
-            IconButton(onClick = onOpenLogin) {
-                Icon(Fluent.Person, contentDescription = "Log in to GitHub")
-            }
-        } else {
+        Box {
             IconButton(onClick = { showProfile = true }) {
-                AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
-            }
-        }
-    }
-    if (showProfile && identity.login.isNotBlank()) {
-        AlertDialog(
-            onDismissRequest = { showProfile = false },
-            title = { Text(identity.login, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                if (identity.login.isBlank()) {
+                    Icon(Fluent.Person, contentDescription = "Open account and settings")
+                } else {
                     AppIcon(
                         avatarUrl = identity.avatarUrl,
                         owner = identity.login,
-                        size = 48.dp,
-                    )
-                    Text(
-                        "Logged in to GitHub. API quota is 5,000 requests/hour.",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(start = 16.dp),
+                        size = 28.dp,
+                        circular = true,
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showProfile = false },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Close") }
-            },
-            dismissButton = {
-                TextButton(
+            }
+            DropdownMenu(
+                expanded = showProfile,
+                onDismissRequest = { showProfile = false },
+                shape = panelShape(),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                if (identity.login.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text(identity.login) },
+                        enabled = false,
+                        onClick = {},
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Settings") },
                     onClick = {
-                        onLogout()
                         showProfile = false
+                        onOpenLogin()
                     },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text("Logout") }
-            },
-        )
+                )
+                if (identity.login.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text("Log out") },
+                        onClick = {
+                            showProfile = false
+                            onLogout()
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -583,8 +585,3 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-
-
-
-
-

@@ -10,7 +10,7 @@ import androidx.compose.ui.res.painterResource
  * Soft rounded regular-24 glyphs replace every Material icon in the app; the
  * launcher icon is untouched. Getters are @Composable because painterResource
  * is; call sites stay positional (`Icon(Fluent.Home, ...)`) so the swap is
- * token-for-token. Favorite on/off states share [Heart] and differ by tint.
+ * token-for-token. Favorite states use outlined and filled heart assets.
  */
 object Fluent {
     val Add: Painter
@@ -31,6 +31,8 @@ object Fluent {
         @Composable get() = painterResource(R.drawable.ic_fluent_chevron_right_24_regular)
     val Heart: Painter
         @Composable get() = painterResource(R.drawable.ic_fluent_heart_24_regular)
+    val HeartFilled: Painter
+        @Composable get() = painterResource(R.drawable.ic_fluent_heart_24_filled)
     val Home: Painter
         @Composable get() = painterResource(R.drawable.ic_fluent_home_24_regular)
     val Person: Painter

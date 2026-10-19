@@ -25,25 +25,32 @@ private val Context.store by preferencesDataStore(name = "gstore_prefs")
 enum class ThemeMode { LIGHT, DARK, SYSTEM, AMOLED }
 enum class HomeLayout { GRID, LIST }
 enum class CardDensity { COMFORTABLE, COMPACT }
+enum class AppIconStyle { CLASSIC, RED_LIGHT, RED_DARK }
 
 /** Validated appearance settings — restored before first frame (flow E). */
 data class AppearanceSettings(
-    val theme: ThemeMode = ThemeMode.SYSTEM,
+    val theme: ThemeMode = ThemeMode.AMOLED,
     val dynamicColor: Boolean = true,
-    val accentArgb: Int? = null,
-    val density: CardDensity = CardDensity.COMPACT,
-    val layout: HomeLayout = HomeLayout.LIST,
+    val accentArgb: Int? = DEFAULT_ACCENT_ARGB,
+    val density: CardDensity = CardDensity.COMFORTABLE,
+    val layout: HomeLayout = HomeLayout.GRID,
     val cardRadiusDp: Int = AppRadius.DEFAULT,
+    val appIcon: AppIconStyle = AppIconStyle.CLASSIC,
     val reduceMotion: Boolean = false,
     /** Beta builds participate in pick/download/update. Off = stable only. */
     val includePrereleases: Boolean = false,
-)
+) {
+    companion object {
+        const val DEFAULT_ACCENT_ARGB = 0xFFBA1A1A.toInt()
+    }
+}
 
 class PreferencesRepository(private val context: Context) {
     private object Keys {
         val THEME = stringPreferencesKey("theme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val ACCENT = intPreferencesKey("accent_argb")
+        val ACCENT_AUTO = booleanPreferencesKey("accent_auto")
         val DENSITY = stringPreferencesKey("density")
         val LAYOUT = stringPreferencesKey("layout")
         // Key renamed from "card_radius_dp". Every value stored under the old key
@@ -52,8 +59,10 @@ class PreferencesRepository(private val context: Context) {
     // the new default. The stale key is intentionally left unread.
     val CARD_RADIUS = intPreferencesKey("card_radius_dp_v2")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
+        val APP_ICON = stringPreferencesKey("app_icon")
     val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
-        val SECTION_ORDER = stringPreferencesKey("section_order")
+    val PERMISSION_PROMPTED = booleanPreferencesKey("permission_prompted")
+    val SECTION_ORDER = stringPreferencesKey("section_order")
         val SECTION_HIDDEN = stringSetPreferencesKey("section_hidden")
         val W_STARS = floatPreferencesKey("w_stars")
         val W_FORKS = floatPreferencesKey("w_forks")
@@ -98,16 +107,22 @@ class PreferencesRepository(private val context: Context) {
 
     val appearance: Flow<AppearanceSettings> = resilientData().map { p ->
         AppearanceSettings(
-            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "SYSTEM") }
-                .getOrDefault(ThemeMode.SYSTEM),
+            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "AMOLED") }
+                .getOrDefault(ThemeMode.AMOLED),
             dynamicColor = p[Keys.DYNAMIC_COLOR] ?: true,
-            accentArgb = p[Keys.ACCENT],
-            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMPACT") }
-                .getOrDefault(CardDensity.COMPACT),
-            layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "LIST") }
-                .getOrDefault(HomeLayout.LIST),
+            accentArgb = if (p[Keys.ACCENT_AUTO] == true) {
+                null
+            } else {
+                p[Keys.ACCENT] ?: AppearanceSettings.DEFAULT_ACCENT_ARGB
+            },
+            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMFORTABLE") }
+                .getOrDefault(CardDensity.COMFORTABLE),
+            layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "GRID") }
+                .getOrDefault(HomeLayout.GRID),
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).
             cardRadiusDp = AppRadius.clamp(p[Keys.CARD_RADIUS] ?: AppRadius.DEFAULT),
+            appIcon = runCatching { AppIconStyle.valueOf(p[Keys.APP_ICON] ?: "CLASSIC") }
+                .getOrDefault(AppIconStyle.CLASSIC),
             reduceMotion = p[Keys.REDUCE_MOTION] ?: false,
             includePrereleases = p[Keys.INCLUDE_PRERELEASES] ?: false,
         )
@@ -123,7 +138,13 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setAccentArgb(argb: Int?) {
         context.store.edit { p ->
-            if (argb == null) p.remove(Keys.ACCENT) else p[Keys.ACCENT] = argb
+            if (argb == null) {
+                p.remove(Keys.ACCENT)
+                p[Keys.ACCENT_AUTO] = true
+            } else {
+                p[Keys.ACCENT] = argb
+                p.remove(Keys.ACCENT_AUTO)
+            }
         }
     }
 
@@ -143,6 +164,10 @@ class PreferencesRepository(private val context: Context) {
         context.store.edit { it[Keys.REDUCE_MOTION] = enabled }
     }
 
+    suspend fun setAppIcon(style: AppIconStyle) {
+        context.store.edit { it[Keys.APP_ICON] = style.name }
+    }
+
     suspend fun setIncludePrereleases(enabled: Boolean) {
         context.store.edit { it[Keys.INCLUDE_PRERELEASES] = enabled }
     }
@@ -159,6 +184,13 @@ class PreferencesRepository(private val context: Context) {
         order.mapIndexed { index, section ->
             SectionConfig(section, visible = section.name !in hidden, rank = index)
         }
+    }
+
+    val permissionPrompted: Flow<Boolean> =
+        resilientData().map { it[Keys.PERMISSION_PROMPTED] ?: false }
+
+    suspend fun markPermissionPrompted() {
+        context.store.edit { it[Keys.PERMISSION_PROMPTED] = true }
     }
 
     suspend fun setSectionVisible(section: HomeSection, visible: Boolean) {

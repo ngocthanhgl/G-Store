@@ -2,7 +2,6 @@ package dev.gstore.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,10 +26,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -48,7 +51,7 @@ import dev.gstore.ui.GStoreSpace
  */
 @Composable
 fun ScreenshotViewer(
-    images: List<ScreenshotItem>,
+    images: List<RepositoryImage>,
     startIndex: Int,
     onDismiss: () -> Unit,
 ) {
@@ -93,28 +96,29 @@ fun ScreenshotViewer(
     }
 }
 
-/** One image: pinch/pan to zoom, single tap to dismiss at rest. */
+/** One image: pager owns one-finger swipes; this image owns pinch and zoomed panning. */
 @Composable
 private fun ZoomableImage(url: String, onDismiss: () -> Unit) {
     var scale by remember(url) { mutableFloatStateOf(MinScale) }
     var offset by remember(url) { mutableStateOf(Offset.Zero) }
+    var imageSize by remember(url) { mutableStateOf(IntSize.Zero) }
+    val transformState = rememberTransformableState { zoom, pan, _ ->
+        val nextScale = (scale * zoom).coerceIn(MinScale, MaxScale)
+        scale = nextScale
+        if (nextScale > MinScale) {
+            val limit = (minOf(imageSize.width, imageSize.height) * (nextScale - 1f)) / 2f
+            offset = Offset(
+                (offset.x + pan.x).coerceIn(-limit, limit),
+                (offset.y + pan.y).coerceIn(-limit, limit),
+            )
+        } else {
+            offset = Offset.Zero
+        }
+    }
     Box(
         modifier = Modifier.fillMaxSize()
-            .pointerInput(url) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(MinScale, MaxScale)
-                    if (scale > MinScale) {
-                        // Clamp the pan so the image cannot be dragged off-screen.
-                        val limit = (minOf(size.width, size.height) * (scale - 1f)) / 2f
-                        offset = Offset(
-                            (offset.x + pan.x).coerceIn(-limit, limit),
-                            (offset.y + pan.y).coerceIn(-limit, limit),
-                        )
-                    } else {
-                        offset = Offset.Zero
-                    }
-                }
-            }
+            .onSizeChanged { imageSize = it }
+            .transformable(transformState, canPan = { scale > MinScale })
             .pointerInput(url) {
                 detectTapGestures(
                     onDoubleTap = {

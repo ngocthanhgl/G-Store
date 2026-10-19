@@ -7,8 +7,10 @@ import dev.gstore.common.Outcome
 import dev.gstore.data.CatalogFilter
 import dev.gstore.data.CatalogRepository
 import dev.gstore.data.HomeSections
+import dev.gstore.data.ManualRequestGate
 import dev.gstore.data.StarSyncEngine
 import dev.gstore.data.computeSections
+import dev.gstore.data.manualRequestWaitMessage
 import dev.gstore.data.sortedCatalog
 import dev.gstore.datastore.GitHubIdentity
 import dev.gstore.datastore.PreferencesRepository
@@ -20,6 +22,7 @@ import dev.gstore.model.SectionConfig
 import dev.gstore.model.TrendingWeights
 import dev.gstore.network.ApiResponse
 import dev.gstore.network.CatalogClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +33,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 /** Catalog counts as stale after 24h — matches the scanner schedule. */
 private const val STALE_AFTER_MILLIS = 24L * 60 * 60 * 1000
@@ -59,6 +63,7 @@ class HomeViewModel(
     tokens: TokenStore,
     cachedSignals: StateFlow<List<RepoSignals>>,
     private val starSync: StarSyncEngine,
+    private val manualRequestGate: ManualRequestGate,
 ) : ViewModel() {
     private val tokensRef = tokens
     private val allRepos = MutableStateFlow<List<Repository>>(emptyList())
@@ -68,6 +73,8 @@ class HomeViewModel(
     private val discovering = MutableStateFlow(false)
     private val catalogFilter = MutableStateFlow(CatalogFilter.TRENDING)
     private val syncingCatalog = MutableStateFlow(false)
+    private val catalogRefreshMutex = Mutex()
+    private val fullRefreshMutex = Mutex()
     private var catalogAutoTried = false
 
     /** Favorites shelf: favorited repos, stars first, fully offline. */
@@ -107,7 +114,7 @@ class HomeViewModel(
 
     private val refreshState = combine(
         syncing, banner, catalogFilter, syncingCatalog,
-        catalog.observeRepositories().map { it.isEmpty() },
+        catalog.observeCatalogRepositories().map { it.isEmpty() },
     ) { s, b, f, cs, empty ->
         RefreshState(s, b, f, cs, empty)
     }
@@ -125,7 +132,12 @@ class HomeViewModel(
             favoriteIds = inputs.favorites,
             identity = inputs.identity,
             favoriteRepos = favorites,
-            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights),
+            catalog = sortedCatalog(
+                inputs.signals,
+                refresh.filter,
+                inputs.weights,
+                favoriteIds = inputs.favorites,
+            ),
             catalogFilter = refresh.filter,
             syncingCatalog = refresh.syncingCatalog,
             // The empty gate reads cheap raw rows; signals only order/sort.
@@ -143,7 +155,7 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            catalog.observeRepositories().collect { repos ->
+            catalog.observeCatalogRepositories().collect { repos ->
                 allRepos.value = repos
                 // First open pulls the catalog when the DB is empty OR the
                 // last import is older than the scanner schedule — no manual
@@ -199,25 +211,40 @@ class HomeViewModel(
      * the empty-state button. ETag-kept: a 304 touches imported-at only.
      */
     fun syncCatalog(quiet: Boolean = false) {
+        if (!catalogRefreshMutex.tryLock()) return
+        if (!quiet && !allowManualRequest()) {
+            catalogRefreshMutex.unlock()
+            return
+        }
+        syncingCatalog.value = true
         viewModelScope.launch {
-            syncingCatalog.value = true
-            val now = System.currentTimeMillis()
             try {
-                when (val resp = catalogClient.fetch(prefs.catalogEtag.first())) {
-                    is ApiResponse.Fresh -> {
-                        val merged = catalog.importIndex(resp.data, now)
-                        prefs.setCatalogState(resp.etag, now)
-                        if (!quiet) banner.value = "Loaded $merged apps from the daily catalog"
-                    }
-                    ApiResponse.NotModified -> {
-                        prefs.setCatalogState(prefs.catalogEtag.first(), now)
-                        if (!quiet) banner.value = "Catalog is up to date"
-                    }
-                }
-            } catch (e: Exception) {
-                if (!quiet) banner.value = "Catalog pull failed: ${e.message}"
+                pullCatalog(quiet)
+            } finally {
+                syncingCatalog.value = false
+                catalogRefreshMutex.unlock()
             }
-            syncingCatalog.value = false
+        }
+    }
+
+    private suspend fun pullCatalog(quiet: Boolean) {
+        val now = System.currentTimeMillis()
+        try {
+            when (val resp = catalogClient.fetch(prefs.catalogEtag.first())) {
+                is ApiResponse.Fresh -> {
+                    val merged = catalog.importIndex(resp.data, now)
+                    prefs.setCatalogState(resp.etag, now)
+                    if (!quiet) banner.value = "Loaded $merged apps from the daily catalog"
+                }
+                ApiResponse.NotModified -> {
+                    prefs.setCatalogState(prefs.catalogEtag.first(), now)
+                    if (!quiet) banner.value = "Catalog is up to date"
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (!quiet) banner.value = "Catalog pull failed: ${e.message}"
         }
     }
 
@@ -228,29 +255,46 @@ class HomeViewModel(
     fun refreshSection(repos: List<Repository>) = refreshAll(repos)
 
     private fun refreshAll(repos: List<Repository>, withCatalog: Boolean = false) {
+        if (!fullRefreshMutex.tryLock()) return
+        if (!allowManualRequest()) {
+            fullRefreshMutex.unlock()
+            return
+        }
+        syncing.value = true
         viewModelScope.launch {
-            syncing.value = true
-            if (withCatalog) {
-                val last = prefs.catalogImportedAt.first()
-                // Explicit user pulls bypass the 24h gate when logged in
-                // (5,000 req/h quota); auto-pull and anonymous stay gated.
-                val loggedIn = tokensRef.token.value?.isNotBlank() == true
-                if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS || loggedIn) {
-                    syncCatalog(quiet = true)
+            try {
+                if (withCatalog) {
+                    val last = prefs.catalogImportedAt.first()
+                    // Explicit user pulls bypass the 24h gate when logged in
+                    // (5,000 req/h quota); auto-pull and anonymous stay gated.
+                    val loggedIn = tokensRef.token.value?.isNotBlank() == true
+                    if (last == null || System.currentTimeMillis() - last > STALE_AFTER_MILLIS || loggedIn) {
+                        if (catalogRefreshMutex.tryLock()) {
+                            syncingCatalog.value = true
+                            try {
+                                pullCatalog(quiet = true)
+                            } finally {
+                                syncingCatalog.value = false
+                                catalogRefreshMutex.unlock()
+                            }
+                        }
+                    }
                 }
-            }
-            var ok = 0
-            var failed = 0
-            for (repo in repos) {
-                when (catalog.sync(repo.fullName)) {
-                    is Outcome.Ok -> ok++
-                    is Outcome.Err -> failed++
+                var ok = 0
+                var failed = 0
+                for (repo in repos) {
+                    when (catalog.sync(repo.fullName)) {
+                        is Outcome.Ok -> ok++
+                        is Outcome.Err -> failed++
+                    }
                 }
-            }
-            syncing.value = false
-            banner.value = when {
-                failed > 0 -> "$ok synced, $failed failed — retry from the section"
-                else -> null
+                banner.value = when {
+                    failed > 0 -> "$ok synced, $failed failed — retry from the section"
+                    else -> null
+                }
+            } finally {
+                syncing.value = false
+                fullRefreshMutex.unlock()
             }
         }
     }
@@ -258,6 +302,7 @@ class HomeViewModel(
     /** Explicit discovery mechanism: user adds owner/name (PRODUCT_SPEC §4). */
     fun addRepository(rawInput: String) {
         val input = rawInput.trim().removePrefix("https://github.com/").removeSuffix("/")
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             prefs.addManualRepo(input)
             when (val result = catalog.sync(input)) {
@@ -269,6 +314,7 @@ class HomeViewModel(
 
     /** Trending seeds: one user-triggered search, results added only on tap. */
     fun discover() {
+        if (!allowManualRequest()) return
         viewModelScope.launch {
             discovering.value = true
             when (val result = catalog.search("topic:android")) {
@@ -277,5 +323,12 @@ class HomeViewModel(
             }
             discovering.value = false
         }
+    }
+
+    private fun allowManualRequest(): Boolean {
+        val wait = manualRequestGate.tryAcquire(tokensRef.token.value?.isNotBlank() == true)
+            ?: return true
+        banner.value = manualRequestWaitMessage(wait)
+        return false
     }
 }

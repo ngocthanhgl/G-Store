@@ -1,6 +1,7 @@
 package dev.gstore.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import java.net.URI
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
@@ -172,37 +174,88 @@ private fun ListItemView(
 @Composable
 private fun TableView(table: Block.Table) {
     val scroll = rememberScrollState()
+    val columnCount = maxOf(table.headers.size, table.rows.maxOfOrNull { it.size } ?: 0)
+    val widths = (0 until columnCount).map { column ->
+        val contentLength = sequenceOf(table.headers.getOrNull(column))
+            .plus(table.rows.asSequence().map { it.getOrNull(column) })
+            .filterNotNull()
+            .maxOfOrNull { it.length.coerceAtMost(32) }
+            ?: 12
+        (contentLength * 8 + 24).dp.coerceIn(112.dp, 280.dp)
+    }
     Box(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
         Column {
-            TableRowView(table.headers, header = true)
+            TableRowView(table.headers, widths, header = true)
             HorizontalDivider()
-            table.rows.forEach { TableRowView(it, header = false) }
+            table.rows.forEach { TableRowView(it, widths, header = false) }
         }
     }
 }
 
 @Composable
-private fun TableRowView(cells: List<String>, header: Boolean) {
+private fun TableRowView(cells: List<String>, widths: List<androidx.compose.ui.unit.Dp>, header: Boolean) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         modifier = Modifier.padding(vertical = GStoreSpace.Block),
     ) {
-        cells.forEach { cell ->
+        cells.forEachIndexed { index, cell ->
             Text(
                 cell,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (header) FontWeight.Bold else null,
                 maxLines = 4,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                // Rows are measured independently, so a min width is the only
-                // way columns line up between header and body.
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .widthIn(min = 96.dp)
-                    .padding(end = GStoreSpace.Small),
+                modifier = Modifier.width(widths.getOrElse(index) { 160.dp }),
             )
         }
     }
+}
+
+fun canAutoLoadMarkdownImage(url: String): Boolean {
+    val uri = runCatching { URI(url) }.getOrNull() ?: return false
+    val host = uri.host?.lowercase() ?: return false
+    return uri.scheme.equals("https", ignoreCase = true) &&
+        uri.userInfo == null &&
+        (uri.port == -1 || uri.port == 443) &&
+        !isPrivateImageHost(host)
+}
+
+private fun isPrivateImageHost(host: String): Boolean {
+    val normalized = host.removePrefix("[").removeSuffix("]").removeSuffix(".")
+    if (normalized == "localhost" || normalized.endsWith(".localhost") ||
+        normalized.endsWith(".local") || normalized.endsWith(".internal") ||
+        normalized.endsWith(".lan") || normalized.endsWith(".home") ||
+        normalized.endsWith(".home.arpa") || normalized.endsWith(".test")
+    ) return true
+
+    if (':' in normalized) {
+        val address = runCatching { java.net.InetAddress.getByName(normalized) }.getOrNull()
+            ?: return true
+        val bytes = address.address
+        return address.isAnyLocalAddress || address.isLoopbackAddress ||
+            address.isLinkLocalAddress || address.isSiteLocalAddress ||
+            address.isMulticastAddress ||
+            (bytes.size == 16 && (bytes[0].toInt() and 0xFE) == 0xFC)
+    }
+
+    if (normalized.any { it !in '0'..'9' && it != '.' }) {
+        if (Regex("(?i)(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*").matches(normalized)) {
+            return true
+        }
+        return '.' !in normalized
+    }
+    val parts = normalized.split('.')
+    val octets = parts.mapNotNull { it.toIntOrNull() }
+    if (octets.size != 4 || octets.any { it !in 0..255 } ||
+        parts.any { it.length > 1 && it.startsWith('0') }
+    ) return true
+    val (a, b) = octets
+    return a == 0 || a == 10 || a == 127 || a >= 224 ||
+        (a == 100 && b in 64..127) ||
+        (a == 169 && b == 254) ||
+        (a == 172 && b in 16..31) ||
+        (a == 192 && b == 168) ||
+        (a == 198 && b in 18..19)
 }
 
 @Composable
@@ -312,10 +365,17 @@ private fun SpanText(
         )
         spans.filterIsInstance<Span.Picture>().forEach { picture ->
             val url = resolveRelative(picture.src, owner, repo, forImage = true, branch = branch)
-            // Auto-fetch images only over HTTPS. Anything else renders as an
-            // explicit tap-to-open link so the app never silently fetches
-            // cleartext or non-web content on the user's behalf.
-if (url.startsWith("https://")) {
+            val imageModifier = Modifier.fillMaxSize().then(
+                picture.href?.let { href ->
+                    Modifier.clickable {
+                        uriHandler.openUri(
+                            resolveRelative(href, owner, repo, forImage = false, branch = branch),
+                        )
+                    }
+                } ?: Modifier,
+            )
+            // Public HTTPS images display inline; local/private addresses are blocked.
+            if (canAutoLoadMarkdownImage(url)) {
                 // Cap decoded size: README screenshots are often 4K and
                 // would otherwise sit in memory at full resolution.
                 // The aspect box reserves layout space so decoding never
@@ -326,12 +386,11 @@ if (url.startsWith("https://")) {
                 // say so rather than leaving a silent empty rectangle.
                 var failed by remember(url) { mutableStateOf(false) }
                 var loaded by remember(url) { mutableStateOf(false) }
+                var aspectRatio by remember(url) { mutableFloatStateOf(16f / 10f) }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 10f)
-            // Was pillShape (percent = 50) on a full-text-width box: a real
-            // lens that cut into the image content. Images cap at 12dp.
+                        .aspectRatio(aspectRatio)
                         .clip(imageShapeFor())
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
@@ -353,17 +412,17 @@ if (url.startsWith("https://")) {
                             .build(),
                         contentDescription = picture.alt.ifEmpty { "README image" },
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        onSuccess = { loaded = true },
+                        modifier = imageModifier,
+                        onSuccess = { result ->
+                            loaded = true
+                            val imageSize = result.painter.intrinsicSize
+                            if (imageSize.width.isFinite() && imageSize.height.isFinite() &&
+                                imageSize.width > 0f && imageSize.height > 0f
+                            ) {
+                                aspectRatio = (imageSize.width / imageSize.height).coerceIn(0.2f, 5f)
+                            }
+                        },
                         onError = { failed = true },
-                    )
-                }
-            } else {
-                TextButton(onClick = { uriHandler.openUri(url) }) {
-                    Text(
-                        "Open image: ${picture.alt.ifEmpty { picture.src }}",
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

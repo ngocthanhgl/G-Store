@@ -30,12 +30,13 @@ class SyncEngine(
 ) {
     private val inFlight = ConcurrentHashMap<String, CompletableDeferred<Outcome<Unit>>>()
 
-    suspend fun syncRepository(fullName: String): Outcome<Unit> {
-        inFlight[fullName]?.let { return it.await() }
+    suspend fun syncRepository(fullName: String, catalogVisible: Boolean = true): Outcome<Unit> {
+        val key = "$fullName:${if (catalogVisible) "catalog" else "details"}"
+        inFlight[key]?.let { return it.await() }
         val gate = CompletableDeferred<Outcome<Unit>>()
-        inFlight[fullName] = gate
+        inFlight[key] = gate
         return try {
-            val result = doSync(fullName)
+            val result = doSync(fullName, catalogVisible)
             gate.complete(result)
             result
         } catch (e: Exception) {
@@ -43,11 +44,11 @@ class SyncEngine(
             gate.complete(out)
             out
         } finally {
-            inFlight.remove(fullName)
+            inFlight.remove(key)
         }
     }
 
-    private suspend fun doSync(fullName: String): Outcome<Unit> {
+    private suspend fun doSync(fullName: String, catalogVisible: Boolean): Outcome<Unit> {
         val parts = fullName.split('/')
         if (parts.size != 2 || parts.any { it.isBlank() }) {
             return Outcome.Err("invalid repository name: $fullName")
@@ -72,7 +73,10 @@ class SyncEngine(
             markState(fullName, "FAILED:${e.javaClass.simpleName}", now)
             return Outcome.Err("sync failed: ${e.message}")
         }
-        repos.upsert(repoDto.toEntity("FRESH", now))
+        val existing = repos.getByFullName(fullName)
+        val wasCatalogVisible = existing != null && existing.syncState != "SEARCH_ONLY"
+        val syncState = if (catalogVisible || wasCatalogVisible) "FRESH" else "SEARCH_ONLY"
+        repos.upsert(repoDto.toEntity(syncState, now))
 
         var page = checkpoint?.nextPage ?: 1
         var etag = if (page == 1) checkpoint?.etag else null
@@ -104,7 +108,7 @@ class SyncEngine(
                     if (releases.listByRepo(repoDto.id).isEmpty()) {
                         checkpoints.clear(fullName)
                     } else {
-                        repos.upsert(repoDto.toEntity("FRESH", now))
+                        repos.upsert(repoDto.toEntity(syncState, now))
                         checkpoints.put(SyncCheckpoint(fullName, 1, etag, now))
                     }
                     return Outcome.Ok(Unit)
@@ -117,7 +121,7 @@ class SyncEngine(
                     seenReleaseIds += visible.map { it.id }
                     if (resp.data.size < PAGE_SIZE) {
                         if (pruneAllowed) releases.pruneExcept(repoDto.id, seenReleaseIds)
-                        repos.upsert(repoDto.toEntity("FRESH", now))
+                        repos.upsert(repoDto.toEntity(syncState, now))
                         checkpoints.put(SyncCheckpoint(fullName, 1, resp.etag, now))
                         return Outcome.Ok(Unit)
                     }
@@ -132,7 +136,14 @@ class SyncEngine(
     private suspend fun markState(fullName: String, state: String, now: Long) {
         // Only meaningful when we already cache this repo; otherwise nothing to mark.
         val existing = repos.getByFullName(fullName)
-        if (existing != null) repos.upsert(existing.copy(syncState = state, lastSyncedAt = now))
+        if (existing != null) {
+            repos.upsert(
+                existing.copy(
+                    syncState = if (existing.syncState == "SEARCH_ONLY") "SEARCH_ONLY" else state,
+                    lastSyncedAt = now,
+                ),
+            )
+        }
     }
 
     /** Bounded retries: server-directed wait first, else exponential backoff + jitter. */

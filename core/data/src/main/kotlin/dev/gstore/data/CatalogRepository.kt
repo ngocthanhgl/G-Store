@@ -1,5 +1,6 @@
 package dev.gstore.data
 
+import androidx.room.withTransaction
 import dev.gstore.common.Outcome
 import dev.gstore.database.AssetDao
 import dev.gstore.database.CheckpointDao
@@ -21,6 +22,7 @@ import dev.gstore.network.CatalogEntry
 import dev.gstore.network.CatalogIndexEntry
 import dev.gstore.network.ContentsDto
 import dev.gstore.network.GitHubException
+import dev.gstore.network.ReadmeFetch
 import dev.gstore.network.GitHubService
 import dev.gstore.network.toDomain as dtoToDomain
 import java.time.Instant
@@ -39,9 +41,24 @@ class CatalogRepository(
     private val releases: ReleaseDao,
     private val assets: AssetDao,
     private val favorites: FavoriteDao,
+    private val database: GStoreDatabase? = null,
 ) {
     fun observeRepositories(): Flow<List<Repository>> =
         repos.observeAll().map { list -> list.map { it.toDomain() } }
+
+    /** Search-only detail visits are cached, but never enter Home discovery sections. */
+    fun observeCatalogRepositories(): Flow<List<Repository>> =
+        repos.observeCatalog().map { list -> list.map { it.toDomain() } }
+
+    suspend fun markSearchOnly(repoId: Long) {
+        val repo = repos.getById(repoId) ?: return
+        if (repo.syncState != "SEARCH_ONLY") {
+            repos.upsert(repo.copy(syncState = "SEARCH_ONLY"))
+        }
+    }
+
+    suspend fun isSearchOnly(repoId: Long): Boolean =
+        repos.getById(repoId)?.syncState == "SEARCH_ONLY"
 
     suspend fun getRepository(id: Long): Repository? = repos.getById(id)?.toDomain()
 
@@ -122,7 +139,11 @@ class CatalogRepository(
         ref: String,
     ): ApiResponse<List<ContentsDto>> = api.fetchContents(owner, repo, ref, null)
 
-    suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
+    suspend fun fetchReadme(owner: String, repo: String): ApiResponse<ReadmeFetch> =
+        api.fetchReadme(owner, repo, null)
+
+    suspend fun sync(fullName: String, catalogVisible: Boolean = true): Outcome<Unit> =
+        engine.syncRepository(fullName, catalogVisible)
 
     /**
      * Slim scanner rows carry metadata but no assets — details must full-sync
@@ -131,7 +152,7 @@ class CatalogRepository(
      */
     suspend fun needsFullSync(fullName: String): Boolean {
         val existing = repos.getByFullName(fullName) ?: return true
-        return existing.syncState != "FRESH"
+        return existing.syncState != "FRESH" && existing.syncState != "SEARCH_ONLY"
     }
 
     /**
@@ -215,11 +236,13 @@ class CatalogRepository(
      * asset lists arrive later through a per-repo GitHub sync when the
      * user opens the details screen, so sections that need release dates
      * (New, Updated) work immediately while Downloads waits for real data.
-     * A FRESH fully-synced row keeps its full description/topics (the
-     * index truncates descriptions); stars, forks, avatar and flags are
-     * always refreshed.
+     * A FRESH fully-synced row keeps its full description; topics still
+     * refresh from the scanner so category membership tracks daily changes.
      */
-    suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int {
+    suspend fun importIndex(entries: List<CatalogIndexEntry>, nowMillis: Long): Int =
+        database?.withTransaction { mergeIndex(entries) } ?: mergeIndex(entries)
+
+    private suspend fun mergeIndex(entries: List<CatalogIndexEntry>): Int {
         var merged = 0
         for (e in entries) {
             if (e.schema != 1) continue
@@ -235,7 +258,7 @@ class CatalogRepository(
                     description = if (keepFull) existing.description else r.description,
                     stars = r.stars,
                     forks = r.forks,
-                    topicsJson = if (keepFull) existing.topicsJson else topicsJson(r.topics),
+                    topicsJson = topicsJson(r.topics),
                     archived = r.archived,
                     defaultBranch = r.default_branch,
                     updatedAt = r.updated_at,
@@ -290,7 +313,7 @@ class CatalogRepository(
         fun create(api: GitHubService, db: GStoreDatabase): CatalogRepository {
             val engine = SyncEngine(api, db.repositories(), db.releases(), db.assets(), db.checkpoints())
             return CatalogRepository(
-                api, engine, db.repositories(), db.releases(), db.assets(), db.favorites(),
+                api, engine, db.repositories(), db.releases(), db.assets(), db.favorites(), db,
             )
         }
     }

@@ -68,7 +68,7 @@ fun GridCard(
                     modifier = Modifier.size(GStoreSpace.TouchTarget),
                 ) {
                     Icon(
-                        Fluent.Heart,
+                        if (isFavorite) Fluent.HeartFilled else Fluent.Heart,
                         contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                         tint = if (isFavorite) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,

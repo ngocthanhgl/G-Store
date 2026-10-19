@@ -15,8 +15,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,8 +51,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.AppIcon
@@ -56,6 +66,7 @@ import dev.gstore.model.AppRadius
 import dev.gstore.ui.Fluent
 import dev.gstore.ui.GStoreSpace
 import dev.gstore.datastore.AppearanceSettings
+import dev.gstore.datastore.AppIconStyle
 import dev.gstore.datastore.CardDensity
 import dev.gstore.datastore.HomeLayout
 import dev.gstore.datastore.ThemeMode
@@ -98,49 +109,32 @@ fun SettingsScreen(
     contentPadding = PaddingValues(bottom = GStoreSpace.Block),
     ) {
         item {
-            Column(
-                // No own top gap: the screen starts at the status-bar inset.
-                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-            ) {
-                Text(
-                    "Settings",
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                )
-                Text(
-                    "Appearance and behavior. Changes apply and save instantly.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        item {
-            SettingGroup("GitHub") {
+            SettingGroup("Account", topGap = false) {
                 if (identity.login.isBlank()) {
                     Text(
-                        "Anonymous: 60 requests/hour. Log in for 5,000.",
+                        "Anonymous: up to 6 manual refreshes per minute. Logged in: no app-imposed quota (GitHub limits still apply); refresh has a 10-second cooldown.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Button(
                         onClick = {
-                        submitted = false
-                        showLogin = true
-                    },
+                            submitted = false
+                            showLogin = true
+                        },
                         modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
-                    ) {
-                        Text("Log in with token", maxLines = 1)
-                    }
+                    ) { Text("Log in with token", maxLines = 1) }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+                    ) {
                         AppIcon(
                             avatarUrl = identity.avatarUrl,
                             owner = identity.login,
                             size = 40.dp,
+                            circular = true,
                         )
                         Text(
                             text = identity.login,
@@ -155,8 +149,7 @@ fun SettingsScreen(
                         ) { Text("Logout") }
                     }
                 }
-                val error = loginError
-                if (error != null) {
+                loginError?.let { error ->
                     Text(
                         text = error,
                         style = MaterialTheme.typography.bodySmall,
@@ -166,9 +159,7 @@ fun SettingsScreen(
                     )
                     TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
                 }
-                if (loginBusy) {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
+                if (loginBusy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             }
         }
         item {
@@ -178,18 +169,60 @@ fun SettingsScreen(
                     selected = appearance.theme,
                     labelOf = ::themeModeLabel,
                     onSelect = vm::setTheme,
+                    singleLine = true,
                 )
                 SwitchRow(
                     label = "Dynamic color",
-                    supporting = "Follow wallpaper colors on Android 12+",
+                    supporting = "Follow wallpaper colors on Android 12+ unless a custom accent is selected",
                     checked = appearance.dynamicColor,
                     onChecked = vm::setDynamicColor,
                 )
-            }
-        }
-        item {
-            SettingGroup("Layout") {
-                SettingLabel("Cards")
+                SettingLabel("Accent color")
+                AccentSwatches(
+                    selectedArgb = appearance.accentArgb,
+                    onSelect = vm::setAccentArgb,
+                )
+                SettingLabel("App icon")
+                ChoiceRow(
+                    options = AppIconStyle.entries,
+                    selected = appearance.appIcon,
+                    labelOf = ::appIconLabel,
+                    onSelect = vm::setAppIcon,
+                )
+                val iconResourceName = when (appearance.appIcon) {
+                    AppIconStyle.CLASSIC -> "ic_launcher"
+                    AppIconStyle.RED_LIGHT -> "ic_launcher_red_light"
+                    AppIconStyle.RED_DARK -> "ic_launcher_red_dark"
+                }
+                val appContext = androidx.compose.ui.platform.LocalContext.current
+                val iconResourceId = androidx.compose.runtime.remember(appearance.appIcon) {
+                    appContext.resources.getIdentifier(iconResourceName, "mipmap", appContext.packageName)
+                }
+                if (iconResourceId != 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { context ->
+                                android.widget.ImageView(context).apply {
+                                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                                }
+                            },
+                            update = { view ->
+                                view.setImageResource(iconResourceId)
+                                view.contentDescription = "${appIconLabel(appearance.appIcon)} app icon preview"
+                            },
+                            modifier = Modifier.size(56.dp),
+                        )
+                        Text(
+                            "Preview",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                SettingLabel("Layout")
                 ChoiceRow(
                     options = HomeLayout.entries,
                     selected = appearance.layout,
@@ -250,10 +283,7 @@ fun SettingsScreen(
                         )
                     },
                 )
-            }
-        }
-        item {
-            SettingGroup("Motion") {
+                SettingLabel("Motion")
                 SwitchRow(
                     label = "Reduce motion",
                     supporting = "Expanding lists snap instead of animating",
@@ -263,17 +293,15 @@ fun SettingsScreen(
             }
         }
         item {
-            SettingGroup("Releases") {
+            SettingGroup("Info") {
+                SettingLabel("Release behavior")
                 SwitchRow(
                     label = "Include prereleases",
                     supporting = "Off means stable releases only for download and update checks",
                     checked = appearance.includePrereleases,
                     onChecked = vm::setIncludePrereleases,
                 )
-            }
-        }
-        item {
-            SettingGroup("About") {
+                SettingLabel("About G Store")
                 Text(
                     "G Store $appVersion — GitHub-hosted APK releases. Stars and " +
                         "download counts are popularity signals, never safety ratings.",
@@ -294,6 +322,68 @@ fun SettingsScreen(
                 vm.loginWithToken(it)
             },
         )
+    }
+}
+
+private val accentColors = listOf(
+    "Violet" to 0xFF6750A4.toInt(),
+    "Blue" to 0xFF0056D2.toInt(),
+    "Teal" to 0xFF006A60.toInt(),
+    "Green" to 0xFF386A20.toInt(),
+    "Orange" to 0xFF8C4A00.toInt(),
+    "Red" to 0xFFBA1A1A.toInt(),
+    "Pink" to 0xFF9C405D.toInt(),
+    "Indigo" to 0xFF4355B9.toInt(),
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AccentSwatches(selectedArgb: Int?, onSelect: (Int?) -> Unit) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+    ) {
+        AccentSwatch(
+            label = "Automatic",
+            argb = MaterialTheme.colorScheme.primary.toArgb(),
+            selected = selectedArgb == null,
+            onClick = { onSelect(null) },
+        )
+        accentColors.forEach { (label, argb) ->
+            AccentSwatch(
+                label = label,
+                argb = argb,
+                selected = selectedArgb == argb,
+                onClick = { onSelect(argb) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccentSwatch(label: String, argb: Int, selected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .size(GStoreSpace.TouchTarget)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = "$label accent"
+                this.selected = selected
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(Color(argb))
+                .border(2.dp, borderColor, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) Icon(Fluent.Checkmark, contentDescription = null, tint = Color.White)
+        }
     }
 }
 
@@ -363,12 +453,16 @@ private fun LoginDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: (String
 }
 
 @Composable
-private fun SettingGroup(title: String, content: @Composable () -> Unit) {
+private fun SettingGroup(
+    title: String,
+    topGap: Boolean = true,
+    content: @Composable () -> Unit,
+) {
     // The header carries its own 24dp-above / 8dp-below rhythm.
     Column {
         // Shared header so group titles cannot drift from every other screen:
         // titleLarge, no primary tint, 24dp above / 8dp below.
-        AuroraSectionHeader(title = title)
+        AuroraSectionHeader(title = title, topGap = topGap)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = dev.gstore.designsystem.panelShape(),
@@ -403,13 +497,9 @@ private fun <T> ChoiceRow(
     selected: T,
     labelOf: (T) -> String,
     onSelect: (T) -> Unit,
+    singleLine: Boolean = false,
 ) {
-    // FlowRow wraps on narrow screens instead of pushing chips off-screen.
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
-        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-    ) {
+    val content: @Composable () -> Unit = {
         options.forEach { option ->
             val isSelected = option == selected
             FilterChip(
@@ -431,10 +521,21 @@ private fun <T> ChoiceRow(
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
-                // M3 chips are 32dp; every chip here is a primary choice.
                 modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
             )
         }
+    }
+    if (singleLine) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        ) { content() }
+    } else {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        ) { content() }
     }
 }
 

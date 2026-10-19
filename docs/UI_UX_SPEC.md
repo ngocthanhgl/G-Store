@@ -18,7 +18,9 @@ ripples and pull-to-refresh physics are Material-controlled and minimal.
 There are no custom 200/300ms durations anywhere — the M0 draft was wrong.
 
 Dynamic color on API 31+ via system schemes; custom accent replaces the seed
-primary. Contrast is carried by M3 tonal schemes, not by an in-app checker —
+primary and takes precedence over wallpaper dynamic color. The curated dark
+seeds keep primary actions legible; there is no arbitrary color picker.
+Contrast is carried by M3 tonal schemes, not by an in-app checker —
 no contrast-ratio enforcement code exists (M0 draft was aspirational).
 
 ## 2. Customization model (persisted in DataStore, restored pre-first-frame)
@@ -60,7 +62,8 @@ explanation is an overlay gate in Downloads (opens system settings only on
 tap, re-checks grant on return). Bottom bar on compact; nav rail on
 expanded (sw≥600dp via BoxWithConstraints — reflows under API-37 forced
 resizability; orientation never assumed). Details/Readme VMs are keyed per
-repo so back-stack state survives.
+repo so back-stack state survives. Route changes use a short fade; repeated
+direct navigation to the same Settings, category, or README route is single-top.
 
 ## 5. Acceptance (visual)
 
@@ -68,3 +71,26 @@ No one-off styles; customization clamps (radius 4–20dp) so it cannot break
 layout; automated checks at M7 = unit tests + lint + code-level detector
 pass (`.agents/skills/impeccable/detector/M7-20261010.md`). Screenshot,
 TalkBack, and resize tests remain device-gated (TEST_PLAN.md).
+
+## 6. M8 detail-screen refinements
+
+- Count pills center their value on both axes. Details content uses the shared
+  spacing tokens consistently; the APK-discovery indicator is separated from
+  preceding content.
+- Release notes are collapsed by default and expand inline from the selected
+  version chip. Screenshots appear after About; the full-screen viewer supports
+  horizontal paging while preserving pinch zoom and pan.
+- Repository images combine README-referenced images with root image files;
+  README references and screenshot/screen/preview/demo filenames rank first.
+  Common logo, banner, icon, avatar, and promotional-image names are excluded,
+  and decoded images must be at least 500px on one axis. This improves precision
+  but is not a measured 80% accuracy guarantee; subdirectories not referenced
+  by the README and ambiguous image names may be missed.
+- Markdown tables use shared per-column widths and horizontal scrolling.
+- When a download completes while Details or Downloads remains foregrounded,
+  G Store opens Android's installer automatically; Android still requires the
+  user to confirm. If the process is killed first, the completed APK remains
+  available for manual installation from Downloads.
+- Installation permission explanation is inset from safe drawing areas. When
+  the user grants install permission in Android settings and returns, the app
+  re-checks the grant and opens the system installer for the pending APK.

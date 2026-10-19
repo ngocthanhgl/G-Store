@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -50,9 +49,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,6 +61,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -91,6 +95,7 @@ fun DetailsScreen(
     onHeroCancel: (Long) -> Unit,
     onHeroInstall: (DownloadRecord) -> Unit,
     onHeroUninstall: (String) -> Unit,
+    onResumeInstalledState: () -> Unit,
     canOpenApp: (String) -> Boolean,
     onOpenApp: (String) -> Unit,
     onOpenReadme: () -> Unit,
@@ -98,6 +103,24 @@ fun DetailsScreen(
     reduceMotion: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var screenResumed by remember {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    DisposableEffect(lifecycleOwner, onResumeInstalledState) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    screenResumed = true
+                    onResumeInstalledState()
+                }
+                Lifecycle.Event.ON_PAUSE -> screenResumed = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val notice = state.notice
     LaunchedEffect(notice) {
         if (notice != null) snackbar.showSnackbar(notice)
@@ -153,13 +176,26 @@ fun DetailsScreen(
     // Owned by the screen, keyed by release id. Lazy saveable state is keyed
     // by item INDEX, so holding this inside the changelog item made the
     // registry throw whenever the release list shifted under it mid-load.
-    var changelogExpanded by rememberSaveable(state.selectedReleaseId) { mutableStateOf(false) }
+    var changelogExpanded by rememberSaveable { mutableStateOf(false) }
+    var changelogReleaseId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val showChangelog =
+        changelogExpanded && changelogReleaseId == state.selectedReleaseId
     // Full-screen gallery: index into the same screenshot list the strip shows,
     // so the viewer always opens on the tile that was tapped.
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
+    val imageDimensionsOk = remember(repo.id) { mutableStateMapOf<String, Boolean>() }
+    val visibleImages = state.images.filter { imageDimensionsOk[it.url] != false }
+    var previousHero by remember(repo.id) { mutableStateOf<HeroDlState?>(null) }
+    LaunchedEffect(state.hero, screenResumed) {
+        if (screenResumed && shouldAutoInstallHero(previousHero, state.hero)) {
+            onHeroInstall((state.hero as HeroDlState.ReadyInstall).record)
+        }
+        if (screenResumed) previousHero = state.hero
+    }
     LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
         // The navigation bar owns the system inset, so this is just a reading
         // gap; the top inset comes from the TopBar's safeTop().
         contentPadding = PaddingValues(
@@ -189,7 +225,10 @@ fun DetailsScreen(
                 modifier = Modifier.safeTop(),
             )
         }
-        item { HeaderRow(repo) }
+        item {
+            val latestRelease = state.releases.maxByOrNull { it.publishedAt.orEmpty() }
+            HeaderRow(repo, latestRelease?.publishedAt ?: repo.pushedAt)
+        }
         item {
             HeroBare(
                 hero = state.hero,
@@ -202,51 +241,108 @@ fun DetailsScreen(
                 onUninstall = onHeroUninstall,
                 canOpenApp = canOpenApp,
                 onOpenApp = onOpenApp,
-                findingApk = state.syncing || state.loadingAssets || state.scanningApks,
+                findingApk = state.syncing || state.scanningApks,
+                loadingReleaseAssets = state.loadingAssets,
             )
-        }
-        // Play Store order: what it looks like, before what it says. The
-        // gallery was the last thing on the page, which meant every visitor
-        // read a paragraph before seeing a single pixel of the app.
-        item {
-            ScreenshotsRow(state.screenshots, reduceMotion) { index -> viewerIndex = index }
         }
         val description = repo.description
         if (description != null) {
-            item { AuroraSectionHeader(title = "About this app", topGap = true) }
-            item { DescriptionText(description) }
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(
+                        top = GStoreSpace.BeforeHeader - GStoreSpace.Block,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(GStoreSpace.AfterHeader),
+                ) {
+                    AuroraSectionHeader(
+                        title = "About this app",
+                        topGap = false,
+                        bottomGap = false,
+                    )
+                    DescriptionText(description)
+                }
+            }
+        }
+        if (state.images.isNotEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(
+                        top = GStoreSpace.BeforeHeader - GStoreSpace.Block,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(GStoreSpace.AfterHeader),
+                ) {
+                    AuroraSectionHeader(
+                        title = "Images",
+                        count = visibleImages.size,
+                        topGap = false,
+                        bottomGap = false,
+                    )
+                    ImagesRow(visibleImages, reduceMotion, onImageSizeChecked = { url, accepted ->
+                        imageDimensionsOk[url] = accepted
+                    }) { index -> viewerIndex = index }
+                }
+            }
         }
         val busy = state.syncing || state.loadingRepo || state.scanningApks
         val syncError = state.syncError
-        // The shared header owns the 24dp-above / 8dp-below rhythm, so no
-        // hand-placed spacers bracket it and the rail starts 8dp down.
-        item { AuroraSectionHeader(title = "What's new", count = apkReleases.size.takeIf { it > 0 }, topGap = true) }
-        if (apkReleases.isEmpty() && busy && syncError == null) {
-            // Still arriving: shimmer instead of "no releases" copy.
-            item { ShimmerRows(count = 2, reduceMotion = reduceMotion) }
-        } else {
-            item { ReleasePicker(apkReleases, state.selectedReleaseId, onSelectRelease) }
-        }
-        if (syncError != null) {
-            item {
-                SyncErrorCard(syncError, onRefresh, cardRadiusDp)
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(
+                    top = GStoreSpace.BeforeHeader - GStoreSpace.Block,
+                ),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.AfterHeader),
+            ) {
+                AuroraSectionHeader(
+                    title = "What's new",
+                    count = apkReleases.size.takeIf { it > 0 },
+                    topGap = false,
+                    bottomGap = false,
+                )
+                if (apkReleases.isEmpty() && busy && syncError == null) {
+                    ShimmerRows(count = 2, reduceMotion = reduceMotion)
+                } else {
+                    ReleasePicker(
+                        apkReleases,
+                        state.selectedReleaseId,
+                        changelogReleaseId.takeIf { changelogExpanded },
+                        onClickRelease = { releaseId ->
+                            if (changelogExpanded && changelogReleaseId == releaseId) {
+                                changelogExpanded = false
+                            } else {
+                                onSelectRelease(releaseId)
+                                changelogReleaseId = releaseId
+                                changelogExpanded = true
+                            }
+                        },
+                    )
+                }
+                if (syncError != null) {
+                    SyncErrorCard(syncError, onRefresh, cardRadiusDp)
+                }
             }
         }
-        selectedRelease(state)?.let { release ->
+        if (showChangelog) selectedRelease(state)?.let { release ->
             item {
                 ChangelogFull(
                     release = release,
                     reduceMotion = reduceMotion,
-                    expanded = changelogExpanded,
-                    onToggle = { changelogExpanded = !changelogExpanded },
                 )
             }
         }
-        item { MetaFooter(repo, onOpenReadme) }
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(
+                    top = GStoreSpace.BeforeHeader - GStoreSpace.Block,
+                ),
+                verticalArrangement = Arrangement.spacedBy(GStoreSpace.AfterHeader),
+            ) {
+                MetaFooter(repo, onOpenReadme)
+            }
+        }
     }
     if (viewerIndex >= 0) {
         ScreenshotViewer(
-            images = state.screenshots,
+            images = visibleImages,
             startIndex = viewerIndex,
             onDismiss = { viewerIndex = -1 },
         )
@@ -267,13 +363,7 @@ private fun TopBar(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Optical 16dp alignment: an IconButton centres its 24dp glyph in a 48dp
-    // box, so the two edge controls shift 12dp outward to put their glyph
-    // edge exactly on the list's 16dp inset. Offsets don't move siblings, so
-    // every control keeps its full 48dp target and the inner two stay aligned
-    // with each other. The syncing spinner carries the SAME offset as the
-    // refresh button it replaces — otherwise the whole row jumped 12dp every
-    // time a sync started or stopped.
+    // All controls keep identical 48dp targets and share the same row spacing.
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -281,13 +371,12 @@ private fun TopBar(
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.offset(x = (-12).dp),
         ) { Icon(Fluent.ArrowLeft, contentDescription = "Back") }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onShare) { Icon(Fluent.Share, contentDescription = "Share") }
         IconButton(onClick = onToggleFavorite) {
             Icon(
-                Fluent.Heart,
+                if (isFavorite) Fluent.HeartFilled else Fluent.Heart,
                 contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                 tint = if (isFavorite) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurface,
@@ -295,22 +384,19 @@ private fun TopBar(
         }
         if (syncing) {
             Box(
-                modifier = Modifier
-                    .size(GStoreSpace.TouchTarget)
-                    .offset(x = 12.dp),
+                modifier = Modifier.size(GStoreSpace.TouchTarget),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(Modifier.size(GStoreSpace.Icon))
             }
         } else IconButton(
             onClick = onRefresh,
-            modifier = Modifier.offset(x = 12.dp),
         ) { Icon(Fluent.ArrowSync, contentDescription = "Re-sync") }
     }
 }
 
 @Composable
-private fun HeaderRow(repo: Repository) {
+private fun HeaderRow(repo: Repository, lastUpdate: String?) {
     // One-screen header: icon left, texts stacked left. The stats row died
     // here — stars/forks/freshness compress into a single meta line whose
     // tail (least important) truncates first, by design.
@@ -345,7 +431,7 @@ private fun HeaderRow(repo: Repository) {
                 buildString {
                     if (repo.archived) append("Archived · ")
                     append("★ ${formatCount(repo.stars)} · ${formatCount(repo.forks)} forks")
-                    repo.updatedAt?.take(10)?.let { append(" · $it") }
+                    lastUpdate?.take(10)?.let { append(" · Last update $it") }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -468,7 +554,8 @@ private fun formatCount(n: Int): String = when {
 private fun ReleasePicker(
     releases: List<Release>,
     selectedId: Long?,
-    onSelect: (Long) -> Unit,
+    expandedReleaseId: Long?,
+    onClickRelease: (Long) -> Unit,
 ) {
     if (releases.isEmpty()) {
         Text(
@@ -484,9 +571,10 @@ private fun ReleasePicker(
     LazyRow(horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
         items(releases, key = { it.id }) { release ->
             val selected = release.id == selectedId
+            val expanded = release.id == expandedReleaseId
             FilterChip(
                 selected = selected,
-                onClick = { onSelect(release.id) },
+                onClick = { onClickRelease(release.id) },
                 label = {
                     Text(
                         release.tag + if (release.prerelease) " · pre" else "",
@@ -499,6 +587,15 @@ private fun ReleasePicker(
                         Icon(
                             Fluent.Checkmark,
                             contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                } else null,
+                trailingIcon = if (selected) {
+                    {
+                        Icon(
+                            if (expanded) Fluent.ChevronDown else Fluent.ChevronRight,
+                            contentDescription = if (expanded) "Hide changelog" else "Show changelog",
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -555,99 +652,63 @@ private fun SyncErrorCard(message: String, onRetry: () -> Unit, cardRadiusDp: In
 private fun ChangelogFull(
     release: Release,
     reduceMotion: Boolean,
-    expanded: Boolean,
-    onToggle: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(panelShape())
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(GStoreSpace.Card),
         verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-            modifier = Modifier
-                .fillMaxWidth()
-                // 48dp target: the toggle is the only way to reach the notes,
-                // so a text line alone would not be tappable enough.
-                .heightIn(min = GStoreSpace.TouchTarget)
-                .clip(CircleShape)
-.clickable { onToggle() }
-                .padding(horizontal = GStoreSpace.Small),
-        ) {
-                Text(
-                    buildString {
-                        append(release.tag)
-                        if (release.prerelease) append(" · pre")
-                        release.publishedAt?.take(10)?.let { append(" · $it") }
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            // Disclosure chevron: without it a bold text line is
-            // indistinguishable from the four other bold lines above it.
-            Icon(
-                if (expanded) Fluent.ChevronDown else Fluent.ChevronRight,
-                contentDescription = if (expanded) "Hide changelog" else "Show changelog",
-                modifier = Modifier.size(GStoreSpace.Icon),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        val releaseName = release.name
+        if (releaseName != null && releaseName != release.tag) {
+            Text(
+                releaseName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
-        if (expanded) {
-            val releaseName = release.name
-                // The tag already heads this card: repeat the name only when
-                // it actually says something different.
-                if (releaseName != null && releaseName != release.tag) {
-                    Text(
-                        releaseName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
-                }
-                val notes = release.notes
-                if (notes.isNullOrBlank()) {
-                    Text(
-                        "No changelog text on this release.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    // Parsed off the main thread; shimmer until ready.
-                    var blocks by remember(release.id) { mutableStateOf<List<Block>?>(null) }
-                    LaunchedEffect(release.id, notes) {
-                        blocks = withContext(Dispatchers.Default) { parseMarkdown(notes) }
-                    }
-                    val parsed = blocks
-                    if (parsed == null) {
-                        ShimmerRows(count = 2, reduceMotion = reduceMotion)
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            parsed.forEach { BlockView(it, "", "") }
-                        }
-                    }
-                }
-                release.htmlUrl?.let { url ->
-                    TextButton(
-                        onClick = { uriHandler.openUri(url) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Open release page") }
+        val notes = release.notes
+        if (notes.isNullOrBlank()) {
+            Text(
+                "No changelog text on this release.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            var blocks by remember(release.id) { mutableStateOf<List<Block>?>(null) }
+            LaunchedEffect(release.id, notes) {
+                blocks = withContext(Dispatchers.Default) { parseMarkdown(notes) }
+            }
+            val parsed = blocks
+            if (parsed == null) {
+                ShimmerRows(count = 2, reduceMotion = reduceMotion)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+                    parsed.forEach { BlockView(it, "", "") }
                 }
             }
         }
+        release.htmlUrl?.let { url ->
+            TextButton(
+                onClick = { uriHandler.openUri(url) },
+                modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+            ) { Text("Open release page") }
+        }
     }
+}
 /**
- * Repo-root screenshot gallery: image files only, up to 8, in a horizontal
- * rail directly under the hero control. No heading of its own — this is the
- * first thing on the page and a label above it would be noise.
+ * Repo and README images, filtered after bounded decode to avoid badges and
+ * tiny decorative assets.
  */
 @Composable
-private fun ScreenshotsRow(
-    items: List<ScreenshotItem>,
+private fun ImagesRow(
+    items: List<RepositoryImage>,
     reduceMotion: Boolean,
+    onImageSizeChecked: (String, Boolean) -> Unit,
     onOpen: (Int) -> Unit,
 ) {
     if (items.isEmpty()) return
@@ -656,9 +717,10 @@ private fun ScreenshotsRow(
         horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
         contentPadding = PaddingValues(vertical = GStoreSpace.Small),
     ) {
-        items(items, key = { it.name }) { screenshot ->
+        items(items, key = { it.url }) { screenshot ->
             val imageUrl = screenshot.url
             var loaded by remember(screenshot.url) { mutableStateOf(false) }
+            var failed by remember(screenshot.url) { mutableStateOf(false) }
             Box(
                 modifier = Modifier
                     .size(ScreenshotSize)
@@ -671,8 +733,15 @@ private fun ScreenshotsRow(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (!loaded && imageUrl.isNotBlank()) {
+                if (!loaded && !failed && imageUrl.isNotBlank()) {
                     ShimmerBlock(Modifier.fillMaxSize(), reduceMotion = reduceMotion)
+                }
+                if (failed) {
+                    Text(
+                        "Image unavailable",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (imageUrl.isNotBlank()) {
                     AsyncImage(
@@ -688,8 +757,20 @@ private fun ScreenshotsRow(
                             .size(ScreenshotSize)
                             .clip(imageShapeFor()),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        onSuccess = { _ -> loaded = true },
-                        onError = { _ -> loaded = false },
+                        onSuccess = { result ->
+                            loaded = true
+                            failed = false
+                            val size = result.painter.intrinsicSize
+                            onImageSizeChecked(
+                                screenshot.url,
+                                meetsMinimumImageSize(size.width, size.height),
+                            )
+                        },
+                        onError = { _ ->
+                            loaded = true
+                            failed = true
+                            onImageSizeChecked(screenshot.url, false)
+                        },
                     )
                 }
             }
@@ -719,6 +800,7 @@ private fun HeroBare(
     onOpenApp: (String) -> Unit,
     /** True while assets are still arriving — show progress, never blank. */
     findingApk: Boolean = false,
+    loadingReleaseAssets: Boolean = false,
     /** Package name of an already-installed copy, if any. */
     installedPackageName: String? = null,
 ) {
@@ -752,13 +834,31 @@ private fun HeroBare(
             val target = asset
             if (target == null) {
                 if (findingApk) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Text(
-                        "Finding APK...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                    Column(
+                        modifier = heroModifier.fillMaxWidth().padding(top = GStoreSpace.Small),
+                        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+                    ) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Finding APK...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                } else if (loadingReleaseAssets) {
+                    Column(
+                        modifier = heroModifier.fillMaxWidth().padding(top = GStoreSpace.Small),
+                        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+                    ) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Loading selected version...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 } else {
                     Button(
                         onClick = {},
@@ -862,7 +962,3 @@ private fun HeroBare(
         }
     }
 }
-
-
-
-
