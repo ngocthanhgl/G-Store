@@ -1,25 +1,25 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-18T09:10:36.958421+00:00",
+ "scanned_at": "2026-10-19T08:59:23.355139+00:00",
  "tool": "tools/scan.py",
- "query_set": 7,
+ "query_set": 8,
  "queries": [
-  "godot android archived:false fork:false",
-  "unity android archived:false fork:false",
-  "android game archived:false fork:false",
-  "android emulator archived:false fork:false"
+  "kivy android archived:false fork:false",
+  "chaquopy android archived:false fork:false",
+  "android language:Python archived:false fork:false",
+  "android language:C++ archived:false fork:false"
  ],
- "candidates": 3828,
- "checked": 3828,
- "verified_today": 612,
- "carried_over": 1687,
+ "candidates": 3194,
+ "checked": 3194,
+ "verified_today": 407,
+ "carried_over": 2271,
  "dropped_stale": 0,
- "matches": 2271,
- "index_matches": 2271,
- "index_bytes": 1889592,
+ "matches": 2636,
+ "index_matches": 2636,
+ "index_bytes": 2188278,
  "truncated": false,
  "deadline_hit": false,
  "complete": true,
  "error": null,
- "duration_s": 8082.8
+ "duration_s": 6171.1
 }
