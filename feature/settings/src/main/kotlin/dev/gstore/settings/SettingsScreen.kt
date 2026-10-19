@@ -203,9 +203,16 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        androidx.compose.foundation.Image(
-                            painter = androidx.compose.ui.res.painterResource(iconResourceId),
-                            contentDescription = "${appIconLabel(appearance.appIcon)} app icon preview",
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { context ->
+                                android.widget.ImageView(context).apply {
+                                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                                }
+                            },
+                            update = { view ->
+                                view.setImageResource(iconResourceId)
+                                view.contentDescription = "${appIconLabel(appearance.appIcon)} app icon preview"
+                            },
                             modifier = Modifier.size(56.dp),
                         )
                         Text(
