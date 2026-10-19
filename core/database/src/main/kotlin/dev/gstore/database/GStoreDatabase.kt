@@ -64,7 +64,7 @@ data class RepositoryEntity(
     val homepage: String? = null,
     val pushedAt: String? = null,
     val lastSyncedAt: Long,
-    /** FRESH | STALE | FAILED:<cause> — see SyncState in core:model. */
+    /** FRESH | STALE | SEARCH_ONLY | FAILED:<cause> — catalog visibility state. */
     val syncState: String,
 )
 
@@ -133,6 +133,9 @@ data class SyncCheckpoint(
 interface RepositoryDao {
     @Query("SELECT * FROM repositories ORDER BY stars DESC")
     fun observeAll(): Flow<List<RepositoryEntity>>
+
+    @Query("SELECT * FROM repositories WHERE syncState != 'SEARCH_ONLY' ORDER BY stars DESC")
+    fun observeCatalog(): Flow<List<RepositoryEntity>>
 
     @Query("SELECT * FROM repositories WHERE id = :id")
     suspend fun getById(id: Long): RepositoryEntity?

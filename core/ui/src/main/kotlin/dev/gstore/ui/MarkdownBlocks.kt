@@ -1,6 +1,7 @@
 package dev.gstore.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -325,6 +326,15 @@ private fun SpanText(
         )
         spans.filterIsInstance<Span.Picture>().forEach { picture ->
             val url = resolveRelative(picture.src, owner, repo, forImage = true, branch = branch)
+            val imageModifier = Modifier.fillMaxSize().then(
+                picture.href?.let { href ->
+                    Modifier.clickable {
+                        uriHandler.openUri(
+                            resolveRelative(href, owner, repo, forImage = false, branch = branch),
+                        )
+                    }
+                } ?: Modifier,
+            )
             // Only GitHub-hosted images load automatically; other hosts require
             // an explicit tap so README markup cannot probe private networks.
             if (canAutoLoadMarkdownImage(url)) {
@@ -365,7 +375,7 @@ private fun SpanText(
                             .build(),
                         contentDescription = picture.alt.ifEmpty { "README image" },
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = imageModifier,
                         onSuccess = { loaded = true },
                         onError = { failed = true },
                     )

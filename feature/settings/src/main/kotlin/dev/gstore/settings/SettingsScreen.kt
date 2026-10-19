@@ -125,64 +125,6 @@ fun SettingsScreen(
             }
         }
         item {
-            SettingGroup("GitHub") {
-                if (identity.login.isBlank()) {
-                    Text(
-                        "Anonymous: 60 requests/hour. Log in for 5,000.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Button(
-                        onClick = {
-                        submitted = false
-                        showLogin = true
-                    },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
-                    ) {
-                        Text("Log in with token", maxLines = 1)
-                    }
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
-                    ) {
-                        AppIcon(
-                            avatarUrl = identity.avatarUrl,
-                            owner = identity.login,
-                            size = 40.dp,
-                        )
-                        Text(
-                            text = identity.login,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = vm::logout,
-                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
-                        ) { Text("Logout") }
-                    }
-                }
-                val error = loginError
-                if (error != null) {
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
-                }
-                if (loginBusy) {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
-            }
-        }
-        item {
             SettingGroup("Theme") {
                 ChoiceRow(
                     options = ThemeMode.entries,
@@ -201,11 +143,7 @@ fun SettingsScreen(
                     selectedArgb = appearance.accentArgb,
                     onSelect = vm::setAccentArgb,
                 )
-            }
-        }
-        item {
-            SettingGroup("Layout") {
-                SettingLabel("Cards")
+                SettingLabel("Layout")
                 ChoiceRow(
                     options = HomeLayout.entries,
                     selected = appearance.layout,
@@ -266,10 +204,7 @@ fun SettingsScreen(
                         )
                     },
                 )
-            }
-        }
-        item {
-            SettingGroup("Motion") {
+                SettingLabel("Motion")
                 SwitchRow(
                     label = "Reduce motion",
                     supporting = "Expanding lists snap instead of animating",
@@ -279,17 +214,15 @@ fun SettingsScreen(
             }
         }
         item {
-            SettingGroup("Releases") {
+            SettingGroup("Info") {
+                SettingLabel("Release behavior")
                 SwitchRow(
                     label = "Include prereleases",
                     supporting = "Off means stable releases only for download and update checks",
                     checked = appearance.includePrereleases,
                     onChecked = vm::setIncludePrereleases,
                 )
-            }
-        }
-        item {
-            SettingGroup("About") {
+                SettingLabel("About G Store")
                 Text(
                     "G Store $appVersion — GitHub-hosted APK releases. Stars and " +
                         "download counts are popularity signals, never safety ratings.",
@@ -298,6 +231,64 @@ fun SettingsScreen(
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+        item {
+            SettingGroup("Account") {
+                if (identity.login.isBlank()) {
+                    Text(
+                        "Anonymous: 60 requests/hour. Log in for 5,000.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Button(
+                        onClick = {
+                            submitted = false
+                            showLogin = true
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = GStoreSpace.TouchTarget),
+                    ) {
+                        Text("Log in with token", maxLines = 1)
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Medium),
+                    ) {
+                        AppIcon(
+                            avatarUrl = identity.avatarUrl,
+                            owner = identity.login,
+                            size = 40.dp,
+                        )
+                        Text(
+                            text = identity.login,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            onClick = vm::logout,
+                            modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                        ) { Text("Logout") }
+                    }
+                }
+                val error = loginError
+                if (error != null) {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    TextButton(onClick = vm::dismissLoginError) { Text("Dismiss") }
+                }
+                if (loginBusy) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
             }
         }
     }

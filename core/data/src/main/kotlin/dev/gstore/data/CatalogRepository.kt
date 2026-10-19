@@ -46,6 +46,20 @@ class CatalogRepository(
     fun observeRepositories(): Flow<List<Repository>> =
         repos.observeAll().map { list -> list.map { it.toDomain() } }
 
+    /** Search-only detail visits are cached, but never enter Home discovery sections. */
+    fun observeCatalogRepositories(): Flow<List<Repository>> =
+        repos.observeCatalog().map { list -> list.map { it.toDomain() } }
+
+    suspend fun markSearchOnly(repoId: Long) {
+        val repo = repos.getById(repoId) ?: return
+        if (repo.syncState != "SEARCH_ONLY") {
+            repos.upsert(repo.copy(syncState = "SEARCH_ONLY"))
+        }
+    }
+
+    suspend fun isSearchOnly(repoId: Long): Boolean =
+        repos.getById(repoId)?.syncState == "SEARCH_ONLY"
+
     suspend fun getRepository(id: Long): Repository? = repos.getById(id)?.toDomain()
 
     suspend fun getByFullName(fullName: String): Repository? =
@@ -128,7 +142,8 @@ class CatalogRepository(
     suspend fun fetchReadme(owner: String, repo: String): ApiResponse<ReadmeFetch> =
         api.fetchReadme(owner, repo, null)
 
-    suspend fun sync(fullName: String): Outcome<Unit> = engine.syncRepository(fullName)
+    suspend fun sync(fullName: String, catalogVisible: Boolean = true): Outcome<Unit> =
+        engine.syncRepository(fullName, catalogVisible)
 
     /**
      * Slim scanner rows carry metadata but no assets — details must full-sync
@@ -137,7 +152,7 @@ class CatalogRepository(
      */
     suspend fun needsFullSync(fullName: String): Boolean {
         val existing = repos.getByFullName(fullName) ?: return true
-        return existing.syncState != "FRESH"
+        return existing.syncState != "FRESH" && existing.syncState != "SEARCH_ONLY"
     }
 
     /**

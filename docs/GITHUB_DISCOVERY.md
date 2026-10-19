@@ -29,6 +29,12 @@ sync of known repos + user-submitted URLs + cached results. Never imply full
 indexing; the Search screen states coverage basis. Sync checkpoints
 (`DiscoveryQuery`) make indexing resumable; no full-catalog rescans.
 
+Opening a GitHub search result can cache its repository and releases for the
+details screen, but that detail-only sync is tagged `SEARCH_ONLY` and excluded
+from Home discovery, category counts, and catalog rankings. A user can still
+explicitly favorite that repository; it then appears in Favorites without
+changing New, Trending, or Famous membership.
+
 ## 4. APK validation (not filename-only)
 
 Accept `.apk` with `content_type` APK/zip/octet-stream AND structural check

@@ -55,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.data.AppCategory
@@ -71,6 +72,7 @@ import dev.gstore.ui.RepoCard
 import dev.gstore.ui.RepoRows
 import dev.gstore.ui.ShimmerRows
 import dev.gstore.designsystem.LocalCardRadius
+import dev.gstore.designsystem.panelShape
 
 private const val COLLAPSED_COUNT = 5
 
@@ -85,6 +87,7 @@ private const val COLLAPSED_COUNT = 5
 fun HomeScreen(
     vm: HomeViewModel,
     onOpenRepo: (Repository) -> Unit,
+    onOpenDiscoveryRepo: (Repository) -> Unit,
     onOpenCategory: (AppCategory) -> Unit,
     onOpenLogin: () -> Unit,
     onLogout: () -> Unit,
@@ -216,7 +219,7 @@ verticalArrangement = Arrangement.spacedBy(12.dp),
             favorites = state.favoriteIds,
             onSearch = vm::discover,
             onAdd = vm::addRepository,
-            onOpen = onOpenRepo,
+            onOpen = onOpenDiscoveryRepo,
             onToggleFavorite = vm::toggleFavorite,
             onDismiss = { showDiscover = false },
         )
@@ -292,6 +295,7 @@ private fun HomeHeader(
             DropdownMenu(
                 expanded = showProfile,
                 onDismissRequest = { showProfile = false },
+                modifier = Modifier.clip(panelShape()),
             ) {
                 if (identity.login.isNotBlank()) {
                     DropdownMenuItem(
@@ -575,7 +579,5 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-
-
 
 

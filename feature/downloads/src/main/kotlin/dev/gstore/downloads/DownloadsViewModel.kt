@@ -76,6 +76,7 @@ class DownloadsViewModel(
     private val tokens: TokenStore,
     private val prefs: PreferencesRepository,
     private val starSync: StarSyncEngine,
+    private val notifications: DownloadNotifications,
 ) : ViewModel() {
     private val installed = MutableStateFlow<List<InstalledRow>>(emptyList())
     private val installedRefreshing = MutableStateFlow(false)
@@ -159,6 +160,7 @@ class DownloadsViewModel(
         viewModelScope.launch {
             if (!tokens.token.value.isNullOrBlank()) syncStarred()
         }
+        refreshInstalled(auto = true)
     }
 
     private val shelves = combine(favorites, manual) { f, m -> f to m }
@@ -219,14 +221,15 @@ class DownloadsViewModel(
      * Re-read PackageManager for every tracked package and re-check the
      * catalog for newer tags on the tracked repos. User-triggered and
      * bounded by the installed count (usually a handful) — never a scan.
-     * Logged-in users are never throttled (5,000/hr quota): the 60 s gate
-     * and its prompt apply to anonymous taps only. Automatic calls (app
-     * resume) pass [auto] and return silently instead of prompting.
+     * Automatic calls are bounded to one per minute to avoid duplicate
+     * startup/resume requests. Manual checks are throttled only for anonymous
+     * users; logged-in users have the higher GitHub quota.
      */
     fun refreshInstalled(auto: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (tokens.token.value.isNullOrBlank() && now - lastRefreshMillis < 60_000) {
-            if (!auto) showLoginPrompt.value = true
+        val anonymous = tokens.token.value.isNullOrBlank()
+        if ((auto || anonymous) && now - lastRefreshMillis < 60_000) {
+            if (!auto && anonymous) showLoginPrompt.value = true
             return
         }
         lastRefreshMillis = now
@@ -239,7 +242,7 @@ class DownloadsViewModel(
                 val infos = installedApps.installedPackages(
                     records.mapNotNull { it.packageName }.toSet(),
                 )
-                installed.value = records.map { record ->
+                val refreshed = records.map { record ->
                     val info = infos[record.packageName]
                     val latestTag = latestTagFor(record.repoFullName)
                     InstalledRow(
@@ -258,6 +261,13 @@ class DownloadsViewModel(
                         lastUpdateTime = info?.lastUpdateTime ?: 0L,
                     )
                 }
+                installed.value = refreshed
+                refreshed.filter { it.updateState == UpdateState.UPDATE_AVAILABLE }
+                    .forEach { row ->
+                        val packageName = row.record.packageName ?: return@forEach
+                        val releaseTag = row.latestTag ?: return@forEach
+                        notifications.updateAvailable(packageName, row.label, releaseTag)
+                    }
             } catch (e: Exception) {
                 notice.value = "Could not refresh installed apps: ${e.message}"
             }

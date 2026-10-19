@@ -35,8 +35,10 @@ added, reports exactly what matched and never equals authorship trust.
 ## 4. Install & device
 
 No silent install; system installer is the only executor; downloaded files never
-executed in-process. No broad package visibility (no QUERY_ALL_PACKAGES);
-installed-state uses targeted queries only. Every artifact screen shows origin
+executed in-process. `QUERY_ALL_PACKAGES` is declared because tracked package
+names are learned from downloaded APK manifests and cannot be predeclared in
+`<queries>`; application code queries only those tracked names and does not
+enumerate a device-wide inventory. Every artifact screen shows origin
 repo + release + checksum state + a "report suspicious entry" action (local
 blocklist + optional maintainer report link).
 

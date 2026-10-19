@@ -111,7 +111,7 @@ class HomeViewModel(
 
     private val refreshState = combine(
         syncing, banner, catalogFilter, syncingCatalog,
-        catalog.observeRepositories().map { it.isEmpty() },
+        catalog.observeCatalogRepositories().map { it.isEmpty() },
     ) { s, b, f, cs, empty ->
         RefreshState(s, b, f, cs, empty)
     }
@@ -147,7 +147,7 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            catalog.observeRepositories().collect { repos ->
+            catalog.observeCatalogRepositories().collect { repos ->
                 allRepos.value = repos
                 // First open pulls the catalog when the DB is empty OR the
                 // last import is older than the scanner schedule — no manual

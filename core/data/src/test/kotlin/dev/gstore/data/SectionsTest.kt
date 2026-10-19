@@ -96,6 +96,28 @@ class SectionsTest {
         )
     }
 
+    @Test fun `search-only repositories appear only in favorites when explicitly saved`() {
+        val searchOnly = RepoSignals(
+            repo(9, stars = 2_000).copy(catalogVisible = false),
+            releases30d = 2,
+            eligibleReleaseCount = 3,
+            firstEligibleReleaseAt = "2026-10-01T00:00:00Z",
+            latestReleaseAt = "2026-10-02T00:00:00Z",
+        )
+        val sections = computeSections(
+            listOf(searchOnly),
+            favoriteIds = setOf(9),
+            now = now,
+        )
+
+        assertTrue(sections.new.isEmpty())
+        assertTrue(sections.trending.isEmpty())
+        assertTrue(sections.famous.isEmpty())
+        assertTrue(sections.updated.isEmpty())
+        assertEquals(listOf(9L), sections.favorites.map { it.repo.id })
+        assertTrue(sortedCatalog(listOf(searchOnly), CatalogFilter.STARS).isEmpty())
+    }
+
     @Test fun `local favorites never change trending or top stars`() {
         val signals = listOf(
             RepoSignals(repo(1, stars = 900), releases30d = 2),

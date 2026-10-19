@@ -14,6 +14,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -138,6 +139,11 @@ fun GStoreTheme(
         // color is bypassed — it would wash out the black.
         settings.theme == ThemeMode.AMOLED -> darkColorScheme(
             primary = seed,
+            secondary = seed,
+            tertiary = seed,
+            onPrimary = onAccent(seed),
+            onSecondary = onAccent(seed),
+            onTertiary = onAccent(seed),
             background = Color.Black,
             onBackground = Color.White,
             surface = Color.Black,
@@ -149,19 +155,52 @@ fun GStoreTheme(
             surfaceContainer = Color.Black,
             surfaceContainerHigh = Color.Black,
             surfaceContainerHighest = Color.Black,
-            onPrimaryContainer = Color.White,
-            onSecondaryContainer = Color.White,
-            onTertiaryContainer = Color.White,
+            primaryContainer = seed,
+            secondaryContainer = seed,
+            tertiaryContainer = seed,
+            onPrimaryContainer = onAccent(seed),
+            onSecondaryContainer = onAccent(seed),
+            onTertiaryContainer = onAccent(seed),
         )
         settings.dynamicColor && settings.accentArgb == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        dark -> darkColorScheme(primary = seed)
-        else -> lightColorScheme(primary = seed)
+        dark -> darkColorScheme(
+            primary = seed,
+            secondary = seed,
+            tertiary = seed,
+            onPrimary = onAccent(seed),
+            onSecondary = onAccent(seed),
+            onTertiary = onAccent(seed),
+            primaryContainer = seed,
+            secondaryContainer = seed,
+            tertiaryContainer = seed,
+            onPrimaryContainer = onAccent(seed),
+            onSecondaryContainer = onAccent(seed),
+            onTertiaryContainer = onAccent(seed),
+        )
+        else -> lightColorScheme(
+            primary = seed,
+            secondary = seed,
+            tertiary = seed,
+            onPrimary = onAccent(seed),
+            onSecondary = onAccent(seed),
+            onTertiary = onAccent(seed),
+            primaryContainer = seed,
+            secondaryContainer = seed,
+            tertiaryContainer = seed,
+            onPrimaryContainer = onAccent(seed),
+            onSecondaryContainer = onAccent(seed),
+            onTertiaryContainer = onAccent(seed),
+        )
     }
+
     MaterialTheme(
         colorScheme = scheme,
         typography = condensedType(),
         content = { CompositionLocalProvider(LocalCardRadius provides settings.cardRadiusDp, content = content) },
     )
 }
+
+private fun onAccent(color: Color): Color =
+    if (color.luminance() > 0.5f) Color.Black else Color.White

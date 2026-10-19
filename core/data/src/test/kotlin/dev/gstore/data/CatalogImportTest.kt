@@ -25,8 +25,10 @@ import dev.gstore.network.RepoDto
 import dev.gstore.network.SearchResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,6 +41,8 @@ class CatalogImportTest {
     private class Repos : RepositoryDao {
         val rows = mutableMapOf<Long, RepositoryEntity>()
         override fun observeAll(): Flow<List<RepositoryEntity>> = flowOf(rows.values.toList())
+        override fun observeCatalog(): Flow<List<RepositoryEntity>> =
+            flowOf(rows.values.filter { it.syncState != "SEARCH_ONLY" })
         override suspend fun getById(id: Long): RepositoryEntity? = rows[id]
         override suspend fun getByFullName(fullName: String): RepositoryEntity? =
             rows.values.firstOrNull { it.fullName == fullName }
@@ -135,6 +139,17 @@ class CatalogImportTest {
         assertEquals("v1", releases.rows[9L]?.tag)
         assertEquals(setOf(5L), assets.rows.keys) // url-less assets skipped
         assertTrue(assets.rows[5L]?.eligibleApk == true)
+    }
+
+    @Test fun `search-only detail records stay out of catalog feeds`() = runBlocking {
+        val repos = Repos().apply { rows[7] = repoRow("FRESH") }
+        val catalog = catalog(repos, Releases(), Assets())
+
+        catalog.markSearchOnly(7)
+
+        assertEquals(emptyList<dev.gstore.model.Repository>(), catalog.observeCatalogRepositories().first())
+        assertEquals(1, catalog.observeRepositories().first().size)
+        assertFalse(catalog.needsFullSync("o/app"))
     }
 
     @Test fun `fresh rows keep fresh state and sync time`() = runBlocking {

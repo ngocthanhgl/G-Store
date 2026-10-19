@@ -53,7 +53,8 @@ class PreferencesRepository(private val context: Context) {
     val CARD_RADIUS = intPreferencesKey("card_radius_dp_v2")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
     val INCLUDE_PRERELEASES = booleanPreferencesKey("include_prereleases")
-        val SECTION_ORDER = stringPreferencesKey("section_order")
+    val PERMISSION_PROMPTED = booleanPreferencesKey("permission_prompted")
+    val SECTION_ORDER = stringPreferencesKey("section_order")
         val SECTION_HIDDEN = stringSetPreferencesKey("section_hidden")
         val W_STARS = floatPreferencesKey("w_stars")
         val W_FORKS = floatPreferencesKey("w_forks")
@@ -159,6 +160,13 @@ class PreferencesRepository(private val context: Context) {
         order.mapIndexed { index, section ->
             SectionConfig(section, visible = section.name !in hidden, rank = index)
         }
+    }
+
+    val permissionPrompted: Flow<Boolean> =
+        resilientData().map { it[Keys.PERMISSION_PROMPTED] ?: false }
+
+    suspend fun markPermissionPrompted() {
+        context.store.edit { it[Keys.PERMISSION_PROMPTED] = true }
     }
 
     suspend fun setSectionVisible(section: HomeSection, visible: Boolean) {

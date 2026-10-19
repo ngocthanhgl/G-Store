@@ -124,10 +124,9 @@ fun DownloadsScreen(
             onDismissNotice()
         }
     }
-    // Manual-only refresh: entering this screen never fires a check on its
-    // own. Pull-to-refresh, the header button, or the empty-state button
-    // below are the only triggers (throttled when anonymous, free when
-    // logged in).
+    // The shell performs one quiet startup check for update notifications;
+    // pull-to-refresh and the header/empty-state controls remain explicit
+    // user-triggered checks.
     if (state.showLoginPrompt) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = onDismissLoginPrompt,
@@ -314,6 +313,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -351,6 +351,7 @@ fun DownloadsScreen(
                         onUninstall = onUninstall,
                         onInstall = onInstall,
                         onDownloadUpdate = onDownloadUpdate,
+                        onForget = { forgetCandidate = row.record },
                     )
                 }
             }
@@ -376,7 +377,7 @@ fun DownloadsScreen(
                     HistoryRow(
                         record = record,
                         onRetry = { onRetry(record.assetId) },
-                        onForget = { onForget(record.assetId) },
+                        onForget = { forgetCandidate = record },
                         onInstall = { onInstall(record) },
                     )
                 }

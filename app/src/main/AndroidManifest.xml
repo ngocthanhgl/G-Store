@@ -7,11 +7,11 @@
          in-app before system settings are ever opened. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Installed shelf (update checks): we query ONLY package names from our
-         own download records — never a device inventory. Same justification
-         as Aurora/F-Droid update checkers; Play distribution would need a
-         declaration for this permission. Lint QueryAllPackagesPermission is
-         deliberately suppressed here — see docs/ANDROID_PERMISSIONS.md. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Installed shelf checks only package names from G Store download
+         records; Android has no runtime prompt for this package-visibility
+         declaration. See docs/ANDROID_PERMISSIONS.md. -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />

@@ -203,6 +203,7 @@ class DetailsViewModel(
     private val tracker: DownloadTracker,
     private val installed: InstalledAppsGateway,
     private val prefs: PreferencesRepository,
+    private val searchResult: Boolean = false,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailsUiState())
     val state: StateFlow<DetailsUiState> = _state.asStateFlow()
@@ -213,6 +214,7 @@ class DetailsViewModel(
      * the collectors must follow it, or the release list stays empty forever.
      */
     private val resolvedId = MutableStateFlow(repoId)
+    private var searchOnly = false
 
     init {
         viewModelScope.launch { load() }
@@ -246,11 +248,13 @@ class DetailsViewModel(
     private suspend fun load() {
         _state.value = _state.value.copy(loadingRepo = true, notice = null, syncError = null)
         var repo = catalog.getRepository(repoId)
+        searchOnly = searchResult && (repo == null || catalog.isSearchOnly(repoId))
         if (repo == null && fullName.isNotBlank()) {
             _state.value = _state.value.copy(syncing = true)
-            when (val result = catalog.sync(fullName)) {
+            when (val result = catalog.sync(fullName, catalogVisible = !searchOnly)) {
                 is Outcome.Ok -> {
                     repo = catalog.getByFullName(fullName)
+                    if (searchOnly) repo?.let { catalog.markSearchOnly(it.id) }
                     _state.value = _state.value.copy(syncError = null)
                 }
                 is Outcome.Err -> _state.value = _state.value.copy(
@@ -281,9 +285,10 @@ class DetailsViewModel(
     private suspend fun refreshInBackground(name: String) {
         _state.value = _state.value.copy(syncing = true)
         try {
-            when (val result = catalog.sync(name)) {
+            when (val result = catalog.sync(name, catalogVisible = !searchOnly)) {
                 is Outcome.Ok -> {
                     val fresh = catalog.getByFullName(name)
+                    if (searchOnly) fresh?.let { catalog.markSearchOnly(it.id) }
                     val syncedRepo = fresh ?: _state.value.repo
                     _state.value = _state.value.copy(
                         repo = syncedRepo,
@@ -559,8 +564,11 @@ class DetailsViewModel(
                 return@launch
             }
             _state.value = _state.value.copy(syncing = true, notice = null, syncError = null)
-            when (val result = catalog.sync(repo.fullName)) {
-                is Outcome.Ok -> refreshReleaseSnapshot(repo.id)
+            when (val result = catalog.sync(repo.fullName, catalogVisible = !searchOnly)) {
+                is Outcome.Ok -> {
+                    if (searchOnly) catalog.markSearchOnly(repo.id)
+                    refreshReleaseSnapshot(repo.id)
+                }
                 is Outcome.Err -> _state.value = _state.value.copy(
                     notice = result.failure,
                     syncError = result.failure,
