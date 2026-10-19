@@ -26,13 +26,13 @@ import coil3.request.ImageRequest
 import kotlin.math.roundToInt
 
 /**
- * Squircle corner radius for an app tile of [size]: ~46% of the edge reads as
+ * Squircle corner radius for an app tile of [size]: ~37% of the edge reads as
  * a squircle in the store-shelf idiom, snapped to the 4dp grid so tiles never
  * carry a fractional radius.
  */
 fun squircleDp(size: Dp): Dp {
     val dp = size.value
-    return ((dp * 0.46f / 4f).roundToInt() * 4).coerceAtLeast(4).dp
+    return ((dp * 0.368f / 4f).roundToInt() * 4).coerceAtLeast(4).dp
 }
 
 /**

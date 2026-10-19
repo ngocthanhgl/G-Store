@@ -32,8 +32,8 @@ data class AppearanceSettings(
     val theme: ThemeMode = ThemeMode.AMOLED,
     val dynamicColor: Boolean = true,
     val accentArgb: Int? = DEFAULT_ACCENT_ARGB,
-    val density: CardDensity = CardDensity.COMPACT,
-    val layout: HomeLayout = HomeLayout.LIST,
+    val density: CardDensity = CardDensity.COMFORTABLE,
+    val layout: HomeLayout = HomeLayout.GRID,
     val cardRadiusDp: Int = AppRadius.DEFAULT,
     val appIcon: AppIconStyle = AppIconStyle.CLASSIC,
     val reduceMotion: Boolean = false,
@@ -115,10 +115,10 @@ class PreferencesRepository(private val context: Context) {
             } else {
                 p[Keys.ACCENT] ?: AppearanceSettings.DEFAULT_ACCENT_ARGB
             },
-            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMPACT") }
-                .getOrDefault(CardDensity.COMPACT),
-            layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "LIST") }
-                .getOrDefault(HomeLayout.LIST),
+            density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMFORTABLE") }
+                .getOrDefault(CardDensity.COMFORTABLE),
+            layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "GRID") }
+                .getOrDefault(HomeLayout.GRID),
             // Clamp keeps customization from breaking layout (UI_UX_SPEC §5).
             cardRadiusDp = AppRadius.clamp(p[Keys.CARD_RADIUS] ?: AppRadius.DEFAULT),
             appIcon = runCatching { AppIconStyle.valueOf(p[Keys.APP_ICON] ?: "CLASSIC") }

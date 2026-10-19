@@ -76,12 +76,19 @@ fun SearchScreen(
             .safeTop()
             .imePadding(),
     ) {
-        Text(
-            "Search",
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = GStoreSpace.TouchTarget),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Search",
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::setQuery,
@@ -112,6 +119,7 @@ fun SearchScreen(
                 .padding(vertical = GStoreSpace.Block),
         )
         val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+        val recentQueries by vm.recentSearches.collectAsState()
         // Chunk once per result set, not on every recomposition.
         val rows = remember(state.results) { state.results.chunked(2) }
         LazyColumn(
@@ -121,14 +129,29 @@ fun SearchScreen(
         ) {
             if (state.query.isBlank()) {
                 item {
-                    Text(
-                        "Searches your synced catalog. Use the magnifier for GitHub-wide search — " +
-                            "results are never saved without your tap.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+                        Text(
+                            "Searches your synced catalog. Use the magnifier for GitHub-wide search — " +
+                                "results are never saved without your tap.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (recentQueries.isNotEmpty()) {
+                            Text(
+                                "Recent searches",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            recentQueries.forEach { recent ->
+                                Text(
+                                    text = recent,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { vm.searchGitHub(recent) },
+                                )
+                            }
+                        }
+                    }
                 }
             } else if (state.results.isEmpty()) {
                 item {

@@ -14,6 +14,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
@@ -37,6 +38,8 @@ class SearchViewModel(
     private val query = MutableStateFlow("")
     private val searching = MutableStateFlow(false)
     private val banner = MutableStateFlow<String?>(null)
+    private val recentQueries = MutableStateFlow<List<String>>(emptyList())
+    val recentSearches: StateFlow<List<String>> = recentQueries.asStateFlow()
 
     private val localMatches = combine(
         query.debounce(300),
@@ -77,9 +80,16 @@ class SearchViewModel(
 
     /** Network search — user-triggered only, results are NOT persisted. */
     fun searchGitHub() {
-        val q = query.value.trim()
+        searchGitHub(query.value)
+    }
+
+    fun searchGitHub(searchQuery: String) {
+        val q = searchQuery.trim()
         if (q.isBlank()) return
         if (!allowManualRequest()) return
+        query.value = q
+        recentQueries.value = (listOf(q) + recentQueries.value.filterNot { it.equals(q, ignoreCase = true) })
+            .take(MAX_RECENT_QUERIES)
         viewModelScope.launch {
             searching.value = true
             when (val result = catalog.search(q)) {
@@ -101,5 +111,9 @@ class SearchViewModel(
             ?: return true
         banner.value = manualRequestWaitMessage(wait)
         return false
+    }
+
+    private companion object {
+        const val MAX_RECENT_QUERIES = 8
     }
 }

@@ -305,7 +305,7 @@ private fun HomeHeader(
             ) {
                 if (identity.login.isNotBlank()) {
                     DropdownMenuItem(
-                        text = { Text("${identity.login} · refresh every 10s") },
+                        text = { Text(identity.login) },
                         enabled = false,
                         onClick = {},
                     )

@@ -6,8 +6,8 @@ import org.junit.Test
 
 class AppIconTest {
     @Test
-    fun squircleUsesRoundedCornerFractionOfTileSize() {
-        assertEquals(32.dp, squircleDp(72.dp))
-        assertEquals(24.dp, squircleDp(56.dp))
+    fun squircleUsesReducedRoundedCornerFractionOfTileSize() {
+        assertEquals(28.dp, squircleDp(72.dp))
+        assertEquals(20.dp, squircleDp(56.dp))
     }
 }

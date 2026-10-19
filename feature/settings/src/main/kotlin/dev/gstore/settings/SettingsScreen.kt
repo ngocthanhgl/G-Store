@@ -189,6 +189,32 @@ fun SettingsScreen(
                     labelOf = ::appIconLabel,
                     onSelect = vm::setAppIcon,
                 )
+                val iconResourceName = when (appearance.appIcon) {
+                    AppIconStyle.CLASSIC -> "ic_launcher"
+                    AppIconStyle.RED_LIGHT -> "ic_launcher_red_light"
+                    AppIconStyle.RED_DARK -> "ic_launcher_red_dark"
+                }
+                val appContext = androidx.compose.ui.platform.LocalContext.current
+                val iconResourceId = androidx.compose.runtime.remember(appearance.appIcon) {
+                    appContext.resources.getIdentifier(iconResourceName, "mipmap", appContext.packageName)
+                }
+                if (iconResourceId != 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(iconResourceId),
+                            contentDescription = "${appIconLabel(appearance.appIcon)} app icon preview",
+                            modifier = Modifier.size(56.dp),
+                        )
+                        Text(
+                            "Preview",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 SettingLabel("Layout")
                 ChoiceRow(
                     options = HomeLayout.entries,

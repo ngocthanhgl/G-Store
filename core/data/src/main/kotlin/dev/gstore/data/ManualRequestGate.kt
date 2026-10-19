@@ -14,6 +14,8 @@ class ManualRequestGate(
 
     @Synchronized
     fun tryAcquire(authenticated: Boolean): Int? {
+        if (authenticated) return null
+
         val now = clockMillis()
         while (anonymousRequests.peekFirst()?.let { now - it >= WINDOW_MILLIS } == true) {
             anonymousRequests.removeFirst()
@@ -22,13 +24,13 @@ class ManualRequestGate(
         val cooldown = lastAcceptedAt?.let { MIN_INTERVAL_MILLIS - (now - it) } ?: 0
         if (cooldown > 0) return seconds(cooldown)
 
-        if (!authenticated && anonymousRequests.size >= ANONYMOUS_REQUESTS_PER_MINUTE) {
+        if (anonymousRequests.size >= ANONYMOUS_REQUESTS_PER_MINUTE) {
             val oldest = requireNotNull(anonymousRequests.peekFirst())
             return seconds(WINDOW_MILLIS - (now - oldest))
         }
 
         lastAcceptedAt = now
-        if (!authenticated) anonymousRequests.addLast(now)
+        anonymousRequests.addLast(now)
         return null
     }
 
@@ -41,5 +43,33 @@ class ManualRequestGate(
     }
 }
 
-fun manualRequestWaitMessage(seconds: Int) =
-    "Whoa, turbo thumb! Try again in ${seconds}s — GitHub's servers need a sip of tea."
+@Synchronized
+fun manualRequestWaitMessage(seconds: Int): String {
+    val message = waitMessages[nextWaitMessage]
+    nextWaitMessage = (nextWaitMessage + 1) % waitMessages.size
+    return "$message Try again in ${seconds}s."
+}
+
+private var nextWaitMessage = 0
+private val waitMessages = listOf(
+    "Easy there, speedrunner!",
+    "The GitHub octocat needs a tiny stretch.",
+    "Your refresh button is asking for a coffee break.",
+    "Whoa, turbo thumb!",
+    "The catalog is catching its breath.",
+    "Even robots need a snack break.",
+    "That button has seen enough action for a moment.",
+    "The octocat is putting on its running shoes.",
+    "Refresh enthusiasm detected. Cooling the engines.",
+    "The internet's hamster wheel needs a breather.",
+    "One more second, captain refresh.",
+    "Your thumb is faster than the satellites.",
+    "The catalog is tying its shoelaces.",
+    "GitHub's octocat is counting to ten.",
+    "A tiny pause for maximum app-iness.",
+    "The refresh button is doing a dramatic faint.",
+    "Your request is in the tiny timeout lounge.",
+    "The servers are hydrating. Very important.",
+    "Hold your horses; they're downloading updates too.",
+    "The catalog says: not so fast, cowboy.",
+)
