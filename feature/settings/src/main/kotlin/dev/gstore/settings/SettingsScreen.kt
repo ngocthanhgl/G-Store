@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -106,31 +108,13 @@ fun SettingsScreen(
     contentPadding = PaddingValues(bottom = GStoreSpace.Block),
     ) {
         item {
-            Column(
-                // No own top gap: the screen starts at the status-bar inset.
-                verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-            ) {
-                Text(
-                    "Settings",
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                )
-                Text(
-                    "Appearance and behavior. Changes apply and save instantly.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        item {
             SettingGroup("Theme") {
                 ChoiceRow(
                     options = ThemeMode.entries,
                     selected = appearance.theme,
                     labelOf = ::themeModeLabel,
                     onSelect = vm::setTheme,
+                    singleLine = true,
                 )
                 SwitchRow(
                     label = "Dynamic color",
@@ -261,6 +245,7 @@ fun SettingsScreen(
                             avatarUrl = identity.avatarUrl,
                             owner = identity.login,
                             size = 40.dp,
+                            circular = true,
                         )
                         Text(
                             text = identity.login,
@@ -472,13 +457,9 @@ private fun <T> ChoiceRow(
     selected: T,
     labelOf: (T) -> String,
     onSelect: (T) -> Unit,
+    singleLine: Boolean = false,
 ) {
-    // FlowRow wraps on narrow screens instead of pushing chips off-screen.
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
-        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
-    ) {
+    val content: @Composable () -> Unit = {
         options.forEach { option ->
             val isSelected = option == selected
             FilterChip(
@@ -500,10 +481,21 @@ private fun <T> ChoiceRow(
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
-                // M3 chips are 32dp; every chip here is a primary choice.
                 modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
             )
         }
+    }
+    if (singleLine) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        ) { content() }
+    } else {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GStoreSpace.Gutter),
+            verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small),
+        ) { content() }
     }
 }
 

@@ -123,13 +123,20 @@ class MarkdownTest {
         assertEquals(Span.Picture("logo", "img/logo.png"), para.spans.single())
     }
 
-    @Test fun `markdown image loading is limited to GitHub HTTPS hosts`() {
+    @Test fun `markdown images load from public HTTPS hosts but not private networks`() {
         assertTrue(canAutoLoadMarkdownImage("https://raw.githubusercontent.com/o/r/main/a.png"))
         assertTrue(canAutoLoadMarkdownImage("https://user-images.githubusercontent.com/1/a.png"))
+        assertTrue(canAutoLoadMarkdownImage("https://images.example.com/screenshot.png"))
         assertFalse(canAutoLoadMarkdownImage("http://raw.githubusercontent.com/o/r/a.png"))
         assertFalse(canAutoLoadMarkdownImage("https://127.0.0.1/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://192.168.1.10/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://printer.local/image.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://printer/image.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://0177.0.0.1/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://0x7f.0.0.1/private.png"))
+        assertFalse(canAutoLoadMarkdownImage("https://[::1]/private.png"))
         assertFalse(canAutoLoadMarkdownImage("https://github.com@127.0.0.1/private.png"))
-        assertFalse(canAutoLoadMarkdownImage("https://github.com.example.org/a.png"))
+        assertTrue(canAutoLoadMarkdownImage("https://github.com.example.org/a.png"))
     }
 
     @Test fun `empty document parses to nothing`() {

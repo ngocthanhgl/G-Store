@@ -129,7 +129,12 @@ class HomeViewModel(
             favoriteIds = inputs.favorites,
             identity = inputs.identity,
             favoriteRepos = favorites,
-            catalog = sortedCatalog(inputs.signals, refresh.filter, inputs.weights),
+            catalog = sortedCatalog(
+                inputs.signals,
+                refresh.filter,
+                inputs.weights,
+                favoriteIds = inputs.favorites,
+            ),
             catalogFilter = refresh.filter,
             syncingCatalog = refresh.syncingCatalog,
             // The empty gate reads cheap raw rows; signals only order/sort.

@@ -118,16 +118,32 @@ class SectionsTest {
         assertTrue(sortedCatalog(listOf(searchOnly), CatalogFilter.STARS).isEmpty())
     }
 
-    @Test fun `local favorites never change trending or top stars`() {
+    @Test fun `favorites stay in their own shelf instead of catalog rankings`() {
         val signals = listOf(
-            RepoSignals(repo(1, stars = 900), releases30d = 2),
-            RepoSignals(repo(2, stars = 9_000), releases30d = 1),
+            RepoSignals(
+                repo(1, stars = 900),
+                releases30d = 2,
+                firstEligibleReleaseAt = "2026-10-01T00:00:00Z",
+                latestReleaseAt = "2026-10-02T00:00:00Z",
+            ),
+            RepoSignals(
+                repo(2, stars = 9_000),
+                releases30d = 1,
+                firstEligibleReleaseAt = "2026-10-03T00:00:00Z",
+                latestReleaseAt = "2026-10-04T00:00:00Z",
+            ),
         )
-        val withoutFavorites = computeSections(signals, now = now)
         val withFavorites = computeSections(signals, favoriteIds = setOf(1), now = now)
-        assertEquals(withoutFavorites.trending, withFavorites.trending)
-        assertEquals(withoutFavorites.topCharts, withFavorites.topCharts)
+        assertEquals(listOf(2L), withFavorites.trending.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.new.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.updated.map { it.repo.id })
+        assertEquals(listOf(2L), withFavorites.topCharts.map { it.repo.id })
         assertEquals(listOf(1L), withFavorites.favorites.map { it.repo.id })
+        assertEquals(
+            listOf(2L),
+            sortedCatalog(signals, CatalogFilter.TRENDING, favoriteIds = setOf(1))
+                .map { it.repo.id },
+        )
     }
 
     @Test fun `custom weights change the ranking`() {

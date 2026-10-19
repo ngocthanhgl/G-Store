@@ -289,7 +289,12 @@ private fun HomeHeader(
                 if (identity.login.isBlank()) {
                     Icon(Fluent.Person, contentDescription = "Open account and settings")
                 } else {
-                    AppIcon(avatarUrl = identity.avatarUrl, owner = identity.login, size = 28.dp)
+                    AppIcon(
+                        avatarUrl = identity.avatarUrl,
+                        owner = identity.login,
+                        size = 28.dp,
+                        circular = true,
+                    )
                 }
             }
             DropdownMenu(
@@ -579,5 +584,4 @@ private fun DiscoverDialog(
         dismissButton = null,
     )
 }
-
 

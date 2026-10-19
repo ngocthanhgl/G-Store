@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,13 +26,13 @@ import coil3.request.ImageRequest
 import kotlin.math.roundToInt
 
 /**
- * Squircle corner radius for an app tile of [size]: ~28% of the edge reads as
+ * Squircle corner radius for an app tile of [size]: ~38% of the edge reads as
  * a squircle in the store-shelf idiom, snapped to the 4dp grid so tiles never
  * carry a fractional radius.
  */
 fun squircleDp(size: Dp): Dp {
     val dp = size.value
-    return ((dp * 0.28f).roundToInt().coerceAtLeast(4) / 4f).coerceAtLeast(4f).dp
+    return ((dp * 0.38f).roundToInt().coerceAtLeast(4) / 4f).coerceAtLeast(4f).dp
 }
 
 /**
@@ -48,8 +49,9 @@ fun AppIcon(
     owner: String,
     size: Dp,
     modifier: Modifier = Modifier,
+    circular: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(squircleDp(size))
+    val shape = if (circular) CircleShape else RoundedCornerShape(squircleDp(size))
     Surface(
         modifier = modifier.size(size),
         shape = shape,

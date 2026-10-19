@@ -146,16 +146,17 @@ fun computeSections(
     limit: Int = 20,
 ): HomeSections {
     val catalog = signals.filter { it.repo.catalogVisible }
-    val famous = catalog.filter { isFamous(it, now) }.sortedByDescending { it.repo.stars }
+    val notFavorited = catalog.filterNot { it.repo.id in favoriteIds }
+    val famous = notFavorited.filter { isFamous(it, now) }.sortedByDescending { it.repo.stars }
     return HomeSections(
-        new = catalog.filter { isNewApp(it, now) }
+        new = notFavorited.filter { isNewApp(it, now) }
             .sortedBy { parseInstant(it.firstEligibleReleaseAt) }.take(limit),
         // Recent release activity required — a high total alone is not "trending".
-        topCharts = topCharts(catalog, limit),
-        trending = catalog.filter { it.releases30d > 0 }
+        topCharts = topCharts(notFavorited, limit),
+        trending = notFavorited.filter { it.releases30d > 0 }
             .sortedByDescending { trendingScore(it, weights) }.take(limit),
         famous = famous.take(limit),
-        updated = catalog.filter { isRecentlyUpdated(it, now) }
+        updated = notFavorited.filter { isRecentlyUpdated(it, now) }
             .sortedByDescending { parseInstant(it.latestReleaseAt) }.take(limit),
         // Favorited repos, stars first — the bookmarks shelf.
         favorites = signals.filter { it.repo.id in favoriteIds }
@@ -188,8 +189,11 @@ fun sortedCatalog(
     filter: CatalogFilter,
     weights: TrendingWeights = TrendingWeights(),
     category: AppCategory? = null,
+    favoriteIds: Set<Long> = emptySet(),
 ): List<RepoSignals> {
-    val visible = signals.filter { it.repo.catalogVisible }
+    val visible = signals.filter {
+        it.repo.catalogVisible && it.repo.id !in favoriteIds
+    }
     val scoped = if (category == null) visible
     else visible.filter { categoryOf(it.repo.topics) == category }
     return when (filter) {

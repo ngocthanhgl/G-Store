@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gstore.ui.BlockView
 import dev.gstore.ui.GStoreSpace
-import dev.gstore.ui.ShimmerRows
+import dev.gstore.ui.ShimmerBlock
 
 @Composable
 fun ReadmeScreen(
@@ -38,12 +39,7 @@ fun ReadmeScreen(
 ) {
     Box(modifier.fillMaxSize().safeTop()) {
         when (state.status) {
-ReadmeStatus.LOADING -> {
-                // Skeleton lines, not a centred spinner: a spinner in an
-                // empty frame tells the reader nothing about the document
-                // that is arriving (DESIGN.md, "never a dead spinner").
-                ShimmerRows(count = 8, reduceMotion = reduceMotion)
-            }
+            ReadmeStatus.LOADING -> ReadmeSkeleton(reduceMotion)
             ReadmeStatus.MISSING -> EmptyReadme { onRefresh(true) }
             ReadmeStatus.ERROR -> ErrorReadme(state.notice) { onRefresh(true) }
             ReadmeStatus.READY -> BlocksList(state, Modifier.fillMaxSize())
@@ -60,6 +56,36 @@ ReadmeStatus.LOADING -> {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ReadmeSkeleton(reduceMotion: Boolean) {
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = GStoreSpace.Gutter, vertical = GStoreSpace.Block),
+        verticalArrangement = Arrangement.spacedBy(GStoreSpace.Block),
+    ) {
+        ShimmerBlock(Modifier.fillMaxWidth(0.58f).height(28.dp), reduceMotion = reduceMotion)
+        repeat(3) { section ->
+            Column(verticalArrangement = Arrangement.spacedBy(GStoreSpace.Small)) {
+                ShimmerBlock(
+                    Modifier.fillMaxWidth(if (section == 0) 0.72f else 0.48f).height(20.dp),
+                    reduceMotion = reduceMotion,
+                )
+                repeat(3) { line ->
+                    ShimmerBlock(
+                        Modifier.fillMaxWidth(if (line == 2) 0.64f else 1f).height(12.dp),
+                        radiusDp = 6,
+                        reduceMotion = reduceMotion,
+                    )
+                }
+            }
+        }
+        ShimmerBlock(
+            Modifier.fillMaxWidth().height(200.dp),
+            radiusDp = 12,
+            reduceMotion = reduceMotion,
+        )
     }
 }
 

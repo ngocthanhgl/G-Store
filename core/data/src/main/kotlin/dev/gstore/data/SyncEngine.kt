@@ -73,7 +73,9 @@ class SyncEngine(
             markState(fullName, "FAILED:${e.javaClass.simpleName}", now)
             return Outcome.Err("sync failed: ${e.message}")
         }
-        val syncState = if (catalogVisible) "FRESH" else "SEARCH_ONLY"
+        val existing = repos.getByFullName(fullName)
+        val wasCatalogVisible = existing != null && existing.syncState != "SEARCH_ONLY"
+        val syncState = if (catalogVisible || wasCatalogVisible) "FRESH" else "SEARCH_ONLY"
         repos.upsert(repoDto.toEntity(syncState, now))
 
         var page = checkpoint?.nextPage ?: 1

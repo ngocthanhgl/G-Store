@@ -133,7 +133,8 @@ fun GStoreTheme(
         ThemeMode.AMOLED -> true
     }
     val context = LocalContext.current
-    val seed = settings.accentArgb?.let { Color(it) } ?: Color(0xFF6750A4)
+    val seed = settings.accentArgb?.let { Color(it) }
+        ?: Color(AppearanceSettings.DEFAULT_ACCENT_ARGB)
     val scheme = when {
         // AMOLED: every surface pure black, every text pure white. Dynamic
         // color is bypassed — it would wash out the black.

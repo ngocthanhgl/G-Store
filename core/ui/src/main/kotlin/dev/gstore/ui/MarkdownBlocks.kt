@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
@@ -216,7 +217,45 @@ fun canAutoLoadMarkdownImage(url: String): Boolean {
     return uri.scheme.equals("https", ignoreCase = true) &&
         uri.userInfo == null &&
         (uri.port == -1 || uri.port == 443) &&
-        (host == "github.com" || host.endsWith(".githubusercontent.com"))
+        !isPrivateImageHost(host)
+}
+
+private fun isPrivateImageHost(host: String): Boolean {
+    val normalized = host.removePrefix("[").removeSuffix("]").removeSuffix(".")
+    if (normalized == "localhost" || normalized.endsWith(".localhost") ||
+        normalized.endsWith(".local") || normalized.endsWith(".internal") ||
+        normalized.endsWith(".lan") || normalized.endsWith(".home") ||
+        normalized.endsWith(".home.arpa") || normalized.endsWith(".test")
+    ) return true
+
+    if (':' in normalized) {
+        val address = runCatching { java.net.InetAddress.getByName(normalized) }.getOrNull()
+            ?: return true
+        val bytes = address.address
+        return address.isAnyLocalAddress || address.isLoopbackAddress ||
+            address.isLinkLocalAddress || address.isSiteLocalAddress ||
+            address.isMulticastAddress ||
+            (bytes.size == 16 && (bytes[0].toInt() and 0xFE) == 0xFC)
+    }
+
+    if (normalized.any { it !in '0'..'9' && it != '.' }) {
+        if (Regex("(?i)(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*").matches(normalized)) {
+            return true
+        }
+        return '.' !in normalized
+    }
+    val parts = normalized.split('.')
+    val octets = parts.mapNotNull { it.toIntOrNull() }
+    if (octets.size != 4 || octets.any { it !in 0..255 } ||
+        parts.any { it.length > 1 && it.startsWith('0') }
+    ) return true
+    val (a, b) = octets
+    return a == 0 || a == 10 || a == 127 || a >= 224 ||
+        (a == 100 && b in 64..127) ||
+        (a == 169 && b == 254) ||
+        (a == 172 && b in 16..31) ||
+        (a == 192 && b == 168) ||
+        (a == 198 && b in 18..19)
 }
 
 @Composable
@@ -335,8 +374,7 @@ private fun SpanText(
                     }
                 } ?: Modifier,
             )
-            // Only GitHub-hosted images load automatically; other hosts require
-            // an explicit tap so README markup cannot probe private networks.
+            // Public HTTPS images display inline; local/private addresses are blocked.
             if (canAutoLoadMarkdownImage(url)) {
                 // Cap decoded size: README screenshots are often 4K and
                 // would otherwise sit in memory at full resolution.
@@ -348,12 +386,11 @@ private fun SpanText(
                 // say so rather than leaving a silent empty rectangle.
                 var failed by remember(url) { mutableStateOf(false) }
                 var loaded by remember(url) { mutableStateOf(false) }
+                var aspectRatio by remember(url) { mutableFloatStateOf(16f / 10f) }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(16f / 10f)
-            // Was pillShape (percent = 50) on a full-text-width box: a real
-            // lens that cut into the image content. Images cap at 12dp.
+                        .aspectRatio(aspectRatio)
                         .clip(imageShapeFor())
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
@@ -376,16 +413,16 @@ private fun SpanText(
                         contentDescription = picture.alt.ifEmpty { "README image" },
                         contentScale = ContentScale.Fit,
                         modifier = imageModifier,
-                        onSuccess = { loaded = true },
+                        onSuccess = { result ->
+                            loaded = true
+                            val imageSize = result.painter.intrinsicSize
+                            if (imageSize.width.isFinite() && imageSize.height.isFinite() &&
+                                imageSize.width > 0f && imageSize.height > 0f
+                            ) {
+                                aspectRatio = (imageSize.width / imageSize.height).coerceIn(0.2f, 5f)
+                            }
+                        },
                         onError = { failed = true },
-                    )
-                }
-            } else {
-                TextButton(onClick = { uriHandler.openUri(url) }) {
-                    Text(
-                        "Open image: ${picture.alt.ifEmpty { picture.src }}",
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

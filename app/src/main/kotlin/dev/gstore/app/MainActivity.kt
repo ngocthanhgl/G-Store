@@ -491,6 +491,7 @@ private fun Content(
     val shellOwner: ViewModelStoreOwner =
         requireNotNull(LocalContext.current.activityViewModelStoreOwner())
     val scope = rememberCoroutineScope()
+    var refreshDownloadsAfterPackageAction by rememberSaveable { mutableStateOf(false) }
     val onOpenSearchRepo: (Repository) -> Unit = {
         nav.navigate(Details(it.id, it.fullName, searchResult = true)) { launchSingleTop = true }
     }
@@ -605,9 +606,12 @@ private fun Content(
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
                         canInstall = container.installer.canRequestInstalls()
-                        // Coming back from the system installer/uninstaller:
-                        // silent catch-up, never a login prompt.
-                        vm.refreshInstalled(auto = true)
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            vm.refreshInstalled(auto = true, force = true)
+                        } else {
+                            vm.refreshInstalled(auto = true)
+                        }
                     }
                 }
                 lifecycle.addObserver(observer)
@@ -620,8 +624,10 @@ private fun Content(
                     return
                 }
                 try {
+                    refreshDownloadsAfterPackageAction = true
                     context.startActivity(container.installer.installIntent(File(path)))
                 } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
                     scope.launch {
                         snackbar.showSnackbar("No system installer found: ${e.message}")
                     }
@@ -698,10 +704,12 @@ private fun Content(
                             scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
                         } else {
                             try {
+                                refreshDownloadsAfterPackageAction = true
                                 context.startActivity(
                                     uninstallIntent(packageName),
                                 )
                             } catch (e: Exception) {
+                                refreshDownloadsAfterPackageAction = false
                                 scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                             }
                         }
@@ -711,7 +719,10 @@ private fun Content(
                     onRefreshInstalled = vm::refreshInstalled,
                     onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
                     onDismissLoginPrompt = vm::dismissLoginPrompt,
-                    onSyncStars = vm::syncStarred,
+                    onSyncStars = {
+                        vm.refreshInstalled()
+                        vm.syncStarred()
+                    },
                     snackbar = snackbar,
                     onDismissNotice = vm::dismissNotice,
                 )
@@ -787,6 +798,10 @@ private fun Content(
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
                         detailsCanInstall = container.installer.canRequestInstalls()
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            downloadsVm.refreshInstalled(auto = true, force = true)
+                        }
                     }
                 }
                 detailsLifecycle.addObserver(observer)
@@ -799,8 +814,10 @@ private fun Content(
                     return
                 }
                 try {
+                    refreshDownloadsAfterPackageAction = true
                     detailsContext.startActivity(container.installer.installIntent(File(path)))
                 } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
                     scope.launch {
                         snackbar.showSnackbar("No system installer found: ${e.message}")
                     }
@@ -840,10 +857,12 @@ private fun Content(
                         scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
                     } else {
                         try {
+                            refreshDownloadsAfterPackageAction = true
                             detailsContext.startActivity(
                                 uninstallIntent(packageName),
                             )
                         } catch (e: Exception) {
+                            refreshDownloadsAfterPackageAction = false
                             scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
                         }
                     }

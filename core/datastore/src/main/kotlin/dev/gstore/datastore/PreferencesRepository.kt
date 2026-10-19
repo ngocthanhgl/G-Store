@@ -28,22 +28,27 @@ enum class CardDensity { COMFORTABLE, COMPACT }
 
 /** Validated appearance settings — restored before first frame (flow E). */
 data class AppearanceSettings(
-    val theme: ThemeMode = ThemeMode.SYSTEM,
+    val theme: ThemeMode = ThemeMode.AMOLED,
     val dynamicColor: Boolean = true,
-    val accentArgb: Int? = null,
+    val accentArgb: Int? = DEFAULT_ACCENT_ARGB,
     val density: CardDensity = CardDensity.COMPACT,
     val layout: HomeLayout = HomeLayout.LIST,
     val cardRadiusDp: Int = AppRadius.DEFAULT,
     val reduceMotion: Boolean = false,
     /** Beta builds participate in pick/download/update. Off = stable only. */
     val includePrereleases: Boolean = false,
-)
+) {
+    companion object {
+        const val DEFAULT_ACCENT_ARGB = 0xFFBA1A1A.toInt()
+    }
+}
 
 class PreferencesRepository(private val context: Context) {
     private object Keys {
         val THEME = stringPreferencesKey("theme")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val ACCENT = intPreferencesKey("accent_argb")
+        val ACCENT_AUTO = booleanPreferencesKey("accent_auto")
         val DENSITY = stringPreferencesKey("density")
         val LAYOUT = stringPreferencesKey("layout")
         // Key renamed from "card_radius_dp". Every value stored under the old key
@@ -99,10 +104,14 @@ class PreferencesRepository(private val context: Context) {
 
     val appearance: Flow<AppearanceSettings> = resilientData().map { p ->
         AppearanceSettings(
-            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "SYSTEM") }
-                .getOrDefault(ThemeMode.SYSTEM),
+            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "AMOLED") }
+                .getOrDefault(ThemeMode.AMOLED),
             dynamicColor = p[Keys.DYNAMIC_COLOR] ?: true,
-            accentArgb = p[Keys.ACCENT],
+            accentArgb = if (p[Keys.ACCENT_AUTO] == true) {
+                null
+            } else {
+                p[Keys.ACCENT] ?: AppearanceSettings.DEFAULT_ACCENT_ARGB
+            },
             density = runCatching { CardDensity.valueOf(p[Keys.DENSITY] ?: "COMPACT") }
                 .getOrDefault(CardDensity.COMPACT),
             layout = runCatching { HomeLayout.valueOf(p[Keys.LAYOUT] ?: "LIST") }
@@ -124,7 +133,13 @@ class PreferencesRepository(private val context: Context) {
 
     suspend fun setAccentArgb(argb: Int?) {
         context.store.edit { p ->
-            if (argb == null) p.remove(Keys.ACCENT) else p[Keys.ACCENT] = argb
+            if (argb == null) {
+                p.remove(Keys.ACCENT)
+                p[Keys.ACCENT_AUTO] = true
+            } else {
+                p[Keys.ACCENT] = argb
+                p.remove(Keys.ACCENT_AUTO)
+            }
         }
     }
 

@@ -225,10 +225,10 @@ class DownloadsViewModel(
      * startup/resume requests. Manual checks are throttled only for anonymous
      * users; logged-in users have the higher GitHub quota.
      */
-    fun refreshInstalled(auto: Boolean = false) {
+    fun refreshInstalled(auto: Boolean = false, force: Boolean = false) {
         val now = System.currentTimeMillis()
         val anonymous = tokens.token.value.isNullOrBlank()
-        if ((auto || anonymous) && now - lastRefreshMillis < 60_000) {
+        if (!force && (auto || anonymous) && now - lastRefreshMillis < 60_000) {
             if (!auto && anonymous) showLoginPrompt.value = true
             return
         }
@@ -297,6 +297,7 @@ class DownloadsViewModel(
         viewModelScope.launch {
             try {
                 repository.forget(assetId)
+                refreshInstalled(auto = true, force = true)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
