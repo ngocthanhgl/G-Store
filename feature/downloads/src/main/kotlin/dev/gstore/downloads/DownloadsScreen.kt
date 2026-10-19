@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -89,6 +93,31 @@ fun DownloadsScreen(
     val notice = state.notice
     val starNotice = state.starSyncNotice
     var forgetCandidate by remember { mutableStateOf<DownloadRecord?>(null) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var resumed by remember {
+        mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    var previousActiveIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> resumed = true
+                Lifecycle.Event.ON_PAUSE -> resumed = false
+                else -> Unit
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(state.active, state.history, state.installed, resumed) {
+        if (!resumed) return@LaunchedEffect
+        val completed = completedAfterActive(
+            previousActiveIds,
+            state.history + state.installed.map { it.record },
+        )
+        previousActiveIds = state.active.mapTo(mutableSetOf()) { it.assetId }
+        if (completed != null) onInstall(completed)
+    }
     LaunchedEffect(notice) {
         if (notice != null) {
             snackbar.showSnackbar(notice)

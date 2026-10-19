@@ -104,9 +104,19 @@ fun DetailsScreen(
     modifier: Modifier = Modifier,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    var screenResumed by remember {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
     DisposableEffect(lifecycleOwner, onResumeInstalledState) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) onResumeInstalledState()
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    screenResumed = true
+                    onResumeInstalledState()
+                }
+                Lifecycle.Event.ON_PAUSE -> screenResumed = false
+                else -> Unit
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -175,6 +185,13 @@ fun DetailsScreen(
     var viewerIndex by rememberSaveable { mutableStateOf(-1) }
     val imageDimensionsOk = remember(repo.id) { mutableStateMapOf<String, Boolean>() }
     val visibleImages = state.images.filter { imageDimensionsOk[it.url] != false }
+    var previousHero by remember(repo.id) { mutableStateOf<HeroDlState?>(null) }
+    LaunchedEffect(state.hero, screenResumed) {
+        if (screenResumed && shouldAutoInstallHero(previousHero, state.hero)) {
+            onHeroInstall((state.hero as HeroDlState.ReadyInstall).record)
+        }
+        if (screenResumed) previousHero = state.hero
+    }
     LazyColumn(
         state = listState,
         modifier = Modifier.weight(1f).fillMaxWidth(),

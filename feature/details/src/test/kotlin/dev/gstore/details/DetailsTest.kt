@@ -1,6 +1,7 @@
 package dev.gstore.details
 
 import dev.gstore.model.Release
+import dev.gstore.database.DownloadRecord
 import dev.gstore.network.ContentsDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -10,7 +11,35 @@ private fun release(id: Long, tag: String, prerelease: Boolean) =
     Release(id, 1L, tag, null, null, null, null, prerelease)
 
 class DetailsTest {
-
+    @Test fun `auto install only follows a live download completion`() {
+        val downloading = HeroDlState.Downloading(50, 100)
+        val ready = HeroDlState.ReadyInstall(
+            DownloadRecord(
+                assetId = 7,
+                repoFullName = "o/r",
+                releaseTag = "v1",
+                filename = "app.apk",
+                url = "https://example.com/app.apk",
+                expectedSize = 100,
+                expectedDigest = null,
+                status = "COMPLETED",
+                bytesDone = 100,
+                bytesTotal = 100,
+                filePath = "/tmp/app.apk",
+                error = null,
+                verification = null,
+                packageName = "o.r",
+                versionName = "1",
+                versionCode = 1,
+                minSdk = null,
+                createdAt = 1,
+                updatedAt = 2,
+            ),
+        )
+        assertEquals(true, shouldAutoInstallHero(downloading, ready))
+        assertEquals(false, shouldAutoInstallHero(null, ready))
+        assertEquals(false, shouldAutoInstallHero(HeroDlState.IdleDownload, ready))
+    }
     @Test fun `latest stable wins by default`() {
         val releases = listOf(release(1L, "v2.0", false), release(2L, "v3.0-beta", true))
         assertEquals(1L, selectDefaultRelease(releases))

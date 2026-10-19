@@ -12,8 +12,8 @@ android {
         applicationId = "dev.gstore.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 14
-        versionName = "1.1.6"
+        versionCode = 15
+        versionName = "1.1.7"
     }
 
     // Release signing comes from environment (CI secrets or a local

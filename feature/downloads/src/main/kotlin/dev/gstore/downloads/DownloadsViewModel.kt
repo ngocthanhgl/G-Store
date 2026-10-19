@@ -34,6 +34,13 @@ data class InstalledRow(
     val lastUpdateTime: Long,
 )
 
+internal fun completedAfterActive(
+    previousActiveIds: Set<Long>,
+    candidates: List<DownloadRecord>,
+): DownloadRecord? = candidates.firstOrNull {
+    it.assetId in previousActiveIds && it.status == "COMPLETED"
+}
+
 /** Grouped star-sync flags, so the 5-arg combine stays under the arity cap. */
 private data class StarSyncUi(
     val running: Boolean,

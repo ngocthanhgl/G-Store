@@ -139,6 +139,9 @@ sealed interface HeroDlState {
     data object FailedRetry : HeroDlState
 }
 
+internal fun shouldAutoInstallHero(previous: HeroDlState?, current: HeroDlState): Boolean =
+    previous is HeroDlState.Downloading && current is HeroDlState.ReadyInstall
+
 @Immutable
 data class DetailsUiState(
     val repo: Repository? = null,

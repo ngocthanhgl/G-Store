@@ -87,6 +87,10 @@ TalkBack, and resize tests remain device-gated (TEST_PLAN.md).
   but is not a measured 80% accuracy guarantee; subdirectories not referenced
   by the README and ambiguous image names may be missed.
 - Markdown tables use shared per-column widths and horizontal scrolling.
+- When a download completes while Details or Downloads remains foregrounded,
+  G Store opens Android's installer automatically; Android still requires the
+  user to confirm. If the process is killed first, the completed APK remains
+  available for manual installation from Downloads.
 - Installation permission explanation is inset from safe drawing areas. When
   the user grants install permission in Android settings and returns, the app
   re-checks the grant and opens the system installer for the pending APK.

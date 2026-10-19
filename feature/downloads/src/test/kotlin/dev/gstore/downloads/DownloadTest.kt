@@ -195,6 +195,17 @@ class DownloadRepositoryTest {
     }
 }
 
+class AutoInstallTriggerTest {
+    @Test fun `only recently active completed records are handed to installer`() {
+        val completed = record(assetId = 1, status = "COMPLETED")
+        val oldCompleted = record(assetId = 2, status = "COMPLETED")
+        val failed = record(assetId = 3, status = "FAILED")
+
+        assertEquals(completed, completedAfterActive(setOf(1, 3), listOf(oldCompleted, failed, completed)))
+        assertEquals(null, completedAfterActive(emptySet(), listOf(completed)))
+    }
+}
+
 class InstalledStateTest {
     @Test fun missingPackageIsNotInstalled() {
         assertEquals(
