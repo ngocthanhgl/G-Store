@@ -26,6 +26,7 @@ import dev.gstore.ui.resolveRelative
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
 /** One row of the artifact chooser — non-APKs labeled, never hidden. */
@@ -214,10 +216,19 @@ class DetailsViewModel(
      * the collectors must follow it, or the release list stays empty forever.
      */
     private val resolvedId = MutableStateFlow(repoId)
+    private val initialLoad = CompletableDeferred<Unit>()
+    private val refreshMutex = Mutex()
+    private var initialSyncSucceeded = false
     private var searchOnly = false
 
     init {
-        viewModelScope.launch { load() }
+        viewModelScope.launch {
+            try {
+                load()
+            } finally {
+                initialLoad.complete(Unit)
+            }
+        }
         viewModelScope.launch {
             // GitHub repository IDs are stable across search and sync
             // (DATA_MODEL.md), so the passed id stays valid after on-demand sync.
@@ -253,6 +264,7 @@ class DetailsViewModel(
             _state.value = _state.value.copy(syncing = true)
             when (val result = catalog.sync(fullName, catalogVisible = !searchOnly)) {
                 is Outcome.Ok -> {
+                    initialSyncSucceeded = true
                     repo = catalog.getByFullName(fullName)
                     if (searchOnly) repo?.let { catalog.markSearchOnly(it.id) }
                     _state.value = _state.value.copy(syncError = null)
@@ -271,18 +283,24 @@ class DetailsViewModel(
         _state.value = _state.value.copy(repo = repo, loadingRepo = false)
         viewModelScope.launch { loadRepositoryImages(repo) }
 
-        // Slim scanner rows have metadata but no assets: full-sync in the
-        // background so the screen never reports "no APK" for data it never
-        // fetched. A failed sync leaves the row STALE, so a later refresh
-        // retries.
-        val resolvedName = repo?.fullName?.takeIf { it.isNotBlank() } ?: fullName
-        if (repo != null && resolvedName.isNotBlank() && catalog.needsFullSync(resolvedName)) {
-            viewModelScope.launch { refreshInBackground(resolvedName) }
+    }
+
+    /** Refresh repository/release metadata whenever this screen is entered. */
+    fun refreshLatestReleaseInfo() {
+        viewModelScope.launch {
+            initialLoad.await()
+            if (initialSyncSucceeded) {
+                initialSyncSucceeded = false
+                return@launch
+            }
+            val name = _state.value.repo?.fullName?.takeIf { it.isNotBlank() } ?: fullName
+            if (name.isNotBlank()) refreshInBackground(name)
         }
     }
 
     /** Background full sync: updates state in place, never blanks the screen. */
     private suspend fun refreshInBackground(name: String) {
+        if (!refreshMutex.tryLock()) return
         _state.value = _state.value.copy(syncing = true)
         try {
             when (val result = catalog.sync(name, catalogVisible = !searchOnly)) {
@@ -303,6 +321,7 @@ class DetailsViewModel(
             }
         } finally {
             _state.value = _state.value.copy(syncing = false)
+            refreshMutex.unlock()
         }
     }
 

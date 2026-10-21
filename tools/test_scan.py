@@ -10,18 +10,18 @@ from scan import (
 
 
 class CatalogScannerTest(unittest.TestCase):
-    def test_scheduled_runs_cover_all_query_sets_within_five_scans(self):
+    def test_scheduled_runs_cover_all_query_sets_within_seven_scans(self):
         start = datetime(2026, 1, 1, tzinfo=timezone.utc)
         scanned = set()
-        for run in range(5):
-            scanned.update(query_set_indices(start + timedelta(hours=3 * run)))
+        for run in range(7):
+            scanned.update(query_set_indices(start + timedelta(hours=6 * run)))
 
         self.assertEqual(set(range(len(QUERY_SETS))), scanned)
 
-    def test_each_slot_selects_three_sets_and_advances_without_gaps(self):
+    def test_each_slot_selects_two_sets_and_advances_without_gaps(self):
         start = datetime(2026, 1, 1, tzinfo=timezone.utc)
         first = query_set_indices(start)
-        second = query_set_indices(start + timedelta(hours=3))
+        second = query_set_indices(start + timedelta(hours=6))
 
         self.assertEqual(QUERY_SETS_PER_RUN, len(first))
         self.assertEqual(
