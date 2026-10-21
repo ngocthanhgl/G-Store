@@ -93,6 +93,7 @@ fun SettingsScreen(
     // showLogin to false mid-typing; rememberSaveable also survives rotation.
     var showLogin by rememberSaveable { mutableStateOf(false) }
     var submitted by rememberSaveable { mutableStateOf(false) }
+    var pendingAppIcon by rememberSaveable { mutableStateOf<AppIconStyle?>(null) }
     // Only a completed submit may dismiss this dialog. Keying the close on
     // "identity exists" was wrong twice over: GitHubIdentity is non-nullable
     // (logged out == GitHubIdentity(login = "")), so that condition is always
@@ -187,7 +188,7 @@ fun SettingsScreen(
                     options = AppIconStyle.entries,
                     selected = appearance.appIcon,
                     labelOf = ::appIconLabel,
-                    onSelect = vm::setAppIcon,
+                    onSelect = { if (it != appearance.appIcon) pendingAppIcon = it },
                 )
                 val iconResourceName = when (appearance.appIcon) {
                     AppIconStyle.CLASSIC -> "ic_launcher"
@@ -320,6 +321,33 @@ fun SettingsScreen(
             onConfirm = {
                 submitted = true
                 vm.loginWithToken(it)
+            },
+        )
+    }
+    pendingAppIcon?.let { style ->
+        AlertDialog(
+            onDismissRequest = { pendingAppIcon = null },
+            title = { Text("Change app icon?") },
+            text = {
+                Text(
+                    "The launcher may refresh briefly. The app icon changes only after you confirm.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.setAppIcon(style)
+                        pendingAppIcon = null
+                    },
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                ) { Text("Change icon") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingAppIcon = null },
+                    modifier = Modifier.heightIn(min = GStoreSpace.TouchTarget),
+                ) { Text("Cancel") }
             },
         )
     }

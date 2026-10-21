@@ -1,12 +1,12 @@
 name: catalog-scan
 
-# GitHub APK catalog scan every three hours (8 runs/day). Results are committed
+# GitHub APK catalog scan every six hours (4 runs/day). Results are committed
 # to catalog/ and the Android app pulls catalog/index.json (slim) on launch.
-# Each run scans three rotating query sets and MERGES into the previous catalog.
+# Each run scans two rotating query sets and MERGES into the previous catalog.
 # See tools/scan.py and docs/GITHUB_DISCOVERY.md for coverage limits.
 on:
   schedule:
-    - cron: "0 */3 * * *" # Every 3 hours, UTC
+    - cron: "0 */6 * * *" # Every 6 hours, UTC
   workflow_dispatch:
 
 permissions:

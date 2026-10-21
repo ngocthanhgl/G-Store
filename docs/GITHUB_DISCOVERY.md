@@ -54,10 +54,10 @@ auth (if added) = user OAuth/PAT in EncryptedSharedPreferences/Keystore only.
 ## 6. Scheduled scanner bot → committed catalog (added post-M8, user request)
 
 Because no endpoint enumerates every APK repo (§3), a scheduled GitHub Action
-does the broad scan server-side eight times per day and commits the result to
+does the broad scan server-side four times per day and commits the result to
 this repo; the app pulls it on launch so Home always has a list.
 
-- Workflow: `.github/workflows/scan.yml` — cron `0 */3 * * *` (every three
+- Workflow: `.github/workflows/scan.yml` — cron `0 */6 * * *` (every six
   hours, UTC) + `workflow_dispatch`.
   `permissions: contents: write`; 180-min timeout; commits
   `catalog/apps.json` + `catalog/index.json` + `catalog/meta.json` only when bytes changed. The scan
@@ -73,14 +73,14 @@ this repo; the app pulls it on launch so Home always has a list.
   Major languages are split into tiers
   (`stars:<10` / `10..100` / `100..1000` / `>1000`) because search pagination caps
   at 1,000 results per query — one query can never cover a whole language.
-  Every run selects three query sets and advances by three every scheduled
-  slot, covering all 14 sets within five scans (12 hours from the first run).
+  Every run selects two query sets and advances by two every scheduled
+  slot, covering all 14 sets within seven scans (36 hours from the first run).
   Query results
   are interleaved before checks so a broad search cannot crowd out smaller
   topics. Every query carries `archived:false` so dead repos never consume
   check budget. Up to 20 pages × 50 per query; dedupe, rank within each query,
   interleave, and cap `MAX_CHECK=8000` candidates per run to leave API headroom
-  across eight daily runs. A 150-minute soft deadline
+  across four daily runs. A 150-minute soft deadline
   (`SCAN_DEADLINE_S=9000`) stops starting new repos before the
   180-min job timeout; meta.json flags `deadline_hit` / `complete` /
   `error` honestly. Each run MERGES into the previous catalog (keyed by

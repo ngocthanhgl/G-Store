@@ -785,6 +785,9 @@ private fun Content(
                 },
             )
             val state by vm.state.collectAsState()
+            LaunchedEffect(vm, route.repoId, route.fullName) {
+                vm.refreshLatestReleaseInfo()
+            }
             val detailsContext = LocalContext.current
             val detailsLifecycle = LocalLifecycleOwner.current.lifecycle
             var detailsGateFor by remember { mutableStateOf<DownloadRecord?>(null) }

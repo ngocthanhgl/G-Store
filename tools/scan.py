@@ -13,7 +13,7 @@ domains, and star tiers, and MERGES each run into the previous catalog
 instead of replacing it — coverage accumulates over the rotating query
 surface without ever claiming to be exhaustive.
 - Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
-eight runs per day share that budget, so MAX_CHECK caps candidates per run
+four runs per day share that budget, so MAX_CHECK caps candidates per run
 (default 8000). A 150-minute soft deadline (SCAN_DEADLINE_S) stops starting
 new repos before the 180-min job timeout; partial results are always
 written and committed, flagged in meta.json.
@@ -40,7 +40,7 @@ BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
-# Finish before the next three-hour slot where possible; stop starting new
+# Finish well before the next six-hour slot; stop starting new
 # repos after DEADLINE_S and commit whatever we have (meta flags it partial).
 DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(150 * 60)))
 # Search pages carry full repo objects (~7 KB each): a 100-item page is a
@@ -63,8 +63,8 @@ DESC_CAP = 240
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
 
-# Fourteen query sets — three adjacent sets run every three hours, advancing
-# three sets each slot so the full query surface rotates in about 15 hours.
+# Fourteen query sets — two adjacent sets run every six hours, advancing
+# two sets each slot so the full query surface rotates in seven scans.
 # Every query carries archived:false so dead repos never consume check budget.
 # Major languages
 # are split into star tiers (10..100 / 100..1000 / >1000) because search
@@ -183,8 +183,8 @@ QUERY_SETS = [
         "android shopping archived:false fork:false",
     ],
 ]
-QUERY_SETS_PER_RUN = 3
-SCHEDULE_INTERVAL_SECONDS = 3 * 60 * 60
+QUERY_SETS_PER_RUN = 2
+SCHEDULE_INTERVAL_SECONDS = 6 * 60 * 60
 
 HEADERS = {
     "Accept": "application/vnd.github+json",
@@ -244,7 +244,7 @@ def api_get(path):
 
 
 def query_set_indices(now=None):
-    """Pick three rotating query sets for this scheduled three-hour slot."""
+    """Pick two rotating query sets for this scheduled six-hour slot."""
     now = now or datetime.now(timezone.utc)
     slot = int(now.timestamp() // SCHEDULE_INTERVAL_SECONDS)
     start = (slot * QUERY_SETS_PER_RUN) % len(QUERY_SETS)
