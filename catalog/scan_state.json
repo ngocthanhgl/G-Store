@@ -1,0 +1,25 @@
+{
+ "schema": 1,
+ "slot": 41497,
+ "query_sets": [
+  2,
+  3
+ ],
+ "queries": [
+  "topic:flutter archived:false fork:false",
+  "topic:react-native archived:false fork:false",
+  "android language:Dart archived:false fork:false stars:>50",
+  "android language:C# archived:false fork:false stars:>50",
+  "android music player archived:false fork:false",
+  "android video player archived:false fork:false",
+  "youtube android archived:false fork:false",
+  "android camera archived:false fork:false",
+  "android podcast archived:false fork:false",
+  "android manga comic archived:false fork:false"
+ ],
+ "checked_ids": [],
+ "candidates": 6740,
+ "started_at": "2026-10-22T18:25:26.966934+00:00",
+ "updated_at": "2026-10-22T21:12:57.798948+00:00",
+ "complete": false
+}

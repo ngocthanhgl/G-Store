@@ -1,32 +1,38 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-22T04:43:22.832462+00:00",
+ "scanned_at": "2026-10-22T21:12:58.026896+00:00",
  "tool": "tools/scan.py",
- "query_set": 0,
+ "query_set": 2,
  "query_sets": [
-  0,
-  1
+  2,
+  3
  ],
  "queries": [
-  "topic:android archived:false fork:false",
-  "android language:Kotlin archived:false fork:false stars:>1000",
-  "android language:Java archived:false fork:false stars:>1000",
-  "android language:Kotlin archived:false fork:false stars:10..100",
-  "android language:Kotlin archived:false fork:false stars:100..1000",
-  "android language:Java archived:false fork:false stars:10..100",
-  "android language:Java archived:false fork:false stars:100..1000"
+  "topic:flutter archived:false fork:false",
+  "topic:react-native archived:false fork:false",
+  "android language:Dart archived:false fork:false stars:>50",
+  "android language:C# archived:false fork:false stars:>50",
+  "android music player archived:false fork:false",
+  "android video player archived:false fork:false",
+  "youtube android archived:false fork:false",
+  "android camera archived:false fork:false",
+  "android podcast archived:false fork:false",
+  "android manga comic archived:false fork:false"
  ],
- "candidates": 6131,
+ "candidates": 6740,
+ "pending": 6740,
  "checked": 0,
+ "checked_total": 0,
  "verified_today": 0,
  "carried_over": 2636,
  "dropped_stale": 0,
- "matches": 2636,
- "index_matches": 2636,
- "index_bytes": 2188278,
  "truncated": true,
- "deadline_hit": true,
+ "resumed": false,
+ "interrupted": false,
  "complete": false,
  "error": null,
- "duration_s": 9058.3
+ "duration_s": 10050.8,
+ "matches": 2636,
+ "index_matches": 2636,
+ "index_bytes": 2188278
 }
