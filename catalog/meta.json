@@ -1,25 +1,32 @@
 {
  "schema": 1,
- "scanned_at": "2026-10-19T08:59:23.355139+00:00",
+ "scanned_at": "2026-10-22T04:43:22.832462+00:00",
  "tool": "tools/scan.py",
- "query_set": 8,
- "queries": [
-  "kivy android archived:false fork:false",
-  "chaquopy android archived:false fork:false",
-  "android language:Python archived:false fork:false",
-  "android language:C++ archived:false fork:false"
+ "query_set": 0,
+ "query_sets": [
+  0,
+  1
  ],
- "candidates": 3194,
- "checked": 3194,
- "verified_today": 407,
- "carried_over": 2271,
+ "queries": [
+  "topic:android archived:false fork:false",
+  "android language:Kotlin archived:false fork:false stars:>1000",
+  "android language:Java archived:false fork:false stars:>1000",
+  "android language:Kotlin archived:false fork:false stars:10..100",
+  "android language:Kotlin archived:false fork:false stars:100..1000",
+  "android language:Java archived:false fork:false stars:10..100",
+  "android language:Java archived:false fork:false stars:100..1000"
+ ],
+ "candidates": 6131,
+ "checked": 0,
+ "verified_today": 0,
+ "carried_over": 2636,
  "dropped_stale": 0,
  "matches": 2636,
  "index_matches": 2636,
  "index_bytes": 2188278,
- "truncated": false,
- "deadline_hit": false,
- "complete": true,
+ "truncated": true,
+ "deadline_hit": true,
+ "complete": false,
  "error": null,
- "duration_s": 6171.1
+ "duration_s": 9058.3
 }
