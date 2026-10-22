@@ -1195,3 +1195,56 @@ Version bumped to `versionCode 12`, `versionName 1.1.4`. Verified:
 The host's configured `JAVA_HOME` (`E:\jdk`) is invalid; checks were run with
 the installed JDK 25 selected explicitly. Device reproduction is unavailable
 on this workstation.
+
+## 38. Resumable scan chunks - scans no longer lose hours of work
+
+Symptom: a catalog scan that ran long was cut off by the Actions runtime and
+the whole run's results vanished. Cause: `tools/scan.py` wrote `catalog/*.json`
+once, at the very end, and GitHub terminates a hosted job at its
+`timeout-minutes` **without running the remaining steps**, so the
+`if: always()` commit step never executed. Everything scanned in that job was
+lost (the *previous* catalog survived, which is why the loss looked like
+"frozen" data rather than an error).
+
+Constraints that shaped the fix:
+- GitHub hard-caps a hosted job at 360 minutes. "Unlimited" therefore cannot
+  mean one endless job; it must mean runs that always make durable progress.
+- The API budget is hourly (5,000 calls/hour for the workflow token), so a
+  longer run must also be paced, not merely longer.
+- Catalog files are multi-megabyte; committing every few minutes would bloat
+  history, so checkpoints must be coarse but few.
+
+Decision - resumable chunks with a committed resume point:
+- `SCAN_DEADLINE_S` default is now `0` = unlimited (scan until every candidate
+  is checked). The workflow sets 2,100 s (35 min) *per chunk* and runs eight
+  chunks inside the 360-min job, committing after each. Worst-case loss on a
+  killed job drops from "the whole run" to one 35-minute chunk.
+- `catalog/scan_state.json` (committed) stores the query sets in flight, the
+  repo ids already checked, and a `complete` flag. An unfinished state always
+  resumes - even in a later slot - so a query set is never abandoned
+  half-checked; a finished state for the current slot makes the remaining
+  chunks and duplicate dispatches exit immediately.
+- `catalog/scan_queue.json` (gitignored) caches the candidate repo objects for
+  the job, so chunks 2..8 skip the search phase entirely.
+- Schedule reduced from four runs/day to **two** (`0 2,14 * * *`), and the
+  rotation step is now 12 h so two sets still advance per run and all 14 sets
+  still rotate in seven scans.
+- Checks are paced at `SCAN_REQUEST_INTERVAL_S=0.9` (~3,200 calls/hour) to stay
+  under the 5,000/hour allowance alongside search pages and retries, with
+  `MAX_CHECK=12000` per run.
+- All catalog writes are atomic (`os.replace`) so an interrupted chunk can
+  never leave a half-written `apps.json` for the next chunk or for the app.
+
+Alternatives rejected: raising the timeout alone (buys hours, still loses
+everything at the cap); a background committer loop inside one step (pushes
+every 10 minutes, ~50 commits/day of multi-MB files, and races `git pull`
+against live writes); pushing intermediate state to a side branch (extra fetch
+and merge machinery for no user-visible gain).
+
+Verified: `python -m unittest discover -s tools` - 10 tests pass, including a
+new end-to-end test that stops a chunk mid-run (simulated SIGTERM), asserts the
+checkpoint state, resumes it, completes the slot, and proves a repeat run is a
+no-op. Changed: `tools/scan.py`, `tools/test_scan.py`,
+`.github/workflows/scan.yml`, `.gitignore`, `docs/GITHUB_DISCOVERY.md`.
+Honest limit: only the last chunk of a hard-killed job can be lost (<=35 min);
+a truly unbounded single run is impossible on hosted runners.

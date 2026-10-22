@@ -54,16 +54,26 @@ auth (if added) = user OAuth/PAT in EncryptedSharedPreferences/Keystore only.
 ## 6. Scheduled scanner bot → committed catalog (added post-M8, user request)
 
 Because no endpoint enumerates every APK repo (§3), a scheduled GitHub Action
-does the broad scan server-side four times per day and commits the result to
+does the broad scan server-side twice per day and commits the result to
 this repo; the app pulls it on launch so Home always has a list.
 
-- Workflow: `.github/workflows/scan.yml` — cron `0 */6 * * *` (every six
-  hours, UTC) + `workflow_dispatch`.
-  `permissions: contents: write`; 180-min timeout; commits
-  `catalog/apps.json` + `catalog/index.json` + `catalog/meta.json` only when bytes changed. The scan
-  step records its exit code and the commit step has `if: always()`, so partial
-  results are committed even when the run hits its soft deadline or an error —
-  while a nonzero exit with zero catalog changes fails the job red.
+- Workflow: `.github/workflows/scan.yml` — cron `0 2,14 * * *` (02:00 and
+  14:00 UTC, twice a day) + `workflow_dispatch`.
+  `permissions: contents: write`; 360-min timeout (GitHub's hosted-runner
+  ceiling). The scan runs as eight resumable 35-minute chunks and commits
+  `catalog/apps.json` + `catalog/index.json` + `catalog/meta.json` +
+  `catalog/scan_state.json` after every chunk that changed bytes, so a job
+  killed by the runner cap loses at most one chunk — never the whole run.
+  The scan step records the last chunk's exit code and the commit step has
+  `if: always()`, so a nonzero exit with zero catalog changes still fails the
+  job red instead of passing silently.
+- Resume: `catalog/scan_state.json` holds the query sets in flight, the ids
+  already checked, and a `complete` flag. An unfinished state always wins over
+  the current slot, so a set is never abandoned half-checked; a finished state
+  for the current slot makes the remaining chunks (and a duplicate dispatch)
+  exit immediately. `catalog/scan_queue.json` is a job-local cache of the
+  candidate objects (gitignored) that saves re-running the search phase for
+  chunks 2..8 of the same job.
 - Scanner: `tools/scan.py` (stdlib only, no deps). Fourteen rotating query
   sets across languages (Kotlin/Java/Dart/C#/Python/C++/
   Rust/Go/Scala/C/Lua/GDScript/JS/TS), game engines (Godot/Unity/LÖVE/emulators),
@@ -74,16 +84,19 @@ this repo; the app pulls it on launch so Home always has a list.
   (`stars:<10` / `10..100` / `100..1000` / `>1000`) because search pagination caps
   at 1,000 results per query — one query can never cover a whole language.
   Every run selects two query sets and advances by two every scheduled
-  slot, covering all 14 sets within seven scans (36 hours from the first run).
+  slot, covering all 14 sets within seven scans (3.5 days from the first run).
   Query results
   are interleaved before checks so a broad search cannot crowd out smaller
   topics. Every query carries `archived:false` so dead repos never consume
   check budget. Up to 20 pages × 50 per query; dedupe, rank within each query,
-  interleave, and cap `MAX_CHECK=8000` candidates per run to leave API headroom
-  across four daily runs. A 150-minute soft deadline
-  (`SCAN_DEADLINE_S=9000`) stops starting new repos before the
-  180-min job timeout; meta.json flags `deadline_hit` / `complete` /
-  `error` honestly. Each run MERGES into the previous catalog (keyed by
+  interleave, and cap `MAX_CHECK=12000` candidates per run. Checks are paced at
+  `SCAN_REQUEST_INTERVAL_S=0.9` (~3,200 calls/hour, under the 5,000/hour token
+  allowance with headroom for search pages and retries). Each chunk stops
+  starting new repos after `SCAN_DEADLINE_S=2100` (35 min) and checkpoints;
+  `SCAN_DEADLINE_S=0` removes the limit entirely, so a single chunk scans until
+  every candidate is checked. meta.json reports `complete` / `resumed` /
+  `interrupted` / `pending` honestly. Each run MERGES into the previous
+  catalog (keyed by
   repo id): re-checked entries refresh and stamp `last_verified`; repos
   re-checked with no APK release are dropped; entries unseen for
   `STALE_DAYS=30` are dropped; pre-`last_verified` entries were
@@ -105,7 +118,10 @@ this repo; the app pulls it on launch so Home always has a list.
   `last_verified` (ISO date) and meta `query_set` (first set for backward
   compatibility), `query_sets` (all sets scanned), `verified_today` /
   `carried_over` / `dropped_stale` were added with the rotation design;
-  the app parses with `ignoreUnknownKeys`, so old clients keep working.
+  `checked_total` / `pending` / `resumed` / `interrupted` and the separate
+  `catalog/scan_state.json` resume point were added with the resumable-chunk
+  design. The app parses with `ignoreUnknownKeys`, so old clients keep working
+  and never read the state file.
 - Client (`CatalogClient` → `CatalogRepository.importCatalog`): ETag
   conditional GET against `raw.githubusercontent.com/.../main/catalog/apps.json`
   (2 MiB cap), imported on first empty launch and when >24 h stale; repo

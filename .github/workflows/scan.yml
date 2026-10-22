@@ -1,12 +1,20 @@
 name: catalog-scan
 
-# GitHub APK catalog scan every six hours (4 runs/day). Results are committed
-# to catalog/ and the Android app pulls catalog/index.json (slim) on launch.
-# Each run scans two rotating query sets and MERGES into the previous catalog.
-# See tools/scan.py and docs/GITHUB_DISCOVERY.md for coverage limits.
+# GitHub APK catalog scan, twice a day (02:00 + 14:00 UTC). Results are
+# committed to catalog/ and the Android app pulls catalog/index.json (slim) on
+# launch. Each run scans two rotating query sets and MERGES into the previous
+# catalog. See tools/scan.py and docs/GITHUB_DISCOVERY.md for coverage limits.
+#
+# GitHub kills a hosted job at 360 minutes, so the scan runs as resumable
+# 35-minute chunks and commits after every chunk: a killed job can lose at
+# most one chunk, never the whole run. Progress lives in
+# catalog/scan_state.json (query sets + already-checked repo ids), so the next
+# chunk — or the next job twelve hours later — continues the same sets instead
+# of starting over. A chunk that finishes everything marks the slot complete
+# and the remaining chunks in that job exit immediately.
 on:
   schedule:
-    - cron: "0 */6 * * *" # Every 6 hours, UTC
+    - cron: "0 2,14 * * *" # 02:00 + 14:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -21,30 +29,56 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # GitHub's hard ceiling for a hosted job. 8 x 35-min chunks (280 min) plus
+    # search, tests, and checkpoint pushes stay comfortably inside it.
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v5
+      - name: Scanner unit tests
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
       - name: Run catalog scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_CHECK: 8000
-          SCAN_DEADLINE_S: 9000 # 150 min soft deadline inside a 180 min job
-        # The script always writes partial results + meta.json, even on
-        # failure — the commit step must still run. But a nonzero exit with
-        # NO catalog changes means nothing was written at all, which must be
-        # red, not silently green. (set +e: the exit code is captured into
-        # SCAN_EXIT instead of killing the step before the echo runs.)
+          MAX_CHECK: 12000
+          SCAN_DEADLINE_S: 2100 # 35 min per chunk, well inside the 360 min job
+          # ~1 release check per second => ~3,200 calls/hour, under the
+          # 5,000/hour token allowance with headroom for search pages and the
+          # rate-limit guard (which sleeps to reset when remaining < 60).
+          SCAN_REQUEST_INTERVAL_S: 0.9
+        # Every chunk commits its own checkpoint, so a job killed mid-chunk
+        # (or a runner failure) never discards earlier chunks. The script
+        # always writes partial results + meta.json + scan_state.json, so the
+        # next run resumes; a nonzero exit with NO catalog changes means
+        # nothing was written at all, which must be red, not silently green.
         run: |
           set +e
-          python3 tools/scan.py
-          echo "SCAN_EXIT=$?" >> "$GITHUB_ENV"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          SCAN_EXIT=0
+          for chunk in $(seq 1 8); do
+            python3 tools/scan.py
+            SCAN_EXIT=$?
+            git add catalog/apps.json catalog/index.json catalog/meta.json catalog/scan_state.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "catalog: APK scan checkpoint $chunk/8 $(date -u +%FT%TZ)"
+              # A retried run may have pushed first: rebase once and retry
+              # instead of going red on a non-fast-forward push.
+              git push -q ||
+                (git -c rebase.autoStash=true pull --rebase -q origin main &&
+                 git push -q) ||
+                echo "checkpoint $chunk: push failed, retrying on the next commit"
+            fi
+            echo "chunk $chunk exit=$SCAN_EXIT"
+            if [ "$SCAN_EXIT" != "0" ]; then break; fi
+          done
+          echo "SCAN_EXIT=$SCAN_EXIT" >> "$GITHUB_ENV"
           exit 0
       - name: Commit catalog
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add catalog/apps.json catalog/index.json catalog/meta.json || true
+          git add catalog/apps.json catalog/index.json catalog/meta.json catalog/scan_state.json || true
           if git diff --cached --quiet; then
             echo "catalog unchanged"
             if [ "${SCAN_EXIT:-0}" != "0" ]; then
@@ -53,8 +87,5 @@ jobs:
             fi
           else
             git commit -m "catalog: scheduled APK scan $(date -u +%F)" &&
-            # A second scan run may have pushed first (concurrency queues
-            # starts but each job checks out at start): rebase and retry
-            # once instead of going red on a non-fast-forward push.
-            (git push || (git pull --rebase origin main && git push))
+            (git push || (git -c rebase.autoStash=true pull --rebase origin main && git push))
           fi

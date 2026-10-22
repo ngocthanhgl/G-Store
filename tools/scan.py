@@ -12,22 +12,30 @@ scanner rotates 14 query sets across languages, game engines, app
 domains, and star tiers, and MERGES each run into the previous catalog
 instead of replacing it — coverage accumulates over the rotating query
 surface without ever claiming to be exhaustive.
-- Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour;
-four runs per day share that budget, so MAX_CHECK caps candidates per run
-(default 8000). A 150-minute soft deadline (SCAN_DEADLINE_S) stops starting
-new repos before the 180-min job timeout; partial results are always
-written and committed, flagged in meta.json.
+- Runs twice per day. GitHub kills a hosted job at 360 minutes, so the
+workflow runs the scanner as resumable chunks (SCAN_DEADLINE_S per chunk)
+and commits after every chunk: a killed job can lose at most one chunk.
+Progress lives in catalog/scan_state.json (query sets + checked repo ids),
+so the next chunk — or the next job twelve hours later — continues the same
+sets instead of starting over. DEADLINE_S=0 disables the limit entirely
+(scan until every candidate is checked).
+- Budget: the automatic GITHUB_TOKEN allows ~5,000 REST requests/hour.
+Checks are paced at SCAN_REQUEST_INTERVAL_S (~1 req/s => ~3,000/hr) so a
+run never exhausts the hourly quota, and MAX_CHECK caps candidates per run
+(default 12000) to stay inside a day's job budget.
 - Entries carry last_verified (ISO date). Entries unseen for STALE_DAYS
   (default 30) are dropped; a repo re-checked with no APK release is
   dropped immediately. Archived/disabled repos and drafts are excluded.
   Digest is usually null (GitHub rarely provides one).
 
 Stdlib only (urllib) so ubuntu-latest runners need no setup.
-Env: GITHUB_TOKEN (required), MAX_CHECK (default 8000), OUT_DIR (default catalog).
+Env: GITHUB_TOKEN (required), MAX_CHECK (default 12000), OUT_DIR (default catalog),
+SCAN_DEADLINE_S (default 0 = unlimited), SCAN_REQUEST_INTERVAL_S (default 0.9).
 """
 import http.client
 import json
 import os
+import signal
 import socket
 import sys
 import time
@@ -38,11 +46,16 @@ import urllib.request
 from datetime import date, datetime, timezone
 BASE = "https://api.github.com"
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-MAX_CHECK = int(os.environ.get("MAX_CHECK", "8000"))
+MAX_CHECK = int(os.environ.get("MAX_CHECK", "12000"))
 OUT_DIR = os.environ.get("OUT_DIR", "catalog")
-# Finish well before the next six-hour slot; stop starting new
-# repos after DEADLINE_S and commit whatever we have (meta flags it partial).
-DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", str(150 * 60)))
+# 0 (default) = unlimited: scan until every candidate for this query slot is
+# checked. The workflow sets a per-chunk value so a 360-min job cap can never
+# kill work that was not already committed as a checkpoint.
+DEADLINE_S = int(os.environ.get("SCAN_DEADLINE_S", "0"))
+# Pace release checks at ~1 req/s => ~3,000 calls/hour, under the 5,000/hr
+# authenticated quota with headroom for search pages, retries, and the next
+# chunk. Lower it to scan faster, raise it to be gentler on the quota.
+REQUEST_INTERVAL_S = float(os.environ.get("SCAN_REQUEST_INTERVAL_S", "0.9"))
 # Search pages carry full repo objects (~7 KB each): a 100-item page is a
 # ~1.4 MB body that truncates mid-stream (IncompleteRead) often enough to
 # survive all 4 transport retries and kill the whole search phase (seen
@@ -62,9 +75,14 @@ INDEX_CAP = 3500
 DESC_CAP = 240
 # Entries not re-verified within this window are dropped as stale.
 STALE_DAYS = int(os.environ.get("SCAN_STALE_DAYS", "30"))
+# Resume point: query sets + ids already checked, so a killed job (or the next
+# scheduled run) continues instead of restarting.
+SCAN_STATE_FILE = "scan_state.json"
+QUEUE_FILE = "scan_queue.json"
 
-# Fourteen query sets — two adjacent sets run every six hours, advancing
-# two sets each slot so the full query surface rotates in seven scans.
+# Fourteen query sets — two adjacent sets run per scheduled scan (twice a
+# day), advancing two sets each slot so the full query surface rotates in
+# seven scans (3.5 days).
 # Every query carries archived:false so dead repos never consume check budget.
 # Major languages
 # are split into star tiers (10..100 / 100..1000 / >1000) because search
@@ -184,7 +202,9 @@ QUERY_SETS = [
     ],
 ]
 QUERY_SETS_PER_RUN = 2
-SCHEDULE_INTERVAL_SECONDS = 6 * 60 * 60
+# Two scheduled runs per day (cron 02:00 + 14:00 UTC). Each run advances two
+# sets, so all 14 sets rotate every seven scans (3.5 days).
+SCHEDULE_INTERVAL_SECONDS = 12 * 60 * 60
 
 HEADERS = {
     "Accept": "application/vnd.github+json",
@@ -193,6 +213,17 @@ HEADERS = {
 }
 if TOKEN:
     HEADERS["Authorization"] = "Bearer " + TOKEN
+
+# Set by SIGTERM/SIGINT so a cancelled job still checkpoints instead of
+# dropping everything scanned since the previous commit.
+STOP = {"requested": False}
+
+
+def request_stop(signum, _frame):
+    if not STOP["requested"]:
+        print(f"signal {signum}: finishing the current repo, then checkpointing",
+              flush=True)
+    STOP["requested"] = True
 
 
 def api_get(path):
@@ -244,12 +275,112 @@ def api_get(path):
 
 
 def query_set_indices(now=None):
-    """Pick two rotating query sets for this scheduled six-hour slot."""
+    """Pick two rotating query sets for this scheduled twelve-hour slot."""
     now = now or datetime.now(timezone.utc)
     slot = int(now.timestamp() // SCHEDULE_INTERVAL_SECONDS)
     start = (slot * QUERY_SETS_PER_RUN) % len(QUERY_SETS)
     return [(start + offset) % len(QUERY_SETS)
             for offset in range(QUERY_SETS_PER_RUN)]
+
+
+def plan_run(state, now=None):
+    """Decide what this process should do: resume, skip, or start fresh.
+
+    An unfinished state always resumes, even in a later slot, so a query set
+    is never abandoned half-checked. A finished state for the current slot
+    means extra chunk steps in the same job have nothing left to do.
+    """
+    now = now or datetime.now(timezone.utc)
+    slot = int(now.timestamp() // SCHEDULE_INTERVAL_SECONDS)
+    if state and state.get("complete") is False and state.get("queries"):
+        return {
+            "mode": "resume",
+            "slot": state.get("slot", slot),
+            "query_sets": state.get("query_sets") or [],
+            "queries": state["queries"],
+            "checked_ids": [int(x) for x in (state.get("checked_ids") or [])],
+            "started_at": state.get("started_at") or now.isoformat(),
+        }
+    if state and state.get("complete") and state.get("slot") == slot:
+        return {
+            "mode": "done",
+            "slot": slot,
+            "query_sets": state.get("query_sets") or [],
+            "queries": state.get("queries") or [],
+            "checked_ids": [],
+            "started_at": state.get("started_at") or now.isoformat(),
+        }
+    set_indices = query_set_indices(now)
+    return {
+        "mode": "fresh",
+        "slot": slot,
+        "query_sets": set_indices,
+        "queries": [q for index in set_indices for q in QUERY_SETS[index]],
+        "checked_ids": [],
+        "started_at": now.isoformat(),
+    }
+
+
+def load_json(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def write_json(path, payload):
+    """Atomic write: a killed process never leaves a half-written catalog."""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
+
+
+def queue_path():
+    return os.path.join(OUT_DIR, QUEUE_FILE)
+
+
+def load_queue(queries):
+    """Candidate repo objects cached for this job; empty when absent/stale."""
+    data = load_json(queue_path())
+    if not data or data.get("queries") != queries:
+        return []
+    return data.get("candidates") or []
+
+
+def save_queue(candidates, queries):
+    try:
+        os.makedirs(OUT_DIR, exist_ok=True)
+        write_json(queue_path(), {"queries": queries,
+                                  "candidates": candidates})
+    except OSError as e:
+        print(f"queue cache not written: {e}", flush=True)
+
+
+def clear_queue():
+    try:
+        os.remove(queue_path())
+    except OSError:
+        pass
+
+
+def build_entries(previous, today):
+    """Drop entries unseen for STALE_DAYS and return the capped, ranked list."""
+    dropped_stale = 0
+    for repo_id, entry in list(previous.items()):
+        try:
+            age = (date.fromisoformat(today) -
+                   date.fromisoformat(entry.get("last_verified", today))).days
+        except ValueError:
+            age = 0
+        if age > STALE_DAYS:
+            del previous[repo_id]
+            dropped_stale += 1
+    entries = sorted(previous.values(),
+                     key=lambda e: e["repo"].get("stars", 0), reverse=True)
+    return entries[:ENTRY_CAP], dropped_stale
+
 
 
 def interleave_candidates(groups, limit):
@@ -393,35 +524,104 @@ def main():
         print("GITHUB_TOKEN is empty: 60 req/hr cannot cover a scan. Abort.",
               file=sys.stderr)
         return 2
+    for signame in ("SIGTERM", "SIGINT"):
+        handler = getattr(signal, signame, None)
+        if handler is None:
+            continue
+        try:
+            signal.signal(handler, request_stop)
+        except (OSError, ValueError):
+            pass
     started = time.time()
     now = datetime.now(timezone.utc)
     today = now.date().isoformat()
-    set_indices = query_set_indices(now)
-    queries = [query for index in set_indices for query in QUERY_SETS[index]]
-    print(f"query sets {set_indices}: {queries}", flush=True)
-    error = None
-    deadline_hit = False
+    plan = plan_run(load_json(os.path.join(OUT_DIR, SCAN_STATE_FILE)), now)
+    if plan["mode"] == "done":
+        print(f"query sets {plan['query_sets']} already fully scanned for "
+              f"slot {plan['slot']}; nothing to do", flush=True)
+        return 0
+    resumed = plan["mode"] == "resume"
+    set_indices = plan["query_sets"]
+    queries = plan["queries"]
+    slot = plan["slot"]
+    started_at = plan["started_at"]
+    checked_ids = set(plan["checked_ids"])
+    print(f"query sets {set_indices} ({plan['mode']}): {queries}", flush=True)
     previous = load_previous()
     # Grandfather entries written before last_verified existed.
     for entry in previous.values():
         entry.setdefault("last_verified", today)
     carried = len(previous)
+    error = None
+    finished = False
+    stopped = False
+    checked = 0
+    verified_today = 0
+
+    def flush(complete):
+        entries, dropped_stale = build_entries(previous, today)
+        meta = {
+            "query_set": set_indices[0] if set_indices else None,
+            "query_sets": set_indices,
+            "queries": queries,
+            "candidates": len(candidates),
+            "pending": len(pending),
+            "checked": checked,
+            "checked_total": len(checked_ids),
+            "verified_today": verified_today,
+            "carried_over": carried,
+            "dropped_stale": dropped_stale,
+            "truncated": len(entries) >= ENTRY_CAP or not complete,
+            "resumed": resumed,
+            "interrupted": stopped,
+            "complete": complete,
+            "error": error,
+            "duration_s": round(time.time() - started, 1),
+        }
+        state = {
+            "schema": 1,
+            "slot": slot,
+            "query_sets": set_indices,
+            "queries": queries,
+            # A complete slot needs no resume point: drop the id list so the
+            # committed state stays tiny.
+            "checked_ids": [] if complete else sorted(checked_ids),
+            "candidates": len(candidates),
+            "started_at": started_at,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "complete": complete,
+        }
+        write_results(entries, meta, state)
+
+    candidates = []
+    pending = []
     # The check phase must never kill the write: ANY unexpected failure
     # (search fatal after retries, runner network blip) is recorded and we
     # still commit the merged catalog with an error flag. A run that writes
     # nothing AND fails is indistinguishable from success downstream.
-    candidates = []
-    checked = 0
-    verified_today = 0
     try:
-        candidates = search_candidates(queries)
-        for repo in candidates:
-            if time.time() - started > DEADLINE_S:
-                deadline_hit = True
-                print(f"deadline ({DEADLINE_S}s) hit after {checked} repos; "
-                      f"finalizing partial results", flush=True)
+        # A previous chunk in the same job cached the candidate objects;
+        # reuse them instead of paying for the whole search phase again.
+        candidates = load_queue(queries) if resumed else []
+        if not candidates:
+            candidates = search_candidates(queries)
+            save_queue(candidates, queries)
+        pending = [repo for repo in candidates
+                   if repo.get("id") not in checked_ids]
+        print(f"{len(candidates)} candidates, {len(pending)} pending, "
+              f"{len(checked_ids)} already checked", flush=True)
+        for repo in pending:
+            if STOP["requested"]:
+                stopped = True
+                print(f"stop requested after {checked} repos; checkpointing",
+                      flush=True)
+                break
+            if DEADLINE_S and time.time() - started > DEADLINE_S:
+                print(f"chunk deadline ({DEADLINE_S}s) after {checked} repos; "
+                      f"checkpointing for the next chunk", flush=True)
                 break
             checked += 1
+            checked_ids.add(repo["id"])
             try:
                 rel, assets = pick_apk_release(repo["full_name"])
             except Exception as e:  # one bad repo must not kill the run
@@ -433,36 +633,25 @@ def main():
             elif repo["id"] in previous:
                 # Re-checked and no longer ships an APK release — drop it.
                 del previous[repo["id"]]
-            time.sleep(0.3)
+            time.sleep(REQUEST_INTERVAL_S)
+        else:
+            finished = True
     except Exception:
         error = traceback.format_exc(limit=5)
         print(f"check phase failed, committing merged catalog: {error}",
               flush=True)
-    # Drop entries unseen for STALE_DAYS (repos deleted, renamed, or rotated
-    # out of every query surface).
-    dropped_stale = 0
-    for repo_id, entry in list(previous.items()):
-        try:
-            age = (date.fromisoformat(today) -
-                   date.fromisoformat(entry.get("last_verified", today))).days
-        except ValueError:
-            age = 0
-        if age > STALE_DAYS:
-            del previous[repo_id]
-            dropped_stale += 1
-    entries = sorted(previous.values(),
-                     key=lambda e: e["repo"].get("stars", 0), reverse=True)
-    entries = entries[:ENTRY_CAP]
+    complete = finished and error is None
     try:
-        write_results(entries, candidates, checked, started, deadline_hit,
-                      error, set_indices, queries, verified_today, carried,
-                      dropped_stale)
+        flush(complete)
     except Exception:
         error = traceback.format_exc(limit=3)
         print(f"write failed: {error}", flush=True)
         return 1
-    print(f"done: {checked} checked, {verified_today} verified today, "
-          f"{len(entries)} total entries", flush=True)
+    if complete:
+        clear_queue()
+    print(f"done: {checked} checked this chunk, {len(checked_ids)} total, "
+          f"{verified_today} verified today, "
+          f"{'complete' if complete else 'resumable'}", flush=True)
     return 0
 
 
@@ -499,38 +688,23 @@ def to_index_entry(entry):
     }
 
 
-def write_results(entries, candidates, checked, started,
-                  deadline_hit, error, set_indices, queries,
-                  verified_today, carried, dropped_stale):
+def write_results(entries, meta, state):
+    """Commit one checkpoint: catalog files, run meta, and resume state."""
     os.makedirs(OUT_DIR, exist_ok=True)
-    with open(os.path.join(OUT_DIR, "apps.json"), "w", encoding="utf-8") as f:
-        json.dump(entries, f, ensure_ascii=False, indent=1)
+    write_json(os.path.join(OUT_DIR, "apps.json"), entries)
     index = [to_index_entry(e) for e in entries[:INDEX_CAP]]
-    with open(os.path.join(OUT_DIR, "index.json"), "w", encoding="utf-8") as f:
-        json.dump(index, f, ensure_ascii=False, indent=1)
-    meta = {
+    write_json(os.path.join(OUT_DIR, "index.json"), index)
+    payload = {
         "schema": 1,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "tool": "tools/scan.py",
-        "query_set": set_indices[0],
-        "query_sets": set_indices,
-        "queries": queries,
-        "candidates": len(candidates),
-        "checked": checked,
-        "verified_today": verified_today,
-        "carried_over": carried,
-        "dropped_stale": dropped_stale,
-        "matches": len(entries),
-        "index_matches": len(index),
-        "index_bytes": os.path.getsize(os.path.join(OUT_DIR, "index.json")),
-        "truncated": len(entries) >= ENTRY_CAP or deadline_hit,
-        "deadline_hit": deadline_hit,
-        "complete": error is None and not deadline_hit,
-        "error": error,
-        "duration_s": round(time.time() - started, 1),
     }
-    with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as f:
-        json.dump(meta, f, ensure_ascii=False, indent=1)
+    payload.update(meta)
+    payload["matches"] = len(entries)
+    payload["index_matches"] = len(index)
+    payload["index_bytes"] = os.path.getsize(os.path.join(OUT_DIR, "index.json"))
+    write_json(os.path.join(OUT_DIR, "meta.json"), payload)
+    write_json(os.path.join(OUT_DIR, SCAN_STATE_FILE), state)
 
 
 if __name__ == "__main__":
