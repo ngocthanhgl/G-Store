@@ -73,7 +73,9 @@ system installer. Never silent-install; never claim success without evidence.
 
 Light/dark/system theme, dynamic color (API 31+), accent color, card shape and
 density, grid/list, section visibility/order, navigation style, content spacing,
-reduced motion. Tokens centralized; contrast preserved (see UI_UX_SPEC.md).
+reduced motion. Defaults: light theme, dynamic color off, Forkly brand accent
+`#FF4F8B`; accent choices come from the brand palette only. Tokens centralized;
+contrast preserved (see UI_UX_SPEC.md).
 
 ## 8. Acceptance gates (product level)
 

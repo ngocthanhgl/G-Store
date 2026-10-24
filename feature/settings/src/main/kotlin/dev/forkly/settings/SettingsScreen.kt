@@ -284,17 +284,6 @@ fun SettingsScreen(
     }
 }
 
-private val accentColors = listOf(
-    "Violet" to 0xFF6750A4.toInt(),
-    "Blue" to 0xFF0056D2.toInt(),
-    "Teal" to 0xFF006A60.toInt(),
-    "Green" to 0xFF386A20.toInt(),
-    "Orange" to 0xFF8C4A00.toInt(),
-    "Red" to 0xFFBA1A1A.toInt(),
-    "Pink" to 0xFF9C405D.toInt(),
-    "Indigo" to 0xFF4355B9.toInt(),
-)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AccentSwatches(selectedArgb: Int?, onSelect: (Int?) -> Unit) {
@@ -308,7 +297,7 @@ private fun AccentSwatches(selectedArgb: Int?, onSelect: (Int?) -> Unit) {
             selected = selectedArgb == null,
             onClick = { onSelect(null) },
         )
-        accentColors.forEach { (label, argb) ->
+        brandAccentSwatches.forEach { (label, argb) ->
             AccentSwatch(
                 label = label,
                 argb = argb,

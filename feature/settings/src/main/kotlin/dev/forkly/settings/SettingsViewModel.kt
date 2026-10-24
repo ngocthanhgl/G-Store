@@ -31,6 +31,14 @@ fun densityLabel(density: CardDensity): String = when (density) {
     CardDensity.COMPACT -> "Compact"
 }
 
+/** Brand-guide accents. The first entry is the shipped default. */
+val brandAccentSwatches: List<Pair<String, Int>> = listOf(
+    "Forkly Pink" to 0xFFFF4F8B.toInt(),
+    "Forkly Coral" to 0xFFFF7A59.toInt(),
+    "Forkly Orange" to 0xFFFF9A56.toInt(),
+    "Forkly Violet" to 0xFF7B4DFF.toInt(),
+)
+
 fun layoutLabel(layout: HomeLayout): String = when (layout) {
     HomeLayout.LIST -> "List"
     HomeLayout.GRID -> "Grid"

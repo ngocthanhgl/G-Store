@@ -1275,3 +1275,21 @@ G Store installs cannot update in place, and local favorites, download history,
 and preferences do not carry over. A display-name-only rebrand would have kept
 upgrades working but left the old package identity in place. GitHub releases
 from before the rename stay reachable through the repository redirect.
+
+## 38. Brand-first appearance defaults (2026-10-24)
+
+First-run appearance now matches the Forkly brand instead of the previous
+AMOLED/red setup:
+
+- Default theme `LIGHT`, dynamic color **off**. Dynamic color remains
+  available as an opt-in and still wins only when the accent is `Automatic`.
+- Default accent `#FF4F8B` (Forkly pink, the midpoint of the logo gradient).
+- Accent picker is the brand palette only: `#FF4F8B`, `#FF7A59`, `#FF9A56`,
+  `#7B4DFF`. The eight Material seed colors are gone (`DESIGN.md`,
+  `UI_UX_SPEC.md`, `PRODUCT_SPEC.md` updated).
+- `SettingsLogicTest` asserts the light/brand defaults and the four-swatch
+  list.
+
+Honest limit: persisted preferences are not migrated. An install that already
+saved AMOLED or a Material accent keeps it until the user changes it or clears
+app data; uninstall/reinstall is the supported reset for the 1.0.0 line.

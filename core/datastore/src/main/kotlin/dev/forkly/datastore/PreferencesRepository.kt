@@ -28,8 +28,8 @@ enum class CardDensity { COMFORTABLE, COMPACT }
 
 /** Validated appearance settings — restored before first frame (flow E). */
 data class AppearanceSettings(
-    val theme: ThemeMode = ThemeMode.AMOLED,
-    val dynamicColor: Boolean = true,
+    val theme: ThemeMode = ThemeMode.LIGHT,
+    val dynamicColor: Boolean = false,
     val accentArgb: Int? = DEFAULT_ACCENT_ARGB,
     val density: CardDensity = CardDensity.COMFORTABLE,
     val layout: HomeLayout = HomeLayout.GRID,
@@ -39,7 +39,8 @@ data class AppearanceSettings(
     val includePrereleases: Boolean = false,
 ) {
     companion object {
-        const val DEFAULT_ACCENT_ARGB = 0xFFBA1A1A.toInt()
+        /** Forkly brand pink, the midpoint of the logo gradient. */
+        const val DEFAULT_ACCENT_ARGB = 0xFFFF4F8B.toInt()
     }
 }
 
@@ -104,9 +105,9 @@ class PreferencesRepository(private val context: Context) {
 
     val appearance: Flow<AppearanceSettings> = resilientData().map { p ->
         AppearanceSettings(
-            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "AMOLED") }
-                .getOrDefault(ThemeMode.AMOLED),
-            dynamicColor = p[Keys.DYNAMIC_COLOR] ?: true,
+            theme = runCatching { ThemeMode.valueOf(p[Keys.THEME] ?: "LIGHT") }
+                .getOrDefault(ThemeMode.LIGHT),
+            dynamicColor = p[Keys.DYNAMIC_COLOR] ?: false,
             accentArgb = if (p[Keys.ACCENT_AUTO] == true) {
                 null
             } else {

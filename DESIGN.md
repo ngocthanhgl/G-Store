@@ -11,7 +11,8 @@ numbers set like a ledger. The catalog is the hero; chrome recedes.
 ## Tokens (centralized in `:core:designsystem`)
 
 - **Color:** Material 3 tonal schemes. Custom accent seeds `primary` only;
-  dynamic color on API 31+. Status is always tonal, never raw hue-on-white:
+  dynamic color on API 31+. Accent choices are the Forkly brand palette
+  (`#FF4F8B` default, `#FF7A59`, `#FF9A56`, `#7B4DFF`). Status is always tonal, never raw hue-on-white:
   `APK available` = primaryContainer, `Archived` = errorContainer,
   neutral = surfaceContainerHigh. Secondary text is `onSurfaceVariant`
   (never gray).

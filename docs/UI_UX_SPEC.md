@@ -18,7 +18,8 @@ ripples and pull-to-refresh physics are Material-controlled and minimal.
 There are no custom 200/300ms durations anywhere — the M0 draft was wrong.
 
 Dynamic color on API 31+ via system schemes; custom accent replaces the seed
-primary and takes precedence over wallpaper dynamic color. The curated dark
+primary and takes precedence over wallpaper dynamic color. Defaults: light
+theme, dynamic color off, Forkly brand pink `#FF4F8B`. The curated dark
 seeds keep primary actions legible; there is no arbitrary color picker.
 Contrast is carried by M3 tonal schemes, not by an in-app checker —
 no contrast-ratio enforcement code exists (M0 draft was aspirational).
@@ -26,7 +27,7 @@ no contrast-ratio enforcement code exists (M0 draft was aspirational).
 ## 2. Customization model (persisted in DataStore, restored pre-first-frame)
 
 Implemented and wired at M7: theme (light/dark/system), dynamic-color
-toggle, accent (Automatic + 8 curated), layout (list/grid 2-col, same
+toggle, accent (Automatic + 4 brand accents), layout (list/grid 2-col, same
 cards/order/count), density (comfortable/compact padding), card radius
 slider, reduce motion. Section visibility + order (unchanged from M4).
 `SettingsScreen` edits them; `ThemeEditorScreen` previews them live.
