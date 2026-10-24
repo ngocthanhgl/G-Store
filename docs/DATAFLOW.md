@@ -1,4 +1,4 @@
-# DATAFLOW — G Store
+# DATAFLOW — Forkly
 
 Normal + failure paths for the six principal flows. Single source of truth:
 Room for catalog state, DataStore for preferences, app-specific files for APKs.

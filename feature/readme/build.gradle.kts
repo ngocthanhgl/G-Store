@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.readme"
+    namespace = "dev.forkly.readme"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,4 +1,4 @@
-# PRODUCT_SPEC — G Store (native Android GitHub APK marketplace)
+# PRODUCT_SPEC — Forkly (native Android GitHub APK marketplace)
 
 Status: Milestone 0 planning. Normative for scope; metrics are definitions, not claims.
 

@@ -4,7 +4,7 @@
 
 | Skill | Version / evidence | Verdict for this project |
 |---|---|---|
-| archify | `doctor` PASSED (Node v22.23.3, renderers ok) | Used: system-overview HTML (`../.archify/architecture-gstore-20261010-120000/gstore-architecture.html`, showcase). Mermaid kept for sequence/class-level docs (ponytail: one flagship diagram, not five). |
+| archify | `doctor` PASSED (Node v22.23.3, renderers ok) | Used: system-overview HTML (`../.archify/architecture-forkly-20261010-120000/forkly-architecture.html`, showcase). Mermaid kept for sequence/class-level docs (ponytail: one flagship diagram, not five). |
 | impeccable | v4.5.1 `context` → NO_PRODUCT_MD, Operate mode | `init` interview + DESIGN.md deferred to M1 (needs user aesthetic answers); UI_UX_SPEC.md binds until then. Manual detector runs after first UI code. |
 | ponytail | full (default) | Applied: minimal module set at M2, DownloadManager-first, REST-only at M3. Ultra's "question the request" reserved for scope creep during build. |
 | graphify | pipeline requires real Python; host has only a WindowsApps stub (`python3` not found); corpus = 1 file | Cannot run meaningfully at M0. Equivalent manual workflow used: requirement→component edges live in ARCHITECTURE.md §1 + GITHUB_DISCOVERY.md §1–2. Revisit `graphify .` once Kotlin sources exist (needs Python installed first). |
@@ -99,7 +99,7 @@ rate limits; covered by direct doc fetches instead — nothing invented.
   seam for tests), `DownloadsViewModel/Screen` (active + history, honest
   checksum wording, install handoff). App: FileProvider `apks/`,
   REQUEST_INSTALL_PACKAGES, manual WorkManager init with DAO-injecting
-  `GStoreWorkerFactory` (auto-init removed), Details onDownload → enqueue →
+  `ForklyWorkerFactory` (auto-init removed), Details onDownload → enqueue →
   Downloads route.
 - DB v5 + explicit MIGRATION_4_5 (`download_records`, bounded history prune).
 - Verified: `assembleDebug` + `testDebugUnitTest` + `:app:lintDebug` BUILD
@@ -133,7 +133,7 @@ built and verified. The lesson is recorded in §12.
   `setDensity`, `setCardRadiusDp` (clamped 4–20), `setAccentArgb` (null
   removes key) alongside the M4-era setters. No migration: additive keys.
 - `core:designsystem`: added `cardShapeFor(radiusDp)` — the single shaper;
-  `GStoreTheme` (theme mode/dynamic/accent seed) unchanged.
+  `ForklyTheme` (theme mode/dynamic/accent seed) unchanged.
 - `core:ui`: `RepoCard` takes `cardRadiusDp` + `compact` (8 vs 12dp
   padding); new shared `RepoRows` (list or 2-column grid, same cards/order/
   stable keys).
@@ -214,8 +214,8 @@ built and verified. The lesson is recorded in §12.
   deleted (superseded by `drawable-v24`), duplicate
   `color/ic_launcher_background` resolved in favor of project's identical
   `colors.xml` value.
-- Signing: RSA-2048 `gstore` key, 30y validity, keystore lives ONLY in
-  `~/.gstore-signing/` (outside repo) + 4 GitHub Actions secrets
+- Signing: RSA-2048 `forkly` key, 30y validity, keystore lives ONLY in
+  `~/.forkly-signing/` (outside repo) + 4 GitHub Actions secrets
   (`ANDROID_KEYSTORE_BASE64/PASSWORD/ALIAS/KEY_PASSWORD`); Gradle release
   signing reads env and stays unsigned when absent. Published arm64 APK
   verified: `apksigner verify` exit 0, cert SHA-256 matches local keystore.
@@ -229,7 +229,7 @@ built and verified. The lesson is recorded in §12.
   var + `$GITHUB_ENV`). Release publishing uses preinstalled `gh` CLI,
   no third-party action.
 - Machine access used: existing `~/.ssh/id_ed25519` registered as
-  `windows-gstore-push` (repo pushes over SSH per machine gitconfig);
+  `windows-forkly-push` (repo pushes over SSH per machine gitconfig);
   a user-supplied PAT was used for API calls — rotate it after this
   session since it appeared in chat.
 
@@ -394,7 +394,7 @@ Bumped `versionCode 4→5`, `versionName 0.4.0→0.5.0`; local
 `v0.5.0`, release workflow `success`, GitHub release published (not draft)
 with `app-arm64-v8a-release.apk` + `app-armeabi-v7a-release.apk` (~10.9 MB).
 Downloaded arm64 APK: `apksigner verify` exit 0, signer
-`CN=G Store Release` SHA-256 `9e1fc5cf…448939f` — same key as v0.4.0.
+`CN=Forkly Release` SHA-256 `9e1fc5cf…448939f` — same key as v0.4.0.
 Incidents while releasing: remote `main` rejected twice — first a bot
 catalog commit raced the push (merged), then a bogus TAG literally named
 `main` (pointing at c02a06b, origin unknown — likely an old typo) made
@@ -421,7 +421,7 @@ before retrying.
   trailing check), bare rail tiles (big icon + 2-line name + size),
   accent-bar headers with chevrons, details hero (big icon + green dev
   name + divider stats + full-width bottom action), version in About.
-  All G Store UI below is original Compose implementing that language.
+  All Forkly UI below is original Compose implementing that language.
 - **What changed**: `AppIcon` squircle (~28%); `RepoCard` rewritten as a
   bare row (name + accent owner + one text ledger, badges become ledger
   words); `RailCard` debased to a bare 112dp tile; `SectionHeader` gains
@@ -475,7 +475,7 @@ before retrying.
   alone cannot fetch `https://` URLs; without `coil-network-okhttp` plus a
   `SingletonImageLoader` wired to an OkHttp fetcher, every `AsyncImage`
   silently fails and only fallbacks show. Fix: `coil-network-okhttp`
-  (same version pin) + `setSafe` in `GStoreApp.onCreate` reusing the
+  (same version pin) + `setSafe` in `ForklyApp.onCreate` reusing the
   shared download client. This was the single most visible defect.
 - **Cuts per user order:** `:feature:favorites` module deleted (screen
   merged into a Home Favorites section); `BROWSING` + `RECOMMENDED`
@@ -620,7 +620,7 @@ assert the old behavior - see MarkdownTest below).
   ref); threaded through BlockView/ListItemView/SpanText + 3 callsites
   (Details passes repo.defaultBranch, ReadmeViewModel resolves it from
   catalog via new CatalogRepository param, changelog passes "main").
-  Coil loader was ALREADY global in GStoreApp.onCreate (corrects the old
+  Coil loader was ALREADY global in ForklyApp.onCreate (corrects the old
   claim) - no change needed. MarkdownTest `quotes rules and raw html`
   updated RawText -> Paragraph: mandatory under no-test orders, otherwise
   CI goes red on the stale assertion.
@@ -682,12 +682,12 @@ assert the old behavior - see MarkdownTest below).
   no longer fetches README (param/imports/state/loadReadme removed);
   details opens with zero README wait.
 - AMOLED theme: ThemeMode.AMOLED (persisted as enum name, no migration);
-  GStoreTheme bypasses dynamic color and forces all surfaces black +
+  ForklyTheme bypasses dynamic color and forces all surfaces black +
   on-surfaces white; MainActivity treats it as dark for system bars;
   Settings row picks it up automatically; label "AMOLED".
 - Version: versionCode 1 + versionName 1.0.0 per explicit user override
   (user accepts uninstall/reinstall; update-path ordering knowingly
-  broken). Repo renamed to g-store-android: origin URL + CATALOG_REPO
+  broken). Repo renamed to forkly: origin URL + CATALOG_REPO
   updated (old name worked via redirect).
 - Lessons: (1) Set-Content fails when the parent dir is missing - New-Item
   it first. (2) Dropping a resource AAR requires vendoring every
@@ -911,9 +911,9 @@ then one detector pass (skill rule: build fully, inspect once, fix once).
    different trailing-control treatments, four different vertical rhythms
    (8/8, 12/12, 16/16). Fixed: the shared header is now the ONLY header, at
    `titleLarge` + tonal count pill + 24dp-above / 8dp-below + 48dp target.
-3. **`GStoreTokens` had zero callers** and the comment beside it claimed
+3. **`ForklyTokens` had zero callers** and the comment beside it claimed
    "no hardcoded colors or spacing outside this module" - false. Replaced by
-   `GStoreSpace` in `core:ui`, now actually consumed by all eight screens.
+   `ForklySpace` in `core:ui`, now actually consumed by all eight screens.
 4. **Compact and expanded nav disagreed** (26dp bar icon vs 24dp rail icon),
    and a 1dp divider sat above the bar although DESIGN allows borders only
    for selected filters.
@@ -1022,7 +1022,7 @@ cardShapeFor() had zero call sites, panelShape() was hardcoded to 20dp,
 and five surfaces hardcoded RoundedCornerShape.
 
 Fix: AppRadius (0-28dp, default 24) in :core:model; LocalCardRadius
-composition local provided by GStoreTheme; cardShapeFor(radiusDp =
+composition local provided by ForklyTheme; cardShapeFor(radiusDp =
 LocalCardRadius.current); panelShape() now delegates to it; every surface
 retargeted. Controls (pillShape) stay fully round per the agreed hybrid rule
 - buttons and chips are pills by definition, cards follow the slider.
@@ -1081,7 +1081,7 @@ Bottom insets were inconsistent in the other direction: the compact
 being eaten by a fixed `height(...)`, and four screens faked a bottom pad with
 static dp tokens. The bar now carries `WindowInsets(0,0,0,0)` +
 `navigationBarsPadding()`, the rail pads too, and every list ends with a
-uniform `GStoreSpace.Block` bottom pad.
+uniform `ForklySpace.Block` bottom pad.
 
 ### 36.2 Corner radius split (the lens bug)
 The card slider defaults to 24dp and `cardShapeFor()` fed EVERYTHING: 56dp app
@@ -1095,7 +1095,7 @@ surface (README images, blockquotes, code blocks, both screenshot clips). Cards
 keep `cardShapeFor()` and still track the slider 0-28dp. The 20+ shimmer bars
 that inherited 24dp were split into `TextBarRadius = 6` and
 `ImageBarRadius = 12` so a skeleton never lies about the shape it previews.
-Dead `object GStoreTokens` deleted; `RepoCard`'s ignored `cardRadiusDp`
+Dead `object ForklyTokens` deleted; `RepoCard`'s ignored `cardRadiusDp`
 parameter deleted rather than left as a lie.
 
 `AppRadiusImageCapTest` (5 tests) fails if `IMAGE_MAX >= DEFAULT`, so the split
@@ -1248,3 +1248,30 @@ no-op. Changed: `tools/scan.py`, `tools/test_scan.py`,
 `.github/workflows/scan.yml`, `.gitignore`, `docs/GITHUB_DISCOVERY.md`.
 Honest limit: only the last chunk of a hard-killed job can be lost (<=35 min);
 a truly unbounded single run is impossible on hosted runners.
+## 37. Rebrand to Forkly (2026-10-24)
+
+The app, repository, and package identity are now **Forkly**. Brand assets
+(logo lockups, app icon, social preview, palette) come from the Forkly brand
+package and live in `assets/` + `BRAND.md`; the Android adaptive icon is a
+single Forkly icon with a monochrome layer.
+
+- `applicationId` / namespace: `dev.gstore.app` -> `dev.forkly.app`; Kotlin
+  packages `dev.gstore.*` -> `dev.forkly.*`; symbols `GStore*` -> `Forkly*`.
+- Version reset to `1.0.0` (`versionCode = 1`) as the first release under the
+  new identity.
+- The three-icon picker (`AppIconStyle`, `AppIconSwitcher`, `activity-alias`
+  entries) is removed. One launcher icon only, so the manifest has a single
+  exported `MainActivity` with the `MAIN`/`LAUNCHER` filter.
+- Runtime identifiers reset: `gstore.db` -> `forkly.db`, `gstore_prefs` ->
+  `forkly_prefs`, encrypted-token store -> `forkly_secrets`, User-Agent ->
+  `forkly-app` / `Forkly/1.0` / `forkly-catalog-scanner`.
+- Catalog source: `CATALOG_REPO` -> `forkly` (owner unchanged), and the
+  repository is renamed on GitHub with the old URLs redirecting.
+- Screenshots taken before the rebrand were removed; the README keeps a
+  placeholder until new ones are added.
+
+Trade-off accepted: a new `applicationId` is a new app to Android. Existing
+G Store installs cannot update in place, and local favorites, download history,
+and preferences do not carry over. A display-name-only rebrand would have kept
+upgrades working but left the old package identity in place. GitHub releases
+from before the rename stay reachable through the repository redirect.

@@ -1,0 +1,931 @@
+package dev.forkly.app
+
+import dev.forkly.ui.R as UiRes
+
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import dev.forkly.datastore.AppearanceSettings
+import dev.forkly.datastore.HomeLayout
+import dev.forkly.datastore.CardDensity
+import dev.forkly.datastore.PreferencesRepository
+import dev.forkly.data.AppCategory
+import dev.forkly.data.CatalogRepository
+import dev.forkly.data.categoryOf
+import dev.forkly.database.DownloadRecord
+import dev.forkly.designsystem.ForklyTheme
+import dev.forkly.downloads.DownloadsScreen
+import dev.forkly.downloads.DownloadsViewModel
+import dev.forkly.downloads.SystemInstalledApps
+import dev.forkly.details.DetailsScreen
+import dev.forkly.details.DetailsViewModel
+import dev.forkly.details.DownloadTracker
+import dev.forkly.home.CategoryFullScreen
+import dev.forkly.home.HomeScreen
+import dev.forkly.home.HomeViewModel
+import dev.forkly.installation.InstallerPermissionScreen
+import dev.forkly.readme.ReadmeScreen
+import dev.forkly.readme.ReadmeViewModel
+import dev.forkly.model.Repository
+import dev.forkly.search.SearchScreen
+import dev.forkly.search.SearchViewModel
+import dev.forkly.settings.SettingsScreen
+import dev.forkly.settings.SettingsViewModel
+import dev.forkly.ui.EmptyContent
+import dev.forkly.ui.ForklySpace
+import dev.forkly.ui.ShimmerRows
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+
+@Serializable data object Home
+@Serializable data object Search
+@Serializable data object Downloads
+@Serializable data object Settings
+@Serializable data class Details(
+    val repoId: Long,
+    val fullName: String = "",
+    val searchResult: Boolean = false,
+)
+@Serializable data class CategoryFull(val name: String)
+@Serializable data class Readme(val owner: String, val name: String)
+
+private data class TopDestination(
+    val route: Any,
+    val label: String,
+    /** Drawable res id: static lists cannot hold @Composable Painters. */
+    val icon: Int,
+)
+
+private val DESTINATIONS = listOf(
+    TopDestination(Home, "Home", UiRes.drawable.ic_fluent_home_24_regular),
+    TopDestination(Search, "Search", UiRes.drawable.ic_fluent_search_24_regular),
+    TopDestination(Downloads, "Downloads", UiRes.drawable.ic_fluent_arrow_download_24_regular),
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Edge-to-edge: content draws behind the status bar, display cutout,
+        // and navigation bar; screens pad with safe-drawing insets below.
+        enableEdgeToEdge()
+        // Cutout mode exists only on API 28+; older devices letterbox by default.
+        if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
+        val container = (application as ForklyApp).container
+        setContent {
+            // Restore persisted appearance before first frame (flow E).
+            val appearance by container.preferences.appearance.collectAsState(
+                initial = AppearanceSettings(),
+            )
+            val darkTheme = when (appearance.theme) {
+                dev.forkly.datastore.ThemeMode.LIGHT -> false
+                dev.forkly.datastore.ThemeMode.DARK -> true
+                dev.forkly.datastore.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                dev.forkly.datastore.ThemeMode.AMOLED -> true
+            }
+            ForklyTheme(settings = appearance) {
+                SystemBarContrast(darkTheme)
+                ForklyShell(container)
+            }
+        }
+    }
+}
+
+/**
+ * Status/navigation icon contrast follows the APP theme (not the system
+ * one): dark icons on light scrims, light icons on dark scrims. Bars stay
+ * transparent so content shows through edge-to-edge.
+ */
+@Composable
+private fun SystemBarContrast(darkTheme: Boolean) {
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as Activity).window
+        WindowInsetsControllerCompat(window, view).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
+}
+
+/** Minimal constructor-injection ViewModel factory (no DI framework — DECISIONS.md). */
+inline fun <reified VM : ViewModel> vmFactory(crossinline create: () -> VM) =
+    object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = create() as T
+    }
+
+/**
+ * Compact → bottom bar; expanded (sw>=600dp, incl. API-37 forced resize) → rail.
+ * Never assumes orientation.
+ */
+@Composable
+private fun ForklyShell(container: AppContainer) {
+    val nav = rememberNavController()
+    val entry by nav.currentBackStackEntryAsState()
+    val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val permissionPrompted by container.preferences.permissionPrompted.collectAsState(initial = null)
+    var showPermissionIntro by rememberSaveable { mutableStateOf(false) }
+    var showInstallerIntro by rememberSaveable { mutableStateOf(false) }
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        if (!container.installer.canRequestInstalls()) showInstallerIntro = true
+    }
+    LaunchedEffect(permissionPrompted) {
+        if (permissionPrompted == false) {
+            container.preferences.markPermissionPrompted()
+            showPermissionIntro = true
+        }
+    }
+    if (showPermissionIntro) {
+        AlertDialog(
+            onDismissRequest = { showPermissionIntro = false },
+            title = { Text("Set up app permissions") },
+            text = {
+                Text(
+                    "Notifications can show update alerts and background download progress. " +
+                        "Android manages APK installation permission separately in system settings. " +
+                        "Installed-app status is checked only for packages downloaded through Forkly.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionIntro = false
+                        if (Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else if (!container.installer.canRequestInstalls()) {
+                            showInstallerIntro = true
+                        }
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionIntro = false }) { Text("Not now") }
+            },
+        )
+    }
+    if (showInstallerIntro) {
+        AlertDialog(
+            onDismissRequest = { showInstallerIntro = false },
+            title = { Text("Allow APK installation?") },
+            text = {
+                Text(
+                    "Android requires a separate per-app setting before Forkly can hand an APK " +
+                        "to the system installer. Opening settings does not install anything; " +
+                        "you can also skip this and grant access when you choose to install.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showInstallerIntro = false
+                        context.startActivity(container.installer.settingsIntent())
+                    },
+                ) { Text("Open system settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInstallerIntro = false }) { Text("Not now") }
+            },
+        )
+    }
+    // Double-back to exit: one back press from a top-level tab used to quit
+    // instantly with no hint. First press shows a snackbar, second within
+    // 2s finishes. Non-Home destinations keep their own back behavior.
+    val activity = LocalActivity.current
+    val shellScope = rememberCoroutineScope()
+    var lastBack by rememberSaveable { mutableStateOf(0L) }
+    BackHandler(enabled = entry?.destination?.hasRoute(Home::class) == true) {
+        val now = System.currentTimeMillis()
+        if (now - lastBack < 2_000) {
+            activity?.finish()
+        } else {
+            lastBack = now
+            shellScope.launch { snackbar.showSnackbar("Press back again to exit") }
+        }
+    }
+    // Same repo twice must not stack duplicate details entries (Back would
+    // land on the same screen and every entry runs its own sync leg).
+    val onOpenRepo: (Repository) -> Unit = {
+        nav.navigate(Details(it.id, it.fullName)) { launchSingleTop = true }
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val expanded = maxWidth >= 600.dp
+        if (expanded) {
+                Row(Modifier.fillMaxSize()) {
+                Rail(
+                    current = entry?.destination,
+                    navigate = { navigateTopLevel(nav, it) },
+                    )
+                // Screens own their top inset (statusBarsPadding) — except
+                // Details, whose hero bleeds under the status bar.
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
+                        ),
+                ) {
+                    Content(
+                        nav = nav,
+                        container = container,
+                        snackbar = snackbar,
+                        onOpenRepo = onOpenRepo,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        } else {
+            Scaffold(
+                // Screens pad their own top (statusBarsPadding); the bottom
+                // bar owns the navigation-bar area and pads itself.
+                contentWindowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Horizontal,
+                ),
+                bottomBar = {
+                    // No divider: the bar already separates itself with its
+                    // own container colour, and a hairline above it reads as
+                    // a stray rule on the compact layout (DESIGN.md allows
+                    // borders only for selected filters).
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        // The bar owns the navigation-bar inset itself: a
+                        // fixed height plus M3's default insets would eat the
+                        // item row. Explicit zero insets + padding() keeps the
+                        // 64dp bar intact and the system bar clear of it.
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .height(ForklySpace.RowAction + ForklySpace.Icon),
+                    ) {
+                            DESTINATIONS.forEach { d ->
+                                val selected = entry?.destination?.hasRoute(d.route::class) == true
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = {
+                                        navigateTopLevel(nav, d.route)
+                                    },
+                                    icon = {
+                                        Icon(
+                                            painterResource(d.icon),
+                                            contentDescription = d.label,
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                    },
+                                    label = { Text(d.label) },
+                                    alwaysShowLabel = false,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                )
+                            }
+                    }
+                },
+                snackbarHost = { SnackbarHost(snackbar) },
+            ) { padding ->
+                Box(Modifier.padding(padding)) {
+                    Content(
+                        nav = nav,
+                        container = container,
+                        snackbar = snackbar,
+                        onOpenRepo = onOpenRepo,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun androidx.navigation.NavOptionsBuilder.popToRoot(
+    nav: androidx.navigation.NavHostController,
+) {
+    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
+}
+
+/**
+ * Top-level tab navigation with a same-tab guard and a hard-reset
+ * fallback. The same-tab tap is a no-op (no reload flash); if the
+ * back stack does not land on the target — observed once as "tap Home
+ * from Details stays put" — everything above the start destination is
+ * popped and the target is navigated to plainly.
+ */
+private fun navigateTopLevel(nav: androidx.navigation.NavHostController, route: Any) {
+    val target = route::class
+    if (nav.currentDestination?.hasRoute(target) == true) return
+    nav.navigate(route) { popToRoot(nav) }
+    if (nav.currentDestination?.hasRoute(target) != true) {
+        nav.popBackStack(nav.graph.findStartDestination().id, inclusive = false)
+        nav.navigate(route) { launchSingleTop = true }
+    }
+}
+
+@Suppress("DEPRECATION")
+private fun uninstallIntent(packageName: String): Intent =
+    Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+        data = Uri.fromParts("package", packageName, null)
+    }
+
+@Composable
+private fun Rail(
+    current: androidx.navigation.NavDestination?,
+    navigate: (Any) -> Unit,
+) {
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        // Full-height rail with no bottom bar under it: it has to keep its own
+        // last item clear of the system navigation bar.
+        modifier = Modifier.navigationBarsPadding(),
+        header = {
+            dev.forkly.ui.AppIcon(
+                avatarUrl = null,
+                owner = "Forkly",
+                size = 40.dp,
+            )
+        },
+    ) {
+        DESTINATIONS.forEach { d ->
+            NavigationRailItem(
+                selected = current?.hasRoute(d.route::class) == true,
+                onClick = { navigate(d.route) },
+                icon = {
+                    // Same 26dp as the compact bar: the two shells are the
+                    // same navigation, so their glyphs must be the same size.
+                    Icon(
+                        painterResource(d.icon),
+                        contentDescription = d.label,
+                        modifier = Modifier.size(26.dp),
+                    )
+                },
+                label = { Text(d.label) },
+                alwaysShowLabel = false,
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            )
+        }
+    }
+}
+
+/**
+ * Walks [ContextWrapper] chain looking for a ViewModelStoreOwner (every
+ * Activity is one). Replaces the usual `context as ComponentActivity` cast,
+ * which lint rejects because a Context is not always an Activity.
+ */
+private tailrec fun Context.activityViewModelStoreOwner(): ViewModelStoreOwner? = when (this) {
+    is ViewModelStoreOwner -> this
+    is ContextWrapper -> baseContext.activityViewModelStoreOwner()
+    else -> null
+}
+
+@Composable
+private fun Content(
+    nav: androidx.navigation.NavHostController,
+    container: AppContainer,
+    snackbar: SnackbarHostState,
+    onOpenRepo: (Repository) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Activity ViewModelStore, reached by unwrapping the composition Context
+    // instead of casting it: lint rejects Context->Activity casts, and this
+    // composable is a top-level function with no lexical access to MainActivity.
+    val shellOwner: ViewModelStoreOwner =
+        requireNotNull(LocalContext.current.activityViewModelStoreOwner())
+    val scope = rememberCoroutineScope()
+    var refreshDownloadsAfterPackageAction by rememberSaveable { mutableStateOf(false) }
+    val onOpenSearchRepo: (Repository) -> Unit = {
+        nav.navigate(Details(it.id, it.fullName, searchResult = true)) { launchSingleTop = true }
+    }
+    // Appearance is collected once per composition and passed down; theme is
+    // applied above in MainActivity, layout/density/radius/motion here (M7).
+    val appearance by container.preferences.appearance.collectAsState(
+        initial = AppearanceSettings(),
+    )
+    val grid = appearance.layout == HomeLayout.GRID
+    val compact = appearance.density == CardDensity.COMPACT
+    // Shared install truth + download bridge (feature modules never touch
+    // each other directly — the app module wires them).
+    val appContext = LocalContext.current
+    val installedGateway = remember(appContext) {
+        SystemInstalledApps(appContext.packageManager)
+    }
+    val downloadTracker = remember {
+        object : DownloadTracker {
+            override fun observe(assetId: Long) = container.downloader.observe(assetId)
+            override suspend fun start(
+                asset: dev.forkly.model.ReleaseAsset,
+                repoFullName: String,
+                releaseTag: String,
+            ): Boolean = container.downloader.start(
+                assetId = asset.id,
+                repoFullName = repoFullName,
+                releaseTag = releaseTag,
+                rawFilename = asset.filename,
+                url = asset.downloadUrl,
+                expectedSize = asset.size,
+                expectedDigest = asset.digest,
+            )
+            override suspend fun cancel(assetId: Long) =
+                container.downloader.cancel(assetId)
+        }
+    }
+    // Tab VMs live at shell scope (activity ViewModelStore), not per
+    // destination: switching tabs never resets query, sort, filter, or
+    // catalog state. Screens stay destination-scoped, so entry effects
+    // (installed refresh, permission re-check) still re-fire on return.
+    val homeVm: HomeViewModel = viewModel(
+        factory = vmFactory { HomeViewModel(container.catalog, container.preferences, container.catalogClient, container.tokens, container.signals.signals, container.starSync, container.manualRequestGate) },
+    )
+    val searchVm: SearchViewModel = viewModel(
+        factory = vmFactory { SearchViewModel(container.catalog, container.tokens, container.manualRequestGate) },
+    )
+    val downloadsVm: DownloadsViewModel = viewModel(
+        factory = vmFactory {
+            DownloadsViewModel(
+                container.downloader,
+                installedGateway,
+                container.catalog,
+                container.tokens,
+                container.preferences,
+                container.starSync,
+                container.downloadNotifications,
+                container.manualRequestGate,
+            )
+        },
+    )
+    NavHost(
+        navController = nav,
+        startDestination = Home,
+        modifier = modifier,
+        enterTransition = { fadeIn(tween(180)) },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = { fadeIn(tween(180)) },
+        popExitTransition = { fadeOut(tween(120)) },
+    ) {
+        composable<Home> {
+            HomeScreen(
+                vm = homeVm,
+                onOpenRepo = onOpenRepo,
+                onOpenDiscoveryRepo = onOpenSearchRepo,
+                onOpenCategory = { nav.navigate(CategoryFull(it.name)) { launchSingleTop = true } },
+                onOpenLogin = { nav.navigate(Settings) { launchSingleTop = true } },
+                onLogout = {
+                    scope.launch {
+                        container.tokens.clear()
+                        container.github.token = null
+                    }
+                },
+                snackbar = snackbar,
+                grid = grid,
+                compact = compact,
+                cardRadiusDp = appearance.cardRadiusDp,
+                reduceMotion = appearance.reduceMotion,
+            )
+        }
+        composable<Search> {
+            SearchScreen(
+                vm = searchVm,
+                onOpenRepo = onOpenSearchRepo,
+                snackbar = snackbar,
+                grid = grid,
+                compact = compact,
+                cardRadiusDp = appearance.cardRadiusDp,
+            )
+        }
+        composable<Downloads> {
+            val vm = downloadsVm
+            val dlState by vm.state.collectAsState()
+            val context = LocalContext.current
+            val lifecycle = LocalLifecycleOwner.current.lifecycle
+            var gateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var awaitingInstallPermission by remember { mutableStateOf(false) }
+            // Re-check the per-source install grant every time we return
+            // (e.g. from system settings) — flow D.
+            var canInstall by remember {
+                mutableStateOf(container.installer.canRequestInstalls())
+            }
+            androidx.compose.runtime.DisposableEffect(lifecycle) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        canInstall = container.installer.canRequestInstalls()
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            vm.refreshInstalled(auto = true, force = true)
+                        } else {
+                            vm.refreshInstalled(auto = true)
+                        }
+                    }
+                }
+                lifecycle.addObserver(observer)
+                onDispose { lifecycle.removeObserver(observer) }
+            }
+            fun fireInstall(record: DownloadRecord) {
+                val path = record.filePath
+                if (path == null || !File(path).exists()) {
+                    scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                    return
+                }
+                try {
+                    refreshDownloadsAfterPackageAction = true
+                    context.startActivity(container.installer.installIntent(File(path)))
+                } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
+                    scope.launch {
+                        snackbar.showSnackbar("No system installer found: ${e.message}")
+                    }
+                }
+            }
+            LaunchedEffect(canInstall, awaitingInstallPermission, gateFor) {
+                val pending = gateFor
+                if (canInstall && awaitingInstallPermission && pending != null) {
+                    fireInstall(pending)
+                    gateFor = null
+                    awaitingInstallPermission = false
+                }
+            }
+            val gate = gateFor
+            if (gate != null) {
+                InstallerPermissionScreen(
+                    fileName = gate.filename,
+                    canInstall = canInstall,
+                    onOpenSettings = {
+                        awaitingInstallPermission = true
+                        context.startActivity(container.installer.settingsIntent())
+                    },
+                    onInstall = {
+                        fireInstall(gate)
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        gateFor = null
+                        awaitingInstallPermission = false
+                    },
+                )
+            } else {
+                DownloadsScreen(
+                    state = dlState,
+                    reduceMotion = appearance.reduceMotion,
+                    onCancel = { vm.cancel(it) },
+                    onRetry = { vm.retry(it) },
+                    onForget = { vm.forget(it) },
+                    onInstall = { record ->
+                        val path = record.filePath
+                        if (path == null || !File(path).exists()) {
+                            scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                        } else if (container.installer.canRequestInstalls()) {
+                            fireInstall(record)
+                        } else {
+                            gateFor = record
+                        }
+                    },
+                    onBrowseRepo = { fullName ->
+                        // Details resolves id 0 via on-demand sync by fullName.
+                        val owner = fullName.substringBefore('/', fullName)
+                        onOpenRepo(
+                            Repository(
+                                id = 0,
+                                fullName = fullName,
+                                owner = owner,
+                                avatarUrl = null,
+                                description = null,
+                                stars = 0,
+                                forks = 0,
+                                updatedAt = null,
+                            ),
+                        )
+                    },
+                    onLaunch = { packageName ->
+                        val intent = context.packageManager
+                            .getLaunchIntentForPackage(packageName)
+                        if (intent != null) context.startActivity(intent)
+                        else scope.launch { snackbar.showSnackbar("No launcher entry") }
+                    },
+                    onUninstall = { packageName ->
+                        if (packageName.isBlank()) {
+                            scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
+                        } else {
+                            try {
+                                refreshDownloadsAfterPackageAction = true
+                                context.startActivity(
+                                    uninstallIntent(packageName),
+                                )
+                            } catch (e: Exception) {
+                                refreshDownloadsAfterPackageAction = false
+                                scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
+                            }
+                        }
+                    },
+                    onDownloadUpdate = vm::downloadUpdate,
+                    onRemoveManual = vm::removeManualRepo,
+                    onSyncStars = vm::refreshFavoritesAndUpdates,
+                    snackbar = snackbar,
+                    onDismissNotice = vm::dismissNotice,
+                )
+            }
+        }
+        composable<Settings> {
+            val vm: SettingsViewModel = viewModel(
+                factory = vmFactory {
+                    SettingsViewModel(container.preferences, container.tokens, container.github)
+                },
+            )
+            SettingsScreen(
+                appearance = appearance,
+                vm = vm,
+                appVersion = BuildConfig.VERSION_NAME,
+            )
+        }
+        composable<CategoryFull> { backStack ->
+            val name = backStack.toRoute<CategoryFull>().name
+            val category = runCatching { AppCategory.valueOf(name) }.getOrNull()
+            if (category == null) {
+                LaunchedEffect(name) { nav.popBackStack() }
+            } else {
+                val homeState by homeVm.state.collectAsState()
+                val items = homeState.catalog
+                    .filter { categoryOf(it.repo.topics) == category }
+                    .sortedByDescending { it.repo.stars }
+                CategoryFullScreen(
+                    category = category,
+                    items = items,
+                    favorites = homeState.favoriteIds,
+                    syncing = homeState.syncingCatalog,
+                    grid = grid,
+                    compact = compact,
+                    cardRadiusDp = appearance.cardRadiusDp,
+                    reduceMotion = appearance.reduceMotion,
+                    onBack = { nav.popBackStack() },
+                    onOpen = onOpenRepo,
+                    onToggleFavorite = homeVm::toggleFavorite,
+                )
+            }
+        }
+        composable<Details> { backStack ->
+            val route = backStack.toRoute<Details>()
+            // Owned by the Activity, keyed by repo: re-entering a repo you just
+            // left reuses its loaded state instead of re-running the whole
+            // load chain on every back-and-forth. shellOwner is the Activity's store,
+            // captured at shell scope so no Context cast is needed.
+            val vm: DetailsViewModel = viewModel(
+                viewModelStoreOwner = shellOwner,
+                key = "details-${route.repoId}-${route.fullName}-${route.searchResult}",
+                factory = vmFactory {
+                    DetailsViewModel(
+                        route.repoId,
+                        route.fullName,
+                        container.catalog,
+                        downloadTracker,
+                        installedGateway,
+                        container.preferences,
+                        searchResult = route.searchResult,
+                    )
+                },
+            )
+            val state by vm.state.collectAsState()
+            LaunchedEffect(vm, route.repoId, route.fullName) {
+                vm.refreshLatestReleaseInfo()
+            }
+            val detailsContext = LocalContext.current
+            val detailsLifecycle = LocalLifecycleOwner.current.lifecycle
+            var detailsGateFor by remember { mutableStateOf<DownloadRecord?>(null) }
+            var detailsCanInstall by remember {
+                mutableStateOf(container.installer.canRequestInstalls())
+            }
+            var detailsAwaitingInstallPermission by remember { mutableStateOf(false) }
+            androidx.compose.runtime.DisposableEffect(detailsLifecycle) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        detailsCanInstall = container.installer.canRequestInstalls()
+                        if (refreshDownloadsAfterPackageAction) {
+                            refreshDownloadsAfterPackageAction = false
+                            downloadsVm.refreshInstalled(auto = true, force = true)
+                        }
+                    }
+                }
+                detailsLifecycle.addObserver(observer)
+                onDispose { detailsLifecycle.removeObserver(observer) }
+            }
+            fun fireDetailsInstall(record: DownloadRecord) {
+                val path = record.filePath
+                if (path == null || !File(path).exists()) {
+                    scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                    return
+                }
+                try {
+                    refreshDownloadsAfterPackageAction = true
+                    detailsContext.startActivity(container.installer.installIntent(File(path)))
+                } catch (e: Exception) {
+                    refreshDownloadsAfterPackageAction = false
+                    scope.launch {
+                        snackbar.showSnackbar("No system installer found: ${e.message}")
+                    }
+                }
+            }
+            LaunchedEffect(detailsCanInstall, detailsAwaitingInstallPermission, detailsGateFor) {
+                val pending = detailsGateFor
+                if (detailsCanInstall && detailsAwaitingInstallPermission && pending != null) {
+                    fireDetailsInstall(pending)
+                    detailsGateFor = null
+                    detailsAwaitingInstallPermission = false
+                }
+            }
+            DetailsScreen(
+                state = state,
+                snackbar = snackbar,
+                onBack = { nav.popBackStack() },
+                onToggleFavorite = { vm.toggleFavorite() },
+                onRefresh = { vm.refresh() },
+                onSelectRelease = { vm.selectRelease(it) },
+                // The hero button owns the whole download lifecycle in place:
+                // nothing here ever navigates away from details.
+                onHeroDownload = { asset -> vm.heroDownload(asset) },
+                onHeroCancel = { vm.heroCancel(it) },
+                onHeroInstall = { record ->
+                    val path = record.filePath
+                    if (path == null || !File(path).exists()) {
+                        scope.launch { snackbar.showSnackbar("File is no longer on disk") }
+                    } else if (detailsCanInstall) {
+                        fireDetailsInstall(record)
+                    } else {
+                        detailsGateFor = record
+                    }
+                },
+                onHeroUninstall = { packageName ->
+                    if (packageName.isBlank()) {
+                        scope.launch { snackbar.showSnackbar("Package name unknown — reinstall info missing") }
+                    } else {
+                        try {
+                            refreshDownloadsAfterPackageAction = true
+                            detailsContext.startActivity(
+                                uninstallIntent(packageName),
+                            )
+                        } catch (e: Exception) {
+                            refreshDownloadsAfterPackageAction = false
+                            scope.launch { snackbar.showSnackbar("Cannot uninstall: ${e.message}") }
+                        }
+                    }
+                },
+                onResumeInstalledState = vm::refreshInstalledState,
+                canOpenApp = { packageName ->
+                    detailsContext.packageManager.getLaunchIntentForPackage(packageName) != null
+                },
+                onOpenApp = { packageName ->
+                    try {
+                        val launch = detailsContext.packageManager.getLaunchIntentForPackage(packageName)
+                        if (launch != null) detailsContext.startActivity(launch)
+                        else scope.launch { snackbar.showSnackbar("This app cannot be opened") }
+                    } catch (e: Exception) {
+                        scope.launch { snackbar.showSnackbar("Cannot open: ${e.message}") }
+                    }
+                },
+                onOpenReadme = {
+                    val repo = state.repo
+                    if (repo != null) {
+                        val parts = repo.fullName.split('/')
+                        if (parts.size == 2) {
+                            nav.navigate(Readme(parts[0], parts[1])) { launchSingleTop = true }
+                        }
+                    }
+                },
+                cardRadiusDp = appearance.cardRadiusDp,
+                reduceMotion = appearance.reduceMotion,
+            )
+            val detailsGate = detailsGateFor
+            if (detailsGate != null) {
+                InstallerPermissionScreen(
+                    fileName = detailsGate.filename,
+                    canInstall = detailsCanInstall,
+                    onOpenSettings = {
+                        detailsAwaitingInstallPermission = true
+                        detailsContext.startActivity(container.installer.settingsIntent())
+                    },
+                    onInstall = {
+                        fireDetailsInstall(detailsGate)
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
+                    onCancel = {
+                        detailsGateFor = null
+                        detailsAwaitingInstallPermission = false
+                    },
+                )
+            }
+        }
+        composable<Readme> { backStack ->
+            val route = backStack.toRoute<Readme>()
+            val vm: ReadmeViewModel = viewModel(
+                key = "readme-${route.owner}/${route.name}",
+                factory = vmFactory {
+                    ReadmeViewModel(route.owner, route.name, container.readme, container.catalog)
+                },
+            )
+            val state by vm.state.collectAsState()
+            ReadmeScreen(
+                state = state,
+                onRefresh = { vm.refresh(it) },
+                onDismissNotice = { vm.dismissNotice() },
+                reduceMotion = appearance.reduceMotion,
+            )
+        }
+    }
+}

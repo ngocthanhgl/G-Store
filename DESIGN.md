@@ -1,4 +1,4 @@
-# G Store — Design World: "Tonal Shelf"
+# Forkly — Design World: "Tonal Shelf"
 
 Committed visual world for the impeccable skill. Refinement preserves this
 page; redesign replaces it (never split the difference).
@@ -60,9 +60,9 @@ bar, and code beats screenshots.
 ## Tokens are now enforced, not just declared
 
 The rhythm below is not a description of the app - it is the literal source in
-`core/ui/.../AuroraSectionHeader.kt` (`object GStoreSpace`), consumed by all
+`core/ui/.../AuroraSectionHeader.kt` (`object ForklySpace`), consumed by all
 eight screens. Before the uniformity pass these values were declared here and
-hand-copied (and drifted) at ~40 call sites; the earlier `GStoreTokens` object
+hand-copied (and drifted) at ~40 call sites; the earlier `ForklyTokens` object
 had zero callers.
 
 | Token | Value | Where it applies |

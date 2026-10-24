@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.data"
+    namespace = "dev.forkly.data"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

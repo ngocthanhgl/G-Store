@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.database"
+    namespace = "dev.forkly.database"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

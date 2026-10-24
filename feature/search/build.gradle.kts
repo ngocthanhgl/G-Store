@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.search"
+    namespace = "dev.forkly.search"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

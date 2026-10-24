@@ -1,4 +1,4 @@
-# UI/UX Spec — G Store (as-built, M7)
+# UI/UX Spec — Forkly (as-built, M7)
 
 Mode = Operate (task completion; scanability over expression) with Read-mode
 rules for README/release notes. Verified against code at M7; deviations from
@@ -7,7 +7,7 @@ the M0 draft are marked.
 ## 1. Visual direction
 
 Material 3 baseline, refined — not default components unstyled. Centralized
-tokens in `core:designsystem` (`GStoreTokens`, `cardShapeFor`): 4dp spacing
+tokens in `core:designsystem` (`ForklyTokens`, `cardShapeFor`): 4dp spacing
 grid, user-set card radius 4–20dp (clamped at read), tonal elevation.
 No hardcoded colors/spacing in feature modules (lint-clean, detector-checked).
 
@@ -88,7 +88,7 @@ TalkBack, and resize tests remain device-gated (TEST_PLAN.md).
   by the README and ambiguous image names may be missed.
 - Markdown tables use shared per-column widths and horizontal scrolling.
 - When a download completes while Details or Downloads remains foregrounded,
-  G Store opens Android's installer automatically; Android still requires the
+  Forkly opens Android's installer automatically; Android still requires the
   user to confirm. If the process is killed first, the completed APK remains
   available for manual installation from Downloads.
 - Installation permission explanation is inset from safe drawing areas. When

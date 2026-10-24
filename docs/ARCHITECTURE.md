@@ -1,9 +1,9 @@
-# ARCHITECTURE — G Store
+# ARCHITECTURE — Forkly
 
 Status: Milestone 0 proposal. Module boundaries confirmed here; do not create
 modules beyond this list without updating this doc (ponytail: smallest set first).
 
-Interactive diagram: `../.archify/architecture-gstore-20261010-120000/gstore-architecture.html`
+Interactive diagram: `../.archify/architecture-forkly-20261010-120000/forkly-architecture.html`
 (archify `finalize`, showcase profile; system overview of the main journey).
 
 ## 1. Module map (Gradle modules, created at Milestone 2)

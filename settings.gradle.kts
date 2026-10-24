@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "gstore"
+rootProject.name = "forkly"
 include(":app")
 include(":core:model")
 include(":core:common")

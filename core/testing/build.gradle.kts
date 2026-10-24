@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.testing"
+    namespace = "dev.forkly.testing"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

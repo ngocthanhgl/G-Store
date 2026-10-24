@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.app"
+    namespace = "dev.forkly.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "dev.gstore.app"
+        applicationId = "dev.forkly.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 21
-        versionName = "2.0.1"
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
     // Release signing comes from environment (CI secrets or a local
@@ -26,7 +26,7 @@ android {
             if (!ksPath.isNullOrBlank()) {
                 storeFile = file(ksPath)
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "gstore"
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "forkly"
                 keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
             }
         }

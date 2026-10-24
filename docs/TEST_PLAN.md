@@ -1,4 +1,4 @@
-# TEST_PLAN — G Store
+# TEST_PLAN — Forkly
 
 No live-GitHub dependence in unit tests (recorded fixtures + fake API).
 Coverage targets set at M2; this plan defines scope and fixtures.

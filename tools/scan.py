@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scheduled GitHub catalog scanner for G Store.
+"""Scheduled GitHub catalog scanner for Forkly.
 
 Searches GitHub for repositories that publish APK release artifacts and
 stores the result as JSON under catalog/. The Android app fetches
@@ -209,7 +209,7 @@ SCHEDULE_INTERVAL_SECONDS = 12 * 60 * 60
 HEADERS = {
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "gstore-catalog-scanner",
+    "User-Agent": "forkly-catalog-scanner",
 }
 if TOKEN:
     HEADERS["Authorization"] = "Bearer " + TOKEN

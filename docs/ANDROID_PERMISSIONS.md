@@ -10,14 +10,14 @@ no static-final reflection; DCL of native libs requires read-only files.
 |---|---|---|---|---|---|
 | INTERNET | GitHub API + APK fetch | normal | install-time | No | offline-cached mode, banner |
 | REQUEST_INSTALL_PACKAGES | system installer handoff | normal-ish* | settings page per-source (API 26+) | Yes | explanatory gate, retry entry point |
-| REQUEST_DELETE_PACKAGES | request system uninstall confirmation for an app installed from G Store | normal | install-time | Yes | uninstall action reports failure; app remains installed |
-| QUERY_ALL_PACKAGES | Installed shelf compares only package names stored in G Store download records; it does not enumerate or display a device-wide app list | manifest declaration; install-time visibility, no runtime prompt | Install-time | Optional to the shelf | download history remains available without installed-state checks |
+| REQUEST_DELETE_PACKAGES | request system uninstall confirmation for an app installed from Forkly | normal | install-time | Yes | uninstall action reports failure; app remains installed |
+| QUERY_ALL_PACKAGES | Installed shelf compares only package names stored in Forkly download records; it does not enumerate or display a device-wide app list | manifest declaration; install-time visibility, no runtime prompt | Install-time | Optional to the shelf | download history remains available without installed-state checks |
 | POST_NOTIFICATIONS (33+) | Update alerts and APK download progress/completion notifications | manifest declaration | Runtime request (API 33+) after first-launch explanation | Yes | downloads and update checks still work in-app; system notifications are omitted |
 | FOREGROUND_SERVICE_* | NOT needed — CoroutineWorker without a foreground service; no FGS permission declared | — | — | — | n/a |
 | ACCESS_NETWORK_STATE | NOT declared — WorkManager `NetworkType.CONNECTED` constraint used instead of manual connectivity inspection | — | — | — | n/a |
 
 *Google Play policy risk documented in SECURITY_MODEL.md; F-Droid/sideload path unaffected.
-QUERY_ALL_PACKAGES is Play-restricted and has no user-facing runtime grant dialog. A Play listing needs a policy declaration; G Store does not inspect unrelated installed packages.
+QUERY_ALL_PACKAGES is Play-restricted and has no user-facing runtime grant dialog. A Play listing needs a policy declaration; Forkly does not inspect unrelated installed packages.
 Never requested: MANAGE_EXTERNAL_STORAGE, camera/mic/
 contacts/location, accessibility, VPN, device-admin, BOOT_COMPLETED (WorkManager
 persistence covers restart-resume without it). Storage: app-specific internal +
@@ -52,7 +52,7 @@ APK install setting before presenting either system UI. Notification access is
 requested only on API 33+ and only after the user selects Continue. APK
 installation settings open only after a separate explicit confirmation.
 Package visibility has no runtime prompt; the installed shelf queries only
-package names recorded by G Store downloads.
+package names recorded by Forkly downloads.
 
 ## M6 verification (2026-10-10, `aapt d badging` on app-debug.apk)
 
@@ -65,9 +65,9 @@ package names recorded by G Store downloads.
 - `FOREGROUND_SERVICE` (also merged from WorkManager) is stripped via
   `tools:node="remove"`: no foreground service is ever started (plain
   CoroutineWorker), so the permission must not ship speculatively.
-- `dev.gstore.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`: our own
+- `dev.forkly.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`: our own
   signature-level dynamic-receiver guard, standard practice.
 - No storage, camera/mic/location permissions.
 - `uses-feature`: `android.hardware.faketouch` only (touchscreen implied).
   `sdkVersion 26`, `targetSdkVersion 37`, launchable MainActivity present.
-- FileProvider `dev.gstore.app.apk-provider` serves `filesDir/apks/` only.
+- FileProvider `dev.forkly.app.apk-provider` serves `filesDir/apks/` only.

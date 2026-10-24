@@ -1,11 +1,11 @@
-# G Store — Product Context (impeccable)
+# Forkly — Product Context (impeccable)
 
 Source of truth for behavior: `docs/PRODUCT_SPEC.md`. This file exists for the
 impeccable design skill: audience, mode, and visual authority pointer.
 
 ## What it is
 
-G Store is a native Android (Kotlin + Compose + Material 3) marketplace that
+Forkly is a native Android (Kotlin + Compose + Material 3) marketplace that
 discovers, lists, and helps users install APK artifacts published through
 GitHub Releases. No backend: a scheduled GitHub Action scans GitHub daily and
 commits `catalog/apps.json` to this repo; the app pulls it on launch.

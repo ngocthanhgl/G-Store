@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.gstore.ui"
+    namespace = "dev.forkly.ui"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

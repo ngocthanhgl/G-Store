@@ -1,36 +1,78 @@
-# G Store
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/logo-lockup-dark.png">
+    <img src="assets/logo/logo-lockup.png" alt="Forkly" width="420">
+  </picture>
+</p>
 
-G Store is a native Android app marketplace for APKs published in GitHub Releases. Discover projects, inspect their releases, and download from the original source.
+<p align="center">
+  A native Android storefront for apps published as GitHub releases.<br>
+  Discover a project, read its README, pick the right APK, install from the original source.
+</p>
 
-[Download the latest release](https://github.com/ngocthanhgl/G-Store/releases/latest)
+<p align="center">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue">
+  <img alt="Release" src="https://img.shields.io/github/v/release/ngocthanhgl/forkly?display_name=tag&sort=semver">
+  <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ngocthanhgl/forkly/ci.yml?label=CI">
+</p>
+
+<p align="center">
+  <img src="assets/social/social-preview-1280x640.png" alt="Forkly social preview" width="720">
+</p>
+
+[Download the latest release](https://github.com/ngocthanhgl/forkly/releases/latest)
 
 ## Discover apps
 
-Browse the daily catalog by **Trending**, **New**, **Top stars**, or **Recently updated**. Explore topic-based categories, keep a favorites list, search the catalog, or search GitHub and add a repository yourself.
+Browse the catalog by **Trending**, **New**, **Top stars**, or **Recently updated**. Explore topic-based categories, keep a favorites list, search the catalog, or search GitHub and add a repository yourself.
 
-The catalog scanner runs four times a day and rotates across app types, technologies, and popularity ranges. GitHub does not provide a complete index of every repository with an APK, so coverage is best-effort; add a repository if the scan missed it.
+The catalog scanner runs on a schedule and rotates across app types, technologies, and popularity ranges. GitHub does not provide a complete index of every repository with an APK, so coverage is best-effort; add a repository if the scan missed it.
 
 ## Choose, download, install
 
-App pages include repository details, release history and notes, the project README, and available APK artifacts. Compare file size and ABI information when available, then download with background progress and cancellation. Installation is handed off to Android's system installer.
+App pages include repository details, release history and notes, the project README rendered from its real Markdown, and available APK artifacts. Compare file size and ABI information when available, then download with background progress and cancellation. Installation is handed off to Android's system installer.
 
-Stable releases are preferred; prereleases are identified separately. APKs and repository metadata come from their maintainers and are not security-reviewed by G Store. Review the source before installing.
+Stable releases are preferred; prereleases are identified separately. APKs and repository metadata come from their maintainers and are not security-reviewed by Forkly. Review the source before installing.
 
 ## Make it yours
 
-Choose light, dark, system, or AMOLED themes; set an accent color, app icon, grid or list layout, card density, and home-section order.
+Choose light, dark, system, or AMOLED themes; set an accent color, grid or list layout, card density, card shape, reduced motion, and home-section order.
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center"><img src="screenshots/home.jpg" width="280" alt="G Store home screen"><br><sub>Home</sub></td>
-    <td align="center"><img src="screenshots/search.jpg" width="280" alt="G Store search screen"><br><sub>Search</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="screenshots/downloads.jpg" width="280" alt="G Store downloads and favorites"><br><sub>Downloads &amp; favorites</sub></td>
-    <td align="center"><img src="screenshots/settings.jpg" width="280" alt="G Store appearance settings"><br><sub>Appearance</sub></td>
-  </tr>
-</table>
+<!-- Add screenshots here, e.g.
+<img src="docs/screenshots/home.png" width="240" alt="Home">
+-->
 
 APK availability and device compatibility depend on each project's releases. Repository names, artwork, and APKs remain the property and responsibility of their respective maintainers.
+
+## Build
+
+Requirements: JDK 21+ (JDK 25 is used in CI), Android SDK with API 37.
+
+```bash
+git clone https://github.com/ngocthanhgl/forkly.git
+cd forkly
+./gradlew :app:assembleDebug
+```
+
+Release builds are signed in CI from repository secrets and published on `v*` tags. See `.github/workflows/release.yml`.
+
+## Project docs
+
+- [Brand guide](BRAND.md)
+- [Product spec](docs/PRODUCT_SPEC.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Dataflow](docs/DATAFLOW.md)
+- [Security model](docs/SECURITY_MODEL.md)
+- [Android permissions](docs/ANDROID_PERMISSIONS.md)
+- [GitHub discovery](docs/GITHUB_DISCOVERY.md)
+- [Test plan](docs/TEST_PLAN.md)
+- [Decisions](docs/DECISIONS.md)
+
+## License
+
+Forkly is free software under the [GNU General Public License v3.0](LICENSE).
+
+Forkly is an independent project and is not affiliated with, endorsed by or sponsored by GitHub, Inc. "GitHub" is used descriptively only.

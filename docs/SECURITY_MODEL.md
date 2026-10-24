@@ -1,4 +1,4 @@
-# SECURITY_MODEL — G Store
+# SECURITY_MODEL — Forkly
 
 Trust stance: repos, release notes, READMEs, filenames, asset metadata, and APK
 bytes are UNTRUSTED input. GitHub hosting ≠ safety; stars ≠ trust.

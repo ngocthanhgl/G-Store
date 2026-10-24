@@ -1,4 +1,4 @@
-# DATA_MODEL — G Store
+# DATA_MODEL — Forkly
 
 Room entities mirror these; network DTOs map to them at the data layer boundary.
 Identities: repo = GitHub repo ID; release = GitHub release ID (+tag preserved);

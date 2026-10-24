@@ -28,3 +28,6 @@ __pycache__/
 # Scanner job-local cache: candidate repo objects for the current chunk run,
 # re-fetched each job. The committed resume point is catalog/scan_state.json.
 catalog/scan_queue.json
+
+# Playwright MCP snapshots
+.playwright-mcp/

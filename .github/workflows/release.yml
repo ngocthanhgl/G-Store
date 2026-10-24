@@ -45,8 +45,8 @@ jobs:
 
       - name: Restore release keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/gstore-release.jks"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/gstore-release.jks" >> "$GITHUB_ENV"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/forkly-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/forkly-release.jks" >> "$GITHUB_ENV"
 
       - name: Assemble signed release (arm + arm64)
         run: ./gradlew :app:assembleRelease --stacktrace
