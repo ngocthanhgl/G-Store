@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/social/social-preview-1280x640.png" alt="Forkly social preview" width="720">
+  <img src="docs/screenshots/demo.gif" alt="Forkly: browsing, opening an app, downloading" width="320">
 </p>
 
 [Download the latest release](https://github.com/ngocthanhgl/forkly/releases/latest)
@@ -41,9 +41,13 @@ Choose light, dark, system, or AMOLED themes; set an accent color, grid or list 
 
 ## Screenshots
 
-<!-- Add screenshots here, e.g.
-<img src="docs/screenshots/home.png" width="240" alt="Home">
--->
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.jpg" width="240" alt="Forkly home: trending apps"><br><sub>Home — trending, new, top stars</sub></td>
+    <td align="center"><img src="docs/screenshots/categories.jpg" width="240" alt="Forkly category browsing"><br><sub>Categories</sub></td>
+    <td align="center"><img src="docs/screenshots/details.jpg" width="240" alt="Forkly app details and release history"><br><sub>App details, notes, artifacts</sub></td>
+  </tr>
+</table>
 
 APK availability and device compatibility depend on each project's releases. Repository names, artwork, and APKs remain the property and responsibility of their respective maintainers.
 
